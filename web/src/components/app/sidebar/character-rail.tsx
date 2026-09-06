@@ -185,7 +185,7 @@ export function CharacterRail({
             <nav
                 id="character-rail"
                 className={cn(
-                    'relative z-40 flex min-h-0 flex-col items-center border-r border-sidebar-border bg-sidebar pb-3 max-[820px]:fixed max-[820px]:inset-y-0 max-[820px]:left-0 max-[820px]:w-[4.125rem] max-[820px]:invisible max-[820px]:-translate-x-full max-[820px]:transition-[transform,visibility] max-[820px]:duration-200 max-[820px]:ease-out motion-reduce:transition-none',
+                    'relative z-40 flex min-h-0 flex-col items-center border-r border-sidebar-border bg-sidebar max-[820px]:fixed max-[820px]:inset-y-0 max-[820px]:left-0 max-[820px]:w-[4.125rem] max-[820px]:invisible max-[820px]:-translate-x-full max-[820px]:transition-[transform,visibility] max-[820px]:duration-200 max-[820px]:ease-out motion-reduce:transition-none',
                     mobileOpen && 'max-[820px]:visible max-[820px]:translate-x-0',
                 )}
                 aria-label="캐릭터"
@@ -317,7 +317,7 @@ export function CharacterRail({
                 <ThemeToggle className="mt-2 size-12 shrink-0" />
                 <Button
                     variant="ghost"
-                    className="mb-10 grid size-12 shrink-0 place-items-center p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="grid size-12 shrink-0 place-items-center p-0 text-muted-foreground hover:bg-accent hover:text-foreground mb-3"
                     onClick={onSettings}
                     aria-label="서버 설정"
                 >
