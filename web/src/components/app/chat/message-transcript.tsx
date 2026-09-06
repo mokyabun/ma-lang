@@ -19,6 +19,15 @@ import {
 } from '@phosphor-icons/react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Textarea } from '@/components/ui/textarea'
@@ -28,7 +37,6 @@ import { renderMessageHtml } from '@/lib/sanitize-message-html'
 import { cn } from '@/lib/utils'
 
 import { CharacterAvatar } from '../character/character-avatar'
-import { ConfirmDialog } from '../dialogs/confirm-dialog'
 import { PersonaAvatar } from '../settings/persona/persona-avatar'
 import { formatClock, statusLabel } from './format'
 
@@ -53,7 +61,7 @@ export function MessageTranscript({
     onRegenerate,
     onSelectGreeting,
     onEdit,
-    onTruncate,
+    onDelete,
     onVersions,
     onSelectVersion,
     onLuaTriggered,
@@ -70,7 +78,7 @@ export function MessageTranscript({
     onRegenerate: () => void
     onSelectGreeting: (greetingIndex: number) => Promise<void>
     onEdit: (message: Message, content: string) => Promise<void>
-    onTruncate: (message: Message) => Promise<void>
+    onDelete: (message: Message, scope: 'only' | 'from') => Promise<void>
     onVersions: (message: Message) => Promise<{ generations: GenerationRun[] }>
     onSelectVersion: (message: Message, generationId: string) => Promise<void>
     onLuaTriggered: () => void | Promise<void>
@@ -333,7 +341,8 @@ export function MessageTranscript({
                                         isLast={index === messages.length - 1}
                                         onRegenerate={onRegenerate}
                                         onStartEdit={() => changeEditingMessage(message.id)}
-                                        onTruncate={onTruncate}
+                                        deleteCount={messages.length - index}
+                                        onDelete={onDelete}
                                         onVersions={onVersions}
                                         onSelectVersion={onSelectVersion}
                                     />
@@ -574,7 +583,8 @@ function MessageTools({
     isLast,
     onRegenerate,
     onStartEdit,
-    onTruncate,
+    deleteCount,
+    onDelete,
     onVersions,
     onSelectVersion,
 }: {
@@ -582,7 +592,8 @@ function MessageTools({
     isLast: boolean
     onRegenerate: () => void
     onStartEdit: () => void
-    onTruncate: (message: Message) => Promise<void>
+    deleteCount: number
+    onDelete: (message: Message, scope: 'only' | 'from') => Promise<void>
     onVersions: (message: Message) => Promise<{ generations: GenerationRun[] }>
     onSelectVersion: (message: Message, generationId: string) => Promise<void>
 }) {
@@ -621,8 +632,8 @@ function MessageTools({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setTruncating(true)}
-                aria-label="이후 메시지 삭제"
-                title="이후 삭제"
+                aria-label="메시지 삭제"
+                title="삭제"
             >
                 <Trash />
             </Button>
@@ -649,13 +660,11 @@ function MessageTools({
                     <ArrowClockwise />
                 </Button>
             ) : null}
-            <ConfirmDialog
+            <MessageDeleteDialog
                 open={truncating}
-                title="이후 대화를 삭제할까요?"
-                description="선택한 메시지 다음에 있는 모든 메시지를 대화 기록에서 제거합니다."
-                confirmLabel="이후 메시지 삭제"
+                deleteCount={deleteCount}
                 onOpenChange={setTruncating}
-                onConfirm={() => onTruncate(message)}
+                onDelete={(scope) => onDelete(message, scope)}
             />
             {runs ? (
                 <div className="mt-3 grid gap-1 border-l border-border pl-3 [&>button]:justify-start [&>button]:text-left">
@@ -690,6 +699,68 @@ function MessageTools({
                 </div>
             ) : null}
         </div>
+    )
+}
+
+function MessageDeleteDialog({
+    open,
+    deleteCount,
+    onOpenChange,
+    onDelete,
+}: {
+    open: boolean
+    deleteCount: number
+    onOpenChange: (open: boolean) => void
+    onDelete: (scope: 'only' | 'from') => Promise<void>
+}) {
+    const [deleting, setDeleting] = useState(false)
+
+    async function remove(scope: 'only' | 'from') {
+        if (deleting) return
+        setDeleting(true)
+        try {
+            await onDelete(scope)
+            onOpenChange(false)
+        } finally {
+            setDeleting(false)
+        }
+    }
+
+    return (
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>이 메시지를 삭제하시겠습니까?</AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="grid gap-2">
+                    <AlertDialogAction
+                        variant="destructive"
+                        disabled={deleting}
+                        onClick={(event) => {
+                            event.preventDefault()
+                            void remove('only')
+                        }}
+                    >
+                        이 메시지만 삭제
+                    </AlertDialogAction>
+                    {deleteCount > 1 ? (
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={deleting}
+                            onClick={(event) => {
+                                event.preventDefault()
+                                void remove('from')
+                            }}
+                        >
+                            이후 메시지까지 삭제 ({deleteCount}개)
+                        </AlertDialogAction>
+                    ) : null}
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     )
 }
 

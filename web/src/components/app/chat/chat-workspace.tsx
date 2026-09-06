@@ -215,8 +215,12 @@ export function ChatWorkspace({
                                     await api.updateMessage(conversation.id, message.id, content)
                                     await loadConversation(conversation.id)
                                 }}
-                                onTruncate={async (message) => {
-                                    await api.truncateAfterMessage(conversation.id, message.id)
+                                onDelete={async (message, scope) => {
+                                    if (scope === 'from') {
+                                        await api.truncateFromMessage(conversation.id, message.id)
+                                    } else {
+                                        await api.deleteMessage(conversation.id, message.id)
+                                    }
                                     await loadConversation(conversation.id)
                                 }}
                                 onVersions={(message) =>
@@ -236,6 +240,7 @@ export function ChatWorkspace({
                                 disabled={!effectiveModel || busy}
                                 busy={busy}
                                 canCancel={Boolean(currentGeneration?.generationId)}
+                                canSendEmpty={messages.at(-1)?.role === 'user'}
                                 onSend={(content) =>
                                     void generateReply({ conversationId: conversation.id, content })
                                 }

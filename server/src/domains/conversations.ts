@@ -208,6 +208,23 @@ export function createConversationDomain(context: AppContext) {
                 ),
             })
         })
+        .delete('/:id/messages/:messageId/from', (c) => {
+            const message = context.store.message.get(c.req.param('messageId'))
+            if (!message || message.conversationId !== c.req.param('id')) {
+                throw new NotFoundError('Message not found')
+            }
+            return c.json({
+                deleted: context.store.message.truncate(message.conversationId, message.position),
+            })
+        })
+        .delete('/:id/messages/:messageId', (c) => {
+            const message = context.store.message.get(c.req.param('messageId'))
+            if (!message || message.conversationId !== c.req.param('id')) {
+                throw new NotFoundError('Message not found')
+            }
+            context.store.message.delete(message.id)
+            return c.body(null, 204)
+        })
         .get('/:id/messages/:messageId/generations', (c) => {
             const message = context.store.message.get(c.req.param('messageId'))
             if (!message || message.conversationId !== c.req.param('id')) {

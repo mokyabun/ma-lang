@@ -100,8 +100,17 @@ export class GenerationService {
         }
         if (this.store.generation.findRunning(conversationId))
             throw new GenerationConflictError('A generation is already running')
-        const providerConfig = await this.providers.requireRuntimeForConversation(conversationId)
         let context = this.context(conversationId)
+        const reuseLastUserMessage =
+            request.mode === 'reply' &&
+            request.content === '' &&
+            context.messages.at(-1)?.role === 'user'
+        if (request.mode === 'reply' && request.content === '' && !reuseLastUserMessage) {
+            throw new ValidationError(
+                'An empty reply requires a user message at the end of the chat',
+            )
+        }
+        const providerConfig = await this.providers.requireRuntimeForConversation(conversationId)
         const modelChain = context.conversation.modelChainPresetId
             ? this.store.modelChain.get(context.conversation.modelChainPresetId)
             : null
@@ -128,7 +137,7 @@ export class GenerationService {
         let chainContext: ChainExecutionContext | null = null
         let stoppedBeforeProvider = false
         try {
-            if (request.mode === 'reply') {
+            if (request.mode === 'reply' && !reuseLastUserMessage) {
                 await this.lua.executeEvent({
                     conversationId,
                     eventKey: request.idempotencyKey,
@@ -161,7 +170,7 @@ export class GenerationService {
                     processedInput.text,
                     'complete',
                 )
-            } else if (!targetMessage) {
+            } else if (request.mode === 'regenerate' && !targetMessage) {
                 throw new GenerationConflictError('There is no assistant message to regenerate')
             }
 

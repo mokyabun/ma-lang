@@ -312,6 +312,15 @@ export const api = {
             method: 'PATCH',
             body: JSON.stringify({ content }),
         }),
+    deleteMessage: (conversationId: string, messageId: string) =>
+        request<void>(`/conversations/${conversationId}/messages/${messageId}`, {
+            method: 'DELETE',
+        }),
+    truncateFromMessage: (conversationId: string, messageId: string) =>
+        request<{ deleted: number }>(
+            `/conversations/${conversationId}/messages/${messageId}/from`,
+            { method: 'DELETE' },
+        ),
     truncateAfterMessage: (conversationId: string, messageId: string) =>
         request<{ deleted: number }>(
             `/conversations/${conversationId}/messages/${messageId}/after`,

@@ -1154,6 +1154,87 @@ describe('Hono API and SQLite persistence', () => {
         expect(debugHistory.requests[0]?.request.body).toBeDefined()
     })
 
+    test('reuses a trailing user message when an empty reply is requested', async () => {
+        const created = await app.request('/api/v1/conversations', {
+            method: 'POST',
+            headers: { cookie, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                characterId: GENERAL_CHAT_CHARACTER_ID,
+                title: 'Empty reply reuse',
+            }),
+        })
+        expect(created.status).toBe(201)
+        const id = ((await created.json()) as { id: string }).id
+        const userMessage = context.store.message.create(id, 'user', 'Use this again', 'complete')
+
+        const response = await app.request(`/api/v1/conversations/${id}/generations`, {
+            method: 'POST',
+            headers: { cookie, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                mode: 'reply',
+                content: '',
+                idempotencyKey: 'generation-empty-reuse-0001',
+            }),
+        })
+        expect(response.status).toBe(200)
+        await response.text()
+
+        const messages = context.store.message.list(id)
+        expect(messages.filter((message) => message.role === 'user')).toEqual([userMessage])
+        expect(messages.at(-1)).toMatchObject({
+            role: 'assistant',
+            content: 'Hello from Ollama',
+            status: 'complete',
+        })
+
+        const rejected = await app.request(`/api/v1/conversations/${id}/generations`, {
+            method: 'POST',
+            headers: { cookie, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                mode: 'reply',
+                content: '',
+                idempotencyKey: 'generation-empty-reject-0001',
+            }),
+        })
+        expect(rejected.status).toBe(422)
+    })
+
+    test('deletes one message or the selected message and everything after it', async () => {
+        const created = await app.request('/api/v1/conversations', {
+            method: 'POST',
+            headers: { cookie, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                characterId: GENERAL_CHAT_CHARACTER_ID,
+                title: 'Message deletion scopes',
+            }),
+        })
+        expect(created.status).toBe(201)
+        const id = ((await created.json()) as { id: string }).id
+        const first = context.store.message.create(id, 'user', 'first', 'complete')
+        const second = context.store.message.create(id, 'assistant', 'second', 'complete')
+        const third = context.store.message.create(id, 'user', 'third', 'complete')
+        const fourth = context.store.message.create(id, 'assistant', 'fourth', 'complete')
+
+        const only = await app.request(`/api/v1/conversations/${id}/messages/${second.id}`, {
+            method: 'DELETE',
+            headers: { cookie },
+        })
+        expect(only.status).toBe(204)
+        expect(context.store.message.list(id).map((message) => message.id)).toEqual([
+            first.id,
+            third.id,
+            fourth.id,
+        ])
+
+        const from = await app.request(`/api/v1/conversations/${id}/messages/${third.id}/from`, {
+            method: 'DELETE',
+            headers: { cookie },
+        })
+        expect(from.status).toBe(200)
+        expect(await from.json()).toEqual({ deleted: 2 })
+        expect(context.store.message.list(id).map((message) => message.id)).toEqual([first.id])
+    })
+
     test('propagates cancellation and preserves partial assistant output', async () => {
         const response = await app.request(`/api/v1/conversations/${conversationId}/generations`, {
             method: 'POST',

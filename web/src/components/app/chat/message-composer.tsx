@@ -9,6 +9,7 @@ export function Composer({
     disabled,
     busy,
     canCancel,
+    canSendEmpty,
     onSend,
     onCancel,
     onOpenSettings,
@@ -17,6 +18,7 @@ export function Composer({
     disabled: boolean
     busy: boolean
     canCancel: boolean
+    canSendEmpty: boolean
     onSend: (content: string) => void
     onCancel: () => void
     onOpenSettings: () => void
@@ -25,7 +27,7 @@ export function Composer({
 
     function submit() {
         const value = content.trim()
-        if (!value || disabled) return
+        if ((!value && !canSendEmpty) || disabled) return
         setContent('')
         onSend(value)
     }
@@ -79,7 +81,7 @@ export function Composer({
                         type="submit"
                         size="icon-sm"
                         className="shrink-0 rounded-full bg-primary text-primary-foreground"
-                        disabled={disabled || !content.trim()}
+                        disabled={disabled || (!content.trim() && !canSendEmpty)}
                         aria-label="메시지 전송"
                     >
                         <ArrowUp aria-hidden="true" weight="bold" />

@@ -9,7 +9,7 @@ import { GenerationParametersSchema } from './providers'
 export const GenerationRequestSchema = z.discriminatedUnion('mode', [
     z.object({
         mode: z.literal('reply'),
-        content: z.string().min(1).max(1_000_000),
+        content: z.string().max(1_000_000),
         idempotencyKey: z.string().min(8).max(200),
         clientInstanceId: z.uuid().optional(),
     }),
