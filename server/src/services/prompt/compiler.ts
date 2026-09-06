@@ -72,6 +72,7 @@ export function compilePrompt(input: {
     persona?: EffectivePersona
     assets?: TemplateContext['assets']
     modelId?: string
+    includeStartNewChat?: boolean
     longTermMemory?: {
         enabled: boolean
         content: string
@@ -402,6 +403,13 @@ export function compilePrompt(input: {
         addLongTermMemory()
     }
     if (!hasChat || !afterChatAdded) addModulePrompts('afterChat')
+
+    // PocketRisu appends this synthetic turn on its chat path. The caller gates
+    // it to Gemini here so providers with different classic semantics do not
+    // change as a side effect of the Gemini compatibility work.
+    if (input.includeStartNewChat && !preset.promptSettings.trimStartNewChat) {
+        push({ role: 'system', content: '[Start a new chat]', removable: false })
+    }
 
     if (preset.promptSettings.assistantPrefill.trim()) {
         push({

@@ -10,6 +10,24 @@ const context = {
 }
 
 describe('safe template engine', () => {
+    test('keeps a Response Template block selected by nested numeric CBS', () => {
+        const source = `{{#if {{? {{getglobalvar::toggle_response_mode}}>=2}}}}
+---
+
+## Response Template
+
+- Response must follow the template below:
+{{/if}}`
+        const result = renderTemplate(source, {
+            values: {},
+            variables: {},
+            globalVariables: { toggle_response_mode: '3' },
+            toggles: {},
+        })
+
+        expect(result.text).toContain('## Response Template')
+        expect(result.warnings).toEqual([])
+    })
     test('renders variables and nested condition blocks', () => {
         const result = renderTemplate(
             '{{#if {{not_equal::{{user}}::}}}}Hi {{user}} {{#when::{{and::{{greater::{{getvar::affinity}}::5}}::{{toggle::secret}}}}}}trusted{{:else}}guest{{/when}}{{:else}}unknown{{/if}}',

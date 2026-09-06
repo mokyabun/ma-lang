@@ -376,4 +376,22 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
             { role: 'user', content: "<Aria's Message>\nHello\n</Aria's Message>" },
         ])
     })
+
+    test('appends PocketRisu start-new-chat marker when requested', () => {
+        const input = baseInput()
+        input.includeStartNewChat = true
+        expect(compilePrompt(input).messages.at(-1)).toEqual({
+            role: 'system',
+            content: '[Start a new chat]',
+        })
+    })
+
+    test('trimStartNewChat suppresses the PocketRisu marker', () => {
+        const input = baseInput()
+        input.includeStartNewChat = true
+        input.preset.promptSettings.trimStartNewChat = true
+        expect(compilePrompt(input).messages.map((message) => message.content)).not.toContain(
+            '[Start a new chat]',
+        )
+    })
 })

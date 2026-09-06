@@ -20,13 +20,14 @@ import type { HypaMemoryV3Service } from '@/services/memory'
 import { compilePrompt, mergeGenerationParameters } from '@/services/prompt/compiler'
 import { collectRegexScripts, processRegexText } from '@/services/prompt/regex-runtime'
 import { providerFor } from '@/services/providers'
+import { readPocketRisuProfileBinding } from '@/services/providers/pocketrisu-profile'
 import type { ProviderUsage } from '@/services/providers/types'
 import type { RuntimeProviderConfig } from '@/services/providers/types'
 
 import type { PersonaService } from '../personas'
 import type { ProviderService } from '../providers'
 import {
-    applyEditProcess,
+    applyEditProcessToMessages,
     loadGenerationContext,
     normalizeCompiledRole,
     regexTemplateContext,
@@ -61,17 +62,21 @@ export class GenerationService {
     async preview(conversationId: string) {
         const context = this.context(conversationId)
         const provider = this.providers.configForConversation(conversationId)
-        const parameters = mergeGenerationParameters(
-            provider?.defaults || {},
-            context.preset.parameters,
-        )
+        const parameters = generationParameters(provider, context.preset.parameters)
         const longTermMemory = this.memory.recall(
             conversationId,
             context.messages,
             parameters.maxContextTokens,
         )
-        const preview = compilePrompt({ ...context, parameters, longTermMemory })
-        return applyEditProcess(preview, context)
+        const processed = await applyEditProcessToMessages(context.messages, context)
+        const preview = compilePrompt({
+            ...context,
+            messages: processed.messages,
+            parameters,
+            longTermMemory,
+            includeStartNewChat: isGeminiProvider(provider),
+        })
+        return { ...preview, warnings: [...new Set([...preview.warnings, ...processed.warnings])] }
     }
 
     async start(conversationId: string, request: GenerationRequest, requestId: string) {
@@ -102,10 +107,7 @@ export class GenerationService {
             : null
         const clientInstanceId = request.clientInstanceId ?? crypto.randomUUID()
         const luaScriptSnapshot = this.lua.snapshotScripts(conversationId)
-        const parameters = mergeGenerationParameters(
-            providerConfig.defaults,
-            context.preset.parameters,
-        )
+        const parameters = generationParameters(providerConfig, context.preset.parameters)
         const generationId = crypto.randomUUID()
         this.store.generation.create({
             id: generationId,
@@ -178,10 +180,15 @@ export class GenerationService {
             compileMessages = targetMessage
                 ? context.messages.filter((message) => message.id !== targetMessage.id)
                 : context.messages
-            const preliminary = compilePrompt({
+            const processed = await applyEditProcessToMessages(compileMessages, {
                 ...context,
                 messages: compileMessages,
+            })
+            const preliminary = compilePrompt({
+                ...context,
+                messages: processed.messages,
                 parameters,
+                includeStartNewChat: isGeminiProvider(providerConfig),
             })
             const longTermMemory = await this.memory.prepare(
                 conversationId,
@@ -191,14 +198,12 @@ export class GenerationService {
             )
             preview = compilePrompt({
                 ...context,
-                messages: compileMessages,
+                messages: processed.messages,
                 parameters,
                 longTermMemory,
+                includeStartNewChat: isGeminiProvider(providerConfig),
             })
-            preview = await applyEditProcess(preview, {
-                ...context,
-                messages: compileMessages,
-            })
+            preview.warnings = [...new Set([...preview.warnings, ...processed.warnings])]
             chainContext = buildChainExecutionContext(
                 context,
                 compileMessages,
@@ -652,4 +657,37 @@ export class GenerationService {
     private context(conversationId: string) {
         return loadGenerationContext(this.store, this.personas, conversationId)
     }
+}
+
+function isGeminiProvider(
+    config: { provider: string; apiFormat?: string } | null | undefined,
+): boolean {
+    return (
+        config?.apiFormat === 'google-gemini' ||
+        config?.provider === 'google' ||
+        config?.provider === 'vertex'
+    )
+}
+
+function generationParameters(
+    provider: {
+        provider: string
+        apiFormat?: string
+        defaults?: GenerationParameters
+        providerOptions?: Record<string, unknown>
+    } | null,
+    promptPreset: GenerationParameters,
+) {
+    const merged = mergeGenerationParameters(provider?.defaults || {}, promptPreset)
+    // PocketRisu reserves output context from the bound Model Preset. Prompt
+    // preset sampling can be opt-in there, but its output cap never replaces
+    // the model preset's maxOutputTokens.
+    if (
+        isGeminiProvider(provider) &&
+        readPocketRisuProfileBinding(provider?.providerOptions) &&
+        provider?.defaults?.maxOutputTokens !== undefined
+    ) {
+        merged.maxOutputTokens = provider.defaults.maxOutputTokens
+    }
+    return merged
 }

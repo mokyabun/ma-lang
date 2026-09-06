@@ -1,4 +1,4 @@
-import type { PromptPreview } from '@malang/shared'
+import type { Message } from '@malang/shared'
 
 import type { Store } from '@/db'
 import { collectRegexScripts, processRegexText } from '@/services/prompt/regex-runtime'
@@ -54,14 +54,14 @@ export function loadGenerationContext(
 
 export type GenerationContext = ReturnType<typeof loadGenerationContext>
 
-export async function applyEditProcess(
-    preview: PromptPreview,
+export async function applyEditProcessToMessages(
+    messages: Message[],
     context: GenerationContext,
-): Promise<PromptPreview> {
+): Promise<{ messages: Message[]; warnings: string[] }> {
     const scripts = collectRegexScripts(context.preset, context.character, context.modules)
     const templateContext = regexTemplateContext(context)
     const results = await Promise.all(
-        preview.messages.map((message) =>
+        messages.map((message) =>
             processRegexText({
                 text: message.content,
                 phase: 'editprocess',
@@ -71,14 +71,11 @@ export async function applyEditProcess(
         ),
     )
     return {
-        ...preview,
-        messages: preview.messages.map((message, index) => ({
+        messages: messages.map((message, index) => ({
             ...message,
             content: results[index]?.text ?? message.content,
         })),
-        warnings: [
-            ...new Set([...preview.warnings, ...results.flatMap((result) => result.warnings)]),
-        ],
+        warnings: [...new Set(results.flatMap((result) => result.warnings))],
     }
 }
 
