@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -57,11 +56,7 @@ export function ModelChainSection({ presets, modelPresets, onChanged }: ModelCha
     return (
         <div className="h-full min-h-0 min-w-0 overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4 max-sm:pt-5">
             <div className="w-full">
-                <SectionHeading
-                    className="mb-5 pr-12 [&_h2]:text-2xl"
-                    title="모델 체이닝"
-                    description="노드를 연결해 모델 실행 흐름을 구성하세요. 노드를 자유롭게 추가하고 연결할 수 있습니다."
-                />
+                <SectionHeading className="mb-5 pr-12 [&_h2]:text-2xl" title="모델 체이닝" />
                 {notice && !dialogOpen ? (
                     <Alert className="mb-4 border-destructive/30 bg-destructive/5 text-destructive">
                         <WarningCircle aria-hidden="true" />
@@ -162,10 +157,6 @@ export function ModelChainSection({ presets, modelPresets, onChanged }: ModelCha
                                         <DialogTitle className="font-serif text-xl">
                                             {editingId ? '파이프라인 수정' : '새 파이프라인'}
                                         </DialogTitle>
-                                        <DialogDescription>
-                                            노드를 연결해 실행 흐름을 만들고, 노드를 선택해 모델과
-                                            프롬프트를 편집하세요.
-                                        </DialogDescription>
                                     </div>
                                     <div className="mr-5 flex items-center gap-1">
                                         <Button

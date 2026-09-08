@@ -135,9 +135,6 @@ export function CharacterQuickEditor({
                 />
                 <CharacterAvatar character={character} />
                 <div className="min-w-0 flex-1">
-                    <p className="font-mono text-[9px] font-semibold tracking-[0.14em] text-primary">
-                        CHARACTER EDITOR
-                    </p>
                     <h2 className="truncate font-serif text-lg">{draft.name || character.name}</h2>
                 </div>
                 <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground max-sm:hidden">
@@ -175,10 +172,7 @@ export function CharacterQuickEditor({
                 <div className="mx-auto w-full max-w-4xl">
                     <div className="mb-6 flex items-end justify-between gap-3 border-b border-border pb-3">
                         <div className="min-w-0">
-                            <p className="font-mono text-[9px] tracking-[0.14em] text-primary">
-                                CHARACTER / {sections.find((item) => item.id === section)?.label}
-                            </p>
-                            <h3 className="mt-1 font-serif text-2xl">
+                            <h3 className="font-serif text-2xl">
                                 {sections.find((item) => item.id === section)?.label}
                             </h3>
                         </div>
@@ -210,14 +204,8 @@ export function CharacterQuickEditor({
                         <div className="mt-10 border-t border-border pt-5">
                             <div className="mb-3 flex items-end justify-between gap-3">
                                 <div>
-                                    <p className="font-mono text-[9px] tracking-[0.14em] text-primary">
-                                        CHARACTER ACTIONS
-                                    </p>
-                                    <h4 className="mt-1 font-serif text-lg">캐릭터 관리</h4>
+                                    <h4 className="font-serif text-lg">캐릭터 관리</h4>
                                 </div>
-                                <span className="font-mono text-[9px] text-muted-foreground">
-                                    LOCAL CARD
-                                </span>
                             </div>
                             <div className="grid gap-2">
                                 <Button

@@ -27,11 +27,7 @@ export function ThemeSection() {
     return (
         <div className="h-full min-h-0 min-w-0 overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4 max-sm:pt-5">
             <div className="w-full">
-                <SectionHeading
-                    className="mb-7 pr-12 [&_h2]:text-2xl"
-                    title="테마"
-                    description="화면의 명암과 채팅 원고의 읽기 크기를 이 브라우저에 맞춥니다. 변경 내용은 즉시 반영됩니다."
-                />
+                <SectionHeading className="mb-7 pr-12 [&_h2]:text-2xl" title="테마" />
 
                 <section className="border-y border-border py-5">
                     <SettingTitle

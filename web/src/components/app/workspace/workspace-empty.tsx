@@ -35,9 +35,6 @@ export function WorkspaceEmpty() {
                 >
                     <UploadSimple />
                 </div>
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    NO CHARACTERS
-                </p>
                 <h2>첫 캐릭터를 들여오세요.</h2>
                 <p>RisuAI의 CCv2·CCv3 JSON, PNG, CHARX 카드를 그대로 가져올 수 있습니다.</p>
                 <Button size="lg" onClick={() => requestImport()}>
@@ -69,10 +66,7 @@ export function WorkspaceEmpty() {
     return (
         <div className="row-span-full mx-auto h-full w-full max-w-3xl overflow-y-auto px-6 py-10 sm:py-16">
             <div className="mb-8 text-center">
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    START A SCENE
-                </p>
-                <h2 className="mt-2 font-serif text-3xl">누구와 이야기할까요?</h2>
+                <h2 className="font-serif text-3xl">누구와 이야기할까요?</h2>
             </div>
 
             <button
@@ -97,7 +91,7 @@ export function WorkspaceEmpty() {
             </button>
 
             <div className="mb-3 flex items-center gap-3 font-mono text-[9px] uppercase tracking-widest text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
-                <span>Characters</span>
+                <span>캐릭터</span>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {characters.map((character) => (

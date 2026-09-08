@@ -41,10 +41,7 @@ export function SettingsWorkspace({ section }: { section: SettingsSection }) {
     if (!settings && !initialized) {
         return (
             <main className="grid h-dvh place-content-center justify-items-center gap-3 bg-background">
-                <div className="grid size-14 place-items-center bg-primary font-serif text-2xl font-bold text-primary-foreground">
-                    M
-                </div>
-                <p className="text-sm text-muted-foreground">설정을 불러오는 중</p>
+                <p className="text-sm text-muted-foreground">설정을 불러오는 중…</p>
             </main>
         )
     }

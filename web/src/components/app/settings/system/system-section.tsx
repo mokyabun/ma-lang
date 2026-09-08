@@ -27,11 +27,7 @@ export function SystemSection({
 
     return (
         <div className="h-full overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4">
-            <SectionHeading
-                className="mb-0 pr-12 [&_h2]:text-2xl"
-                title="시스템"
-                description="데이터 보호, 진단 기록과 모델 사용량을 한곳에서 관리합니다."
-            />
+            <SectionHeading className="mb-0 pr-12 [&_h2]:text-2xl" title="시스템" />
             <nav
                 aria-label="시스템 페이지"
                 className="mb-6 flex min-w-0 gap-1 overflow-x-auto border-b border-border"

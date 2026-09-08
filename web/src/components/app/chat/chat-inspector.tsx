@@ -226,12 +226,7 @@ export function ChatInspector({
                 }}
             >
                 <header>
-                    <div>
-                        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                            THREAD DETAILS
-                        </p>
-                        <h3>대화 설정</h3>
-                    </div>
+                    <h3>대화 설정</h3>
                     <SheetClose
                         render={
                             <Button

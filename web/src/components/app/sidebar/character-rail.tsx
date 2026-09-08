@@ -20,6 +20,7 @@ import {
     FolderOpen,
     FolderPlus,
     GearSix,
+    House,
     PencilSimple,
     Plus,
     Trash,
@@ -193,10 +194,10 @@ export function CharacterRail({
                 <button
                     type="button"
                     onClick={onHome}
-                    className="grid h-[4rem] w-full shrink-0 place-items-center border-b border-sidebar-border font-serif text-xl font-bold text-primary transition-colors hover:bg-accent max-[820px]:text-transparent"
+                    className="grid h-[4rem] w-full shrink-0 place-items-center border-b border-sidebar-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     aria-label="홈으로 이동"
                 >
-                    M
+                    <House className="size-5" aria-hidden="true" />
                 </button>
                 <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2.5 overflow-y-auto px-2 pb-1 pt-3">
                     {chatCharacter ? (

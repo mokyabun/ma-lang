@@ -127,10 +127,7 @@ export function BackupSection({
     return (
         <div className={cn(!embedded && 'h-full overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4')}>
             {embedded ? (
-                <div className="mb-5 flex items-start justify-between gap-4 max-sm:flex-col">
-                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                        원하는 시점의 Malang을 저장해 두고, 필요할 때 그대로 돌아갑니다.
-                    </p>
+                <div className="mb-5 flex justify-end">
                     <Button disabled={Boolean(busy)} onClick={() => void createSnapshot()}>
                         {busy === 'create' ? <Spinner /> : <Plus />}
                         지금 스냅샷 만들기
@@ -140,7 +137,6 @@ export function BackupSection({
                 <SectionHeading
                     className="mb-6 pr-12 [&_h2]:text-2xl"
                     title="스냅샷"
-                    description="원하는 시점의 Malang을 저장해 두고, 필요할 때 그대로 돌아갑니다."
                     actions={
                         <Button disabled={Boolean(busy)} onClick={() => void createSnapshot()}>
                             {busy === 'create' ? <Spinner /> : <Plus />}

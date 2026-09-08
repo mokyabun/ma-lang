@@ -226,11 +226,6 @@ export function ConversationSidebar({
                 <header className="flex h-[4rem] shrink-0 items-center gap-3 border-b border-sidebar-border px-3 [&_.avatar]:size-9 [&_.avatar]:shrink-0">
                     {character ? <CharacterAvatar character={character} /> : null}
                     <div className="min-w-0 flex-1">
-                        {isGeneralChat ? (
-                            <p className="font-mono text-[9px] font-semibold tracking-[0.14em] text-primary">
-                                GENERAL ASSISTANT
-                            </p>
-                        ) : null}
                         <h2 className="truncate font-serif text-base font-medium">
                             {character?.name ?? '캐릭터를 선택하세요'}
                         </h2>
@@ -292,7 +287,7 @@ export function ConversationSidebar({
 
                 <div className="flex items-center justify-between px-4 pb-2 pt-3">
                     <div className="flex items-center gap-2 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        <span>CHAT HISTORY</span>
+                        <span>채팅</span>
                         <span>{conversations.length}</span>
                     </div>
                     <Button

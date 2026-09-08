@@ -31,33 +31,13 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
 
     return (
         <main className="relative grid min-h-full place-items-center overflow-hidden bg-background p-6 sm:p-8">
-            <div
-                className="absolute left-6 top-6 flex gap-5 font-mono text-[10px] tracking-[0.14em] text-muted-foreground"
-                aria-hidden="true"
-            >
-                <span>MLN</span>
-                <span>01</span>
-                <span>SELF HOST</span>
-            </div>
             <section
-                className="relative w-full max-w-md border border-border bg-card p-8 shadow-2xl sm:p-12 [&_h1]:mt-2 [&_h1]:font-serif [&_h1]:text-3xl [&_h1]:leading-tight"
+                className="relative w-full max-w-md border border-border bg-card p-8 shadow-2xl sm:p-12 [&_h1]:font-serif [&_h1]:text-3xl [&_h1]:leading-tight"
                 aria-labelledby="login-title"
             >
-                <div
-                    className="mb-8 grid size-12 place-items-center bg-primary font-serif text-2xl font-bold text-primary-foreground"
-                    aria-hidden="true"
-                >
-                    M
-                </div>
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    PRIVATE CHARACTER ARCHIVE
-                </p>
                 <h1 id="login-title">다시 이야기를 시작하세요.</h1>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                    캐릭터 카드, 프롬프트와 대화 기록은 이 서버에만 보관됩니다.
-                </p>
 
-                <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
+                <form onSubmit={handleSubmit} className="mt-7 grid gap-5">
                     <Label htmlFor="admin-password">관리자 비밀번호</Label>
                     <div className="grid gap-2">
                         <Key aria-hidden="true" weight="duotone" />
@@ -84,14 +64,11 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
                         className="gap-2 mt-1 w-full"
                         disabled={submitting}
                     >
-                        {submitting ? '확인 중…' : 'Malang 열기'}
+                        {submitting ? '확인 중…' : '열기'}
                         <ArrowRight aria-hidden="true" />
                     </Button>
                 </form>
             </section>
-            <p className="absolute bottom-6 right-8 hidden font-mono text-[10px] text-muted-foreground sm:block">
-                Malang · self-hosted AI chat workspace
-            </p>
         </main>
     )
 }

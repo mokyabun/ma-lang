@@ -7,17 +7,11 @@ import type {
     Persona,
     PromptPreset,
 } from '@malang/shared'
-import { ArrowSquareOut, FlowArrow, Lock, LockOpen, SlidersHorizontal } from '@phosphor-icons/react'
+import { ArrowSquareOut, FlowArrow, Lock, LockOpen } from '@phosphor-icons/react'
 import { type ReactNode, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -121,15 +115,7 @@ export function ChatSettingsDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[min(46rem,calc(100dvh-2rem))] w-[min(46rem,calc(100%-2rem))] max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-card p-0 sm:max-w-none">
                 <DialogHeader className="border-b border-border px-6 py-5 pr-14">
-                    <div className="flex items-center gap-2 text-xs font-medium text-primary">
-                        <SlidersHorizontal aria-hidden="true" /> 빠른 설정
-                    </div>
                     <DialogTitle className="font-serif text-xl">채팅 설정</DialogTitle>
-                    <DialogDescription>
-                        {conversation
-                            ? `${conversation.title}에 사용할 빠른 생성 환경을 조정합니다.`
-                            : '채팅을 선택하면 설정을 변경할 수 있습니다.'}
-                    </DialogDescription>
                 </DialogHeader>
 
                 <Tabs

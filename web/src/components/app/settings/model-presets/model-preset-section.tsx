@@ -1,13 +1,7 @@
 import type { AppSettings, ModelApiKey, ModelPreset } from '@malang/shared'
 import { useState } from 'react'
 
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 
@@ -48,11 +42,7 @@ export function ModelPresetSection({
     return (
         <div className="h-full min-h-0 min-w-0 overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4 max-sm:pt-5">
             <div className="w-full">
-                <SectionHeading
-                    className="mb-5 pr-12 [&_h2]:text-2xl"
-                    title="모델 프리셋"
-                    description="API 키는 한 번만 암호화해 보관하고, 여러 모델 프리셋과 채팅에서 재사용합니다."
-                />
+                <SectionHeading className="mb-5 pr-12 [&_h2]:text-2xl" title="모델 프리셋" />
                 <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
                     <TabsList variant="line" className="mb-5">
                         <TabsTrigger value="presets">프리셋</TabsTrigger>
@@ -130,9 +120,6 @@ export function ModelPresetSection({
                                     <DialogTitle className="font-serif text-xl">
                                         {presetId ? '모델 프리셋 변경' : '새 모델 프리셋'}
                                     </DialogTitle>
-                                    <DialogDescription>
-                                        Provider, 인증 방식과 모델 ID를 한 곳에서 구성합니다.
-                                    </DialogDescription>
                                 </DialogHeader>
                                 <div className="min-h-0 overflow-y-auto">
                                     <PresetEditor

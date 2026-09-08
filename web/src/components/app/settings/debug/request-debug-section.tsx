@@ -38,11 +38,7 @@ export function RequestDebugSection({ settings, onSettingsChange }: RequestDebug
     return (
         <div className="h-full min-h-0 min-w-0 overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4 max-sm:pt-5">
             <div className="w-full">
-                <SectionHeading
-                    className="mb-6 pr-12 [&_h2]:text-2xl"
-                    title="요청 디버그"
-                    description="모델 제공자에 전송된 최종 요청 본문과 적용 파라미터를 확인합니다."
-                />
+                <SectionHeading className="mb-6 pr-12 [&_h2]:text-2xl" title="요청 디버그" />
 
                 <section className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-y border-border py-4">
                     <div>

@@ -29,7 +29,6 @@ export function PresetCatalog({
     return (
         <CatalogGroup
             title="저장된 모델 프리셋"
-            description="채팅과 Lua 호출에 바인딩할 모델 연결입니다."
             items={items}
             onSelect={onSelect}
             actions={

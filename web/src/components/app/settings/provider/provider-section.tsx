@@ -68,11 +68,7 @@ export function ProviderSection({ provider, onSaved }: ProviderSectionProps) {
     return (
         <div className="h-full min-h-0 min-w-0 overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4 max-sm:pt-5">
             <div className="w-full">
-                <SectionHeading
-                    className="mb-6 pr-12 [&_h2]:text-2xl"
-                    title="모델 연결"
-                    description="Provider 프로토콜을 서버에서 실행합니다."
-                />
+                <SectionHeading className="mb-6 pr-12 [&_h2]:text-2xl" title="모델 연결" />
                 <div className="flex flex-col gap-6" onBlurCapture={() => void autoSave.flush()}>
                     <Tabs
                         value={providerTab}

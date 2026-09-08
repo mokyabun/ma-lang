@@ -11,11 +11,7 @@ export function PersonaSection({
     return (
         <div className="h-full min-h-0 min-w-0 overflow-y-auto px-8 pb-16 pt-7 max-sm:px-4 max-sm:pt-5">
             <div className="w-full">
-                <SectionHeading
-                    className="mb-6 pr-12 [&_h2]:text-2xl"
-                    title="페르소나"
-                    description="대화에서 당신을 나타내는 프로필입니다. 활성 페르소나의 설명이 프롬프트에 삽입됩니다."
-                />
+                <SectionHeading className="mb-6 pr-12 [&_h2]:text-2xl" title="페르소나" />
                 <PersonaManager onSettingsChange={onSettingsChange} />
             </div>
         </div>

@@ -2,14 +2,12 @@ import { PencilSimple } from '@phosphor-icons/react'
 
 export function CatalogGroup({
     title,
-    description,
     items,
     actions,
     empty,
     onSelect,
 }: {
     title: string
-    description: string
     items: Array<{ id: string; title: string; detail: string; badge?: string }>
     actions: React.ReactNode
     empty: React.ReactNode
@@ -20,7 +18,6 @@ export function CatalogGroup({
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
                 <div>
                     <p className="text-sm font-medium">{title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{description}</p>
                 </div>
                 {actions}
             </div>

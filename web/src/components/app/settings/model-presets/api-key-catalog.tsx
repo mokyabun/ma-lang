@@ -16,7 +16,6 @@ export function ApiKeyCatalog({
     return (
         <CatalogGroup
             title="저장된 API 키"
-            description="Provider 인증 정보를 암호화해 보관합니다."
             items={items}
             onSelect={onSelect}
             actions={

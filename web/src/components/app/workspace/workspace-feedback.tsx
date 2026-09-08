@@ -26,11 +26,7 @@ export function WorkspaceError() {
 export function WorkspaceLoading() {
     return (
         <main className="grid size-full place-content-center justify-items-center bg-background">
-            <div className="grid size-14 place-items-center bg-primary font-serif text-2xl font-bold text-primary-foreground">
-                M
-            </div>
-            <p>작업공간을 정리하는 중</p>
-            <span />
+            <p className="text-sm text-muted-foreground">불러오는 중…</p>
         </main>
     )
 }
