@@ -1,0 +1,1625 @@
+{
+    "pocketRisuVersion": "1.13.0",
+    "pocketRisuCommit": "3d30fc5a1982b1b5d149b97e188b8ee45d89e1d2",
+    "cases": {
+        "baseline": {
+            "scenarioHash": "221c55e1768d03cf",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "persona-and-author-note": {
+            "scenarioHash": "354a00b08d1b63f1",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Main prompt."
+                },
+                {
+                    "role": "system",
+                    "content": "<persona>\nKim is a regular who always orders a latte.\n</persona>"
+                },
+                {
+                    "role": "system",
+                    "content": "Aria\nAria is a barista who talks to Kim.\n\nDescription of Aria: Cheerful and precise.\n\nCircumstances and context of the dialogue: A rainy morning at the cafe.\n</char>"
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "[Note: Aria is tired today.]"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "Main prompt.\n\n<persona>\nKim is a regular who always orders a latte.\n</persona>\n\nAria\nAria is a barista who talks to Kim.\n\nDescription of Aria: Cheerful and precise.\n\nCircumstances and context of the dialogue: A rainy morning at the cafe.\n</char>\n\n[Start a new chat]\n\n[Note: Aria is tired today.]"
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "cbs-in-messages": {
+            "scenarioHash": "d1f2c649458b614e",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "HP 5 / last id 2"
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "Hit! 7"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Ouch. HP is 5."
+                },
+                {
+                    "role": "user",
+                    "content": "Five left"
+                },
+                {
+                    "role": "system",
+                    "content": "Last: Five left"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "HP 5 / last id 2\n\n[Start a new chat]\n\nLast: Five left"
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Hit! 7"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Ouch. HP is 5."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Five left"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "cbs-expressions": {
+            "scenarioHash": "00a134ebaf55a408",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "{{// a comment that must disappear}}\nsum=7\nupper=ARIA\nreplace=lotte\nlen=3\nwhen=cold\nglobal=winter"
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "{{// a comment that must disappear}}\nsum=7\nupper=ARIA\nreplace=lotte\nlen=3\nwhen=cold\nglobal=winter\n\n[Start a new chat]"
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "toggles": {
+            "scenarioHash": "399e6ac13981a8c9",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Mature allowed. style=1"
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "toggle-when on"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "Mature allowed. style=1\n\n[Start a new chat]\n\ntoggle-when on"
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "jailbreak-and-cot": {
+            "scenarioHash": "a2845be6c09093d9",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Main."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Jailbreak block."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "Main.\n\n[Start a new chat]\n\nJailbreak block."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "block-roles": {
+            "scenarioHash": "2a26cb32117ee82d",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "System main."
+                },
+                {
+                    "role": "user",
+                    "content": "As user."
+                },
+                {
+                    "role": "assistant",
+                    "content": "As bot."
+                },
+                {
+                    "role": "user",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Tail system."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "System main.\n\n[Start a new chat]\n\nTail system."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "As user."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "As bot."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Aria is a barista who talks to Kim."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "system-prompt-and-post-history": {
+            "scenarioHash": "76342b97becce02e",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Card note before: Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\nCard note before: Reply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "alternate-greeting": {
+            "scenarioHash": "07052f4836881a26",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Oh, Kim. You again."
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Oh, Kim. You again."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "example-dialogue": {
+            "scenarioHash": "a34d40c72c496d8f",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "user",
+                    "content": "What do you recommend?"
+                },
+                {
+                    "role": "assistant",
+                    "content": "The house blend.\nIt is smooth."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "user",
+                    "content": "Any pastries?"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Croissants."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\n[Start a new chat]\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "What do you recommend?"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "The house blend.\nIt is smooth."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Any pastries?"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Croissants."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "send-name-group-template": {
+            "scenarioHash": "f5d3c005b5534693",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Aria: Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "[Aria turn]\nOne latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "[Aria turn]\nComing right up."
+                },
+                {
+                    "role": "user",
+                    "content": "[Aria turn]\nThanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Aria: Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "[Aria turn]\nOne latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "[Aria turn]\nComing right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "[Aria turn]\nThanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "send-chat-as-system": {
+            "scenarioHash": "39534392355eec40",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "system",
+                    "content": "assistant: Welcome in, Kim!"
+                },
+                {
+                    "role": "system",
+                    "content": "user: One latte, please."
+                },
+                {
+                    "role": "system",
+                    "content": "assistant: Coming right up."
+                },
+                {
+                    "role": "system",
+                    "content": "user: Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\nassistant: Welcome in, Kim!\n\nuser: One latte, please.\n\nassistant: Coming right up.\n\nuser: Thanks, Aria!\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": []
+            }
+        },
+        "trim-start-new-chat-and-post-end": {
+            "scenarioHash": "7aab7333a2675441",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                },
+                {
+                    "role": "system",
+                    "content": "Post end format."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\nReply in two short paragraphs.\n\nPost end format."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "chat-ranges": {
+            "scenarioHash": "4a291e8ee0671fc2",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Main."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "m1"
+                },
+                {
+                    "role": "assistant",
+                    "content": "m2"
+                },
+                {
+                    "role": "user",
+                    "content": "m3"
+                },
+                {
+                    "role": "system",
+                    "content": "Between ranges."
+                },
+                {
+                    "role": "assistant",
+                    "content": "m4"
+                },
+                {
+                    "role": "user",
+                    "content": "m5"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "Main.\n\n[Start a new chat]\n\nBetween ranges."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "m1"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "m2"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "m3"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "m4"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "m5"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "chatml-block": {
+            "scenarioHash": "6f6e5bcbc9d8fff9",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Main."
+                },
+                {
+                    "role": "system",
+                    "content": "ChatML system for Aria"
+                },
+                {
+                    "role": "user",
+                    "content": "ChatML user"
+                },
+                {
+                    "role": "assistant",
+                    "content": "ChatML assistant"
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "Main.\n\nChatML system for Aria\n\n[Start a new chat]"
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "ChatML user"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "ChatML assistant"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "lorebook-keywords-and-constant": {
+            "scenarioHash": "37d23f1d6aee7ef4",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "The cafe is called Moonbean."
+                },
+                {
+                    "role": "system",
+                    "content": "Lattes here use oat milk."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\nThe cafe is called Moonbean.\n\nLattes here use oat milk.\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "lorebook-decorators": {
+            "scenarioHash": "181cfd08308ce164",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Before description lore."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "After description lore."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "user",
+                    "content": "Depth-1 reminder."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nBefore description lore.\n\nAria is a barista who talks to Kim.\n\nAfter description lore.\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Depth-1 reminder."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "regex-editprocess": {
+            "scenarioHash": "974530b6eb660f01",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Aria. Stay in character."
+                },
+                {
+                    "role": "system",
+                    "content": "Aria is a barista who talks to Kim."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Want a mocha, Kim?"
+                },
+                {
+                    "role": "user",
+                    "content": "One mocha, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                },
+                {
+                    "role": "system",
+                    "content": "Reply in two short paragraphs."
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You are Aria. Stay in character.\n\nAria is a barista who talks to Kim.\n\n[Start a new chat]\n\nReply in two short paragraphs."
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Want a mocha, Kim?"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One mocha, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "module-lorebook-and-toggle": {
+            "scenarioHash": "b4bda3e620fe4197",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Module toggle on."
+                },
+                {
+                    "role": "system",
+                    "content": "[Start a new chat]"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Welcome in, Kim!"
+                },
+                {
+                    "role": "user",
+                    "content": "One latte, please."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Coming right up."
+                },
+                {
+                    "role": "user",
+                    "content": "Thanks, Aria!"
+                }
+            ],
+            "geminiPrompt": {
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "Module toggle on.\n\n[Start a new chat]"
+                        }
+                    ]
+                },
+                "contents": [
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Welcome in, Kim!"
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "One latte, please."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Coming right up."
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Thanks, Aria!"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

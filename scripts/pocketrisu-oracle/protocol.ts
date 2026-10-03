@@ -38,16 +38,72 @@ export interface MessageCase {
     scenario: MessageScenario
 }
 
+/**
+ * A chat described with PocketRisu-native data, so each side loads it through
+ * its own import path: PocketRisu through importPreset/importCharacterProcess,
+ * Malang through its preset, card and module codecs.
+ */
+export interface PromptScenario {
+    /** botPreset JSON as PocketRisu exports it; merged over presetTemplate on import. */
+    preset: Record<string, unknown>
+    /** Character Card V3 (`chara_card_v3`) JSON. */
+    character: Record<string, unknown>
+    /** `risuModule` JSON exports, all enabled globally. */
+    modules?: Record<string, unknown>[]
+    user: {
+        name: string
+        /** Persona prompt; empty or omitted means no persona text. */
+        persona?: string
+    }
+    chat: {
+        /** The greeting is not listed here; PocketRisu derives it from `fmIndex`. */
+        messages: Array<{ role: 'user' | 'char'; data: string }>
+        /** -1 selects `first_mes`, otherwise an `alternate_greetings` index. */
+        fmIndex?: number
+        /** Author's note. */
+        note?: string
+        /** Chat variables by bare name; PocketRisu stores them as `$name`. */
+        variables?: Record<string, string>
+    }
+    globalVariables?: Record<string, string>
+    /** Prompt toggle values by key; PocketRisu stores them as `toggle_<key>` globals. */
+    toggles?: Record<string, string>
+    jailbreakToggle?: boolean
+    chainOfThought?: boolean
+}
+
+/** The prompt PocketRisu's sendChat would hand to the request layer. */
+export interface RequestCase {
+    kind: 'request'
+    id: string
+    scenario: PromptScenario
+}
+
 export type DisplayCase = MarkupCase | MessageCase
-export type OracleCase = DisplayCase
+export type OracleCase = DisplayCase | RequestCase
 
 export interface OracleRequest {
     cases: OracleCase[]
 }
 
+export interface PromptMessage {
+    role: 'system' | 'user' | 'assistant'
+    content: string
+}
+
+/** The prompt-carrying fields of a Gemini `generateContent` request body. */
+export interface GeminiPrompt {
+    systemInstruction?: unknown
+    contents: unknown[]
+}
+
 export interface OracleResult {
     id: string
     html?: string
+    /** Request cases: the prompt sendChat hands to the request layer. */
+    messages?: PromptMessage[]
+    /** Request cases: the same prompt as the Gemini Model Preset adapter puts it on the wire. */
+    geminiPrompt?: GeminiPrompt
     error?: string
 }
 

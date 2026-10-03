@@ -23,7 +23,10 @@
         "check": "bun run --parallel --no-exit-on-error format:check lint typecheck",
         "db:generate": "drizzle-kit generate",
         "test": "bun test",
-        "test:watch": "bun test --watch"
+        "test:watch": "bun test --watch",
+        "test:parity": "bun test test/pocketrisu-parity",
+        "test:parity:live": "POCKETRISU_ORACLE=live bun test test/pocketrisu-parity",
+        "test:parity:record": "POCKETRISU_ORACLE=record bun test test/pocketrisu-parity"
     },
     "dependencies": {
         "@aws-sdk/client-bedrock": "^3.883.0",
