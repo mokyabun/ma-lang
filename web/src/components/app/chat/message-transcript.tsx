@@ -33,8 +33,7 @@ import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Textarea } from '@/components/ui/textarea'
 import { api, getClientInstanceId } from '@/lib/api'
-import { expandMessageImages } from '@/lib/message-images'
-import { renderMessageHtml } from '@/lib/sanitize-message-html'
+import { renderMessageContentHtml } from '@/lib/render-message-content'
 import { cn } from '@/lib/utils'
 
 import { CharacterAvatar } from '../character/character-avatar'
@@ -452,11 +451,15 @@ function MessageContent({
     message: Message
     imageAssets: Array<CharacterAsset | ModuleAsset>
 }) {
-    const renderedContent = useMemo(() => {
-        const source = message.displayContent ?? message.content
-        const expanded = expandMessageImages(source, imageAssets, message.id)
-        return expanded ? renderMessageHtml(expanded) : ''
-    }, [imageAssets, message.content, message.displayContent, message.id])
+    const renderedContent = useMemo(
+        () =>
+            renderMessageContentHtml(
+                message.displayContent ?? message.content,
+                imageAssets,
+                message.id,
+            ),
+        [imageAssets, message.content, message.displayContent, message.id],
+    )
     const baseClassName = 'chattext text-card-foreground'
 
     if (renderedContent) {

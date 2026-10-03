@@ -20,7 +20,10 @@
         "typecheck": "tsc --noEmit",
         "check": "bun run --parallel --no-exit-on-error format:check lint typecheck",
         "test": "bun test",
-        "test:watch": "bun test --watch"
+        "test:watch": "bun test --watch",
+        "test:parity": "PARITY_STRICT=1 bun test test/pocketrisu-parity/parity.test.ts",
+        "test:parity:live": "PARITY_LIVE=1 bun test test/pocketrisu-parity/live.test.ts",
+        "pocketrisu:golden": "bun test/pocketrisu-parity/generate.ts"
     },
     "dependencies": {
         "@adobe/css-tools": "4.4.4",

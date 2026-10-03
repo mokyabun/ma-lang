@@ -1,0 +1,522 @@
+{
+    "pocketRisuVersion": "1.13.0",
+    "pocketRisuCommit": "3d30fc5a1982b1b5d149b97e188b8ee45d89e1d2",
+    "cases": {
+        "markup/empty": {
+            "inputHash": "343c8641fcd9f929",
+            "html": ""
+        },
+        "markup/whitespace-only": {
+            "inputHash": "a5041e32fe618c2d",
+            "html": ""
+        },
+        "markup/single-line": {
+            "inputHash": "5b2e35256fe42cc1",
+            "html": "<p>Hello world.</p>\n"
+        },
+        "markup/soft-breaks": {
+            "inputHash": "f2d3387e3259f8da",
+            "html": "<p>first line<br>\nsecond line<br>\nthird line</p>\n"
+        },
+        "markup/paragraphs": {
+            "inputHash": "65a956a62b1ea6ef",
+            "html": "<p>first paragraph</p>\n<p>second paragraph</p>\n<p>third after gap</p>\n"
+        },
+        "markup/leading-trailing-space": {
+            "inputHash": "d86dc25bed62261f",
+            "html": "<p>padded text</p>\n"
+        },
+        "markup/indented-not-code": {
+            "inputHash": "387a7c0d5beebecd",
+            "html": "<p>four spaces stay text<br>\nand a tab</p>\n"
+        },
+        "markup/korean": {
+            "inputHash": "1b5cf0c57438c234",
+            "html": "<p>안녕하세요. 오늘 날씨가 좋네요!<br>\n그녀는 조용히 웃었다.</p>\n"
+        },
+        "markup/emoji-zero-width": {
+            "inputHash": "87581cd56787ec21",
+            "html": "<p>smile 😀​ joiner 👩‍👩‍👧 end</p>\n"
+        },
+        "markup/crlf": {
+            "inputHash": "d426a48d333d1abe",
+            "html": "<p>windows<br>\nline</p>\n<p>endings</p>\n"
+        },
+        "markup/emphasis": {
+            "inputHash": "afd1c6f1066b81b0",
+            "html": "<p><em>italic</em> <em>also</em> <strong>bold</strong> <strong>bold</strong> <em><strong>both</strong></em></p>\n"
+        },
+        "markup/strikethrough": {
+            "inputHash": "14b07699592b37de",
+            "html": "<p><s>gone</s> and ~single~</p>\n"
+        },
+        "markup/inline-code": {
+            "inputHash": "1f68faca13d7299b",
+            "html": "<p>use <code>const x = 1</code> and <code>a ` b</code></p>\n"
+        },
+        "markup/asterisk-actions": {
+            "inputHash": "b3af949b2cfc0896",
+            "html": "<p><em>She tilts her head.</em> <mark risu-mark=\"quote2\">“Really?”</mark> <em>A pause.</em></p>\n"
+        },
+        "markup/unbalanced-emphasis": {
+            "inputHash": "15991816c8b784b5",
+            "html": "<p>*open without close and **double</p>\n"
+        },
+        "markup/backslash-escapes": {
+            "inputHash": "f89ab833fd4b782a",
+            "html": "<p>*not italic* # not heading \\ backslash</p>\n"
+        },
+        "markup/html-entities": {
+            "inputHash": "00200fb67a8768a9",
+            "html": "<p>&amp; &lt;tag&gt; \" ' © 😀 &amp; bare</p>\n"
+        },
+        "markup/angle-brackets-text": {
+            "inputHash": "c5587a697c4adfe5",
+            "html": "<p>a &lt; b &gt; c and 3 &lt;4 and &lt;notatag</p>\n"
+        },
+        "markup/quotes-double": {
+            "inputHash": "5710ef06a7b829e1",
+            "html": "<p>She said <mark risu-mark=\"quote2\">“hello there”</mark> quietly.</p>\n"
+        },
+        "markup/quotes-single": {
+            "inputHash": "c99c22c761e15837",
+            "html": "<p>He whispered <mark risu-mark=\"quote1\">‘not now’</mark> and left.</p>\n"
+        },
+        "markup/quotes-curly-input": {
+            "inputHash": "11a95680a848a6e9",
+            "html": "<p><mark risu-mark=\"quote2\">“curly double”</mark> and <mark risu-mark=\"quote1\">‘curly single’</mark></p>\n"
+        },
+        "markup/quotes-apostrophe": {
+            "inputHash": "1d9047ecd63be1fe",
+            "html": "<p>It’s Mina’s book, isn’t it? Rock <mark risu-mark=\"quote1\">‘n’</mark> roll.</p>\n"
+        },
+        "markup/quotes-nested": {
+            "inputHash": "c03a69c429de5d75",
+            "html": "<p><mark risu-mark=\"quote2\">“She said <mark risu-mark=\"quote1\">‘wait’</mark> to me”</mark></p>\n"
+        },
+        "markup/quotes-multiline": {
+            "inputHash": "388fbef104dfd1b2",
+            "html": "<p><mark risu-mark=\"quote2\">“first line<br>\nsecond line”</mark></p>\n"
+        },
+        "markup/quotes-unbalanced": {
+            "inputHash": "807ba148cc1044f5",
+            "html": "<p>an \"open quote and a stray \"</p>\n"
+        },
+        "markup/quotes-in-emphasis": {
+            "inputHash": "5d24b67adfb7b951",
+            "html": "<p><em><mark risu-mark=\"quote2\">“quoted action”</mark></em> and <strong><mark risu-mark=\"quote2\">“strong quote”</mark></strong></p>\n"
+        },
+        "markup/quotes-in-html-attribute": {
+            "inputHash": "e94a7662427b18d8",
+            "html": "<p><span title=\"a &quot;b&quot;\"><mark risu-mark=\"quote2\">“text”</mark></span></p>\n"
+        },
+        "markup/typographer-replacements": {
+            "inputHash": "598effb88e1b5fde",
+            "html": "<p>© © ® ™ ± … ?.. !!! , – —</p>\n"
+        },
+        "markup/headings": {
+            "inputHash": "c6f3f636eb120ca0",
+            "html": "<h1>H1</h1>\n<h2>H2</h2>\n<h3>H3</h3>\n<h4>H4</h4>\n<h5>H5</h5>\n<h6>H6</h6>\n<p>#no-space</p>\n"
+        },
+        "markup/setext-headings": {
+            "inputHash": "d6b3db867815d018",
+            "html": "<h1>Title</h1>\n<h2>Sub</h2>\n"
+        },
+        "markup/unordered-list": {
+            "inputHash": "11b9979b3d0003e8",
+            "html": "<ul>\n<li>one</li>\n<li>two\n<ul>\n<li>nested</li>\n</ul>\n</li>\n</ul>\n<ul>\n<li>star</li>\n</ul>\n<ul>\n<li>plus</li>\n</ul>\n"
+        },
+        "markup/ordered-list": {
+            "inputHash": "0db3b7e621e5a0fc",
+            "html": "<ol>\n<li>one</li>\n<li>two</li>\n<li>ten</li>\n</ol>\n<ol start=\"3\">\n<li>paren</li>\n</ol>\n"
+        },
+        "markup/blockquote": {
+            "inputHash": "09decfe9c9438e76",
+            "html": "<blockquote>\n<p>quoted line<br>\ncontinued</p>\n<blockquote>\n<p>nested</p>\n</blockquote>\n</blockquote>\n"
+        },
+        "markup/horizontal-rules": {
+            "inputHash": "f0f57aa6daefbd8f",
+            "html": "<p>above</p>\n<hr>\n<hr>\n<hr>\n<p>below</p>\n"
+        },
+        "markup/table": {
+            "inputHash": "2f07b938ab71a2aa",
+            "html": "<table>\n<thead>\n<tr>\n<th style=\"text-align:left\">a</th>\n<th style=\"text-align:right\">b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td style=\"text-align:left\">1</td>\n<td style=\"text-align:right\">2</td>\n</tr>\n<tr>\n<td style=\"text-align:left\">x</td>\n<td style=\"text-align:right\"><em>y</em></td>\n</tr>\n</tbody>\n</table>\n"
+        },
+        "markup/links": {
+            "inputHash": "9b9c275e84e570c4",
+            "html": "<p><a href=\"https://example.com\" target=\"_blank\">web</a> <a href=\"http://a.b\" target=\"_blank\">plain</a> <a href=\"\">rel</a> [js](javascript:alert(1)) <a href=\"\">mail</a></p>\n"
+        },
+        "markup/autolinks": {
+            "inputHash": "10a18d09ecd32e4b",
+            "html": "<p><a href=\"https://example.com\" target=\"_blank\">https://example.com</a> and www.example.com and https://bare.example</p>\n"
+        },
+        "markup/reference-link": {
+            "inputHash": "9ef142a3c2d2b687",
+            "html": "<p><a href=\"https://example.com\" title=\"Title\" target=\"_blank\">ref</a></p>\n"
+        },
+        "markup/markdown-image": {
+            "inputHash": "81227ef50f754528",
+            "html": "<p><img src=\"https://example.com/a.png\" alt=\"alt text\" title=\"title\" loading=\"lazy\" decoding=\"async\"> <img src=\"images/a.png\" alt=\"rel\" loading=\"lazy\" decoding=\"async\"></p>\n"
+        },
+        "markup/hard-break": {
+            "inputHash": "128c6aec3fae44b2",
+            "html": "<p>two spaces<br>\nand backslash<br>\nend</p>\n"
+        },
+        "markup/fence-js": {
+            "inputHash": "95f6803b751d0842",
+            "html": "<pre class=\"hljs\" x-hl-lang=\"js\"><code><span class=\"hljs-keyword\">const</span> a = <span class=\"hljs-number\">1</span>\n<span class=\"hljs-variable x-risu-language_\">console</span>.<span class=\"hljs-title x-risu-function_\">log</span>(<span class=\"hljs-string\">`x <span class=\"hljs-subst\">${a}</span>`</span>)\n</code></pre>\n"
+        },
+        "markup/fence-python": {
+            "inputHash": "7909495d207d7d1c",
+            "html": "<pre class=\"hljs\" x-hl-lang=\"py\"><code><span class=\"hljs-keyword\">def</span> <span class=\"hljs-title x-risu-function_\">f</span>(<span class=\"hljs-params\">x</span>):\n    <span class=\"hljs-keyword\">return</span> x * <span class=\"hljs-number\">2</span>\n</code></pre>\n"
+        },
+        "markup/fence-no-lang": {
+            "inputHash": "674625c9f1878382",
+            "html": "<pre><code>plain &lt;b&gt;code&lt;/b&gt;\n</code></pre>\n"
+        },
+        "markup/fence-unknown-lang": {
+            "inputHash": "28d822e356ad905e",
+            "html": "<pre><code>++[&gt;+&lt;-]\n</code></pre>\n"
+        },
+        "markup/fence-html": {
+            "inputHash": "36693413ddcfa92e",
+            "html": "<pre class=\"hljs\" x-hl-lang=\"html\"><code><span class=\"hljs-tag\">&lt;<span class=\"hljs-name\">div</span> <span class=\"hljs-attr\">class</span>=<span class=\"hljs-string\">\"a\"</span>&gt;</span>x<span class=\"hljs-tag\">&lt;/<span class=\"hljs-name\">div</span>&gt;</span>\n</code></pre>\n"
+        },
+        "markup/fence-tilde": {
+            "inputHash": "086ea016b89cd186",
+            "html": "<pre class=\"hljs\" x-hl-lang=\"json\"><code><span class=\"hljs-punctuation\">{</span><span class=\"hljs-attr\">\"a\"</span><span class=\"hljs-punctuation\">:</span> <span class=\"hljs-punctuation\">[</span><span class=\"hljs-number\">1</span><span class=\"hljs-punctuation\">,</span> <span class=\"hljs-number\">2</span><span class=\"hljs-punctuation\">]</span><span class=\"hljs-punctuation\">}</span>\n</code></pre>\n"
+        },
+        "markup/fence-risuerror": {
+            "inputHash": "f4b3dff42536f64e",
+            "html": "<div class=\"x-risu-risu-error\"><h1>Error</h1>something failed\n</div>\n"
+        },
+        "markup/fence-unclosed": {
+            "inputHash": "f85c60bf66f0f9d3",
+            "html": "<pre class=\"hljs\" x-hl-lang=\"ts\"><code><span class=\"hljs-keyword\">const</span> open = <span class=\"hljs-literal\">true</span></code></pre>\n"
+        },
+        "markup/html-div-class": {
+            "inputHash": "598da34fb89be591",
+            "html": "<div class=\"x-risu-status-box\">HP: 10</div>"
+        },
+        "markup/html-multiple-classes": {
+            "inputHash": "203e4c886b8f4c6f",
+            "html": "<div class=\"x-risu-a x-risu- x-risu-b x-risu-c hljs-d\">x</div>"
+        },
+        "markup/html-inline-style": {
+            "inputHash": "02478f7b300213f7",
+            "html": "<p><span style=\"color: red; font-weight: bold\">red</span></p>\n"
+        },
+        "markup/html-style-dangerous": {
+            "inputHash": "38eadaf22ca5e499",
+            "html": "<div style=\"width: 10px; background: url(javascript:alert(1)); color: blue\">x</div>"
+        },
+        "markup/html-script": {
+            "inputHash": "9bfc06ad857d0bf0",
+            "html": "<p>beforeafter</p>\n"
+        },
+        "markup/html-event-handlers": {
+            "inputHash": "c85a30e4bfc9dcdc",
+            "html": "<p><img src=\"https://e.com/a.png\" loading=\"lazy\" decoding=\"async\"><div>hi</div></p>\n"
+        },
+        "markup/html-iframe-youtube": {
+            "inputHash": "b2d2c84a929e0467",
+            "html": "<iframe src=\"https://www.youtube.com/embed/abc\" allowfullscreen=\"\" frameborder=\"0\"></iframe>"
+        },
+        "markup/html-iframe-other": {
+            "inputHash": "8e368645621eae27",
+            "html": ""
+        },
+        "markup/html-links": {
+            "inputHash": "e18435c23d315a10",
+            "html": "<p><a href=\"https://e.com\" target=\"_blank\">ext</a> <a href=\"\">local</a> <a href=\"\">js</a> <a>none</a></p>\n"
+        },
+        "markup/html-images": {
+            "inputHash": "7f110b0d37414f17",
+            "html": "<p><img src=\"https://e.com/a.png\" loading=\"lazy\" decoding=\"async\"><img src=\"a.png\" loading=\"eager\" decoding=\"async\"><img src=\"data:image/png;base64,AAAA\" loading=\"lazy\" decoding=\"async\"></p>\n"
+        },
+        "markup/html-risu-controls": {
+            "inputHash": "da23bed4dc7621de",
+            "html": "<p><button risu-btn=\"choice^A\">A</button><button risu-trigger=\"go\" risu-id=\"x\">B</button></p>\n"
+        },
+        "markup/html-form-controls": {
+            "inputHash": "aa995463fc93abcc",
+            "html": "<p><input id=\"t\" type=\"checkbox\" checked=\"\"><label for=\"t\">Toggle</label><select><option>1</option></select></p>\n"
+        },
+        "markup/html-details": {
+            "inputHash": "0c3acdd2aff2f98e",
+            "html": "<details open=\"\"><summary>More</summary>hidden *text*</details>"
+        },
+        "markup/html-table": {
+            "inputHash": "698edd56a127893c",
+            "html": "<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"
+        },
+        "markup/html-data-aria": {
+            "inputHash": "165c7be8ad9c3d5e",
+            "html": "<div data-state=\"open\" aria-label=\"box\" role=\"note\">x</div>"
+        },
+        "markup/html-custom-tags": {
+            "inputHash": "135ae564f621577d",
+            "html": "<p><x-em>custom</x-em> <font color=\"red\">font</font> <center>c</center></p>\n"
+        },
+        "markup/html-svg": {
+            "inputHash": "5793b6649db249d3",
+            "html": "<p><svg width=\"10\" height=\"10\"><circle cx=\"5\" cy=\"5\" r=\"4\" fill=\"red\"></circle></svg></p>\n"
+        },
+        "markup/html-unclosed": {
+            "inputHash": "d1f7ef75e3782791",
+            "html": "<div><span>unclosed <b>bold</b></span></div>"
+        },
+        "markup/html-comment": {
+            "inputHash": "7ff6f8f99bd72025",
+            "html": "<p>ab</p>\n"
+        },
+        "markup/html-block-then-markdown": {
+            "inputHash": "541948a3af5a6104",
+            "html": "<div>\n*not emphasized inside html block*\n</div>\n<p><em>emphasized after blank line</em></p>\n"
+        },
+        "markup/html-inline-markdown": {
+            "inputHash": "d5e6248652fedabd",
+            "html": "<p>text <b>bold <em>and italic</em></b> more</p>\n"
+        },
+        "markup/html-br-variants": {
+            "inputHash": "ee02090351591879",
+            "html": "<p>a<br>b<br>c<br>d</p>\n"
+        },
+        "markup/style-simple": {
+            "inputHash": "d649a60acbe6fbc9",
+            "html": "<p><style>.chattext .x-risu-box{color:red;}</style><div class=\"x-risu-box\">x</div></p>\n"
+        },
+        "markup/style-root-and-elements": {
+            "inputHash": "9f036bddf44f119f",
+            "html": "<p><style>.chattext :root{--c:red;}.chattext p,.chattext .x-risu-a > .x-risu-b{color:var(--c);}</style>text</p>\n"
+        },
+        "markup/style-media": {
+            "inputHash": "24d95aca83abe734",
+            "html": "<p><style>@media (max-width: 600px){.chattext .x-risu-m{display:none;}}</style>x</p>\n"
+        },
+        "markup/style-keyframes": {
+            "inputHash": "7f066af8ed6dd5fe",
+            "html": "<p><style>@keyframes spin{to{transform:rotate(360deg);}}.chattext .x-risu-s{animation:spin 1s;}</style>x</p>\n"
+        },
+        "markup/style-import-data": {
+            "inputHash": "7b6858e34d9dbe7a",
+            "html": "<p><style>@import url(\"data:text/css,body{}\");.chattext .x-risu-a{color:red;}</style>x</p>\n"
+        },
+        "markup/style-javascript": {
+            "inputHash": "2a4963093a87f52c",
+            "html": "<p><style>.chattext .x-risu-a{background:url(javascript:alert(1));}</style>x</p>\n"
+        },
+        "markup/style-with-attributes": {
+            "inputHash": "10fe3b2c6653bbe0",
+            "html": "<style type=\"text/css\">.a { color: red; }</style>x"
+        },
+        "markup/style-multiline": {
+            "inputHash": "e1f4fb428226279e",
+            "html": "<p><style>.chattext .x-risu-a{color:red;}.chattext .x-risu-b{color:blue;}</style></p>\n<div class=\"x-risu-a x-risu-b\">x</div>"
+        },
+        "markup/style-invalid-css": {
+            "inputHash": "8b5fa0c312aa093e",
+            "html": "<p>CSS ERROR: Error: :1:16: property missing ':'x</p>\n"
+        },
+        "markup/style-closing-tag-in-content": {
+            "inputHash": "f30b995485602ce4",
+            "html": "<p>CSS ERROR: Error: :1:22: missing '}'\"; }x</p>\n"
+        },
+        "markup/style-svg-data-uri": {
+            "inputHash": "0b82ba9c5bb39f25",
+            "html": "<p><style>.chattext .x-risu-i{background:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'></svg>\");}</style>x</p>\n"
+        },
+        "markup/style-two-blocks": {
+            "inputHash": "f2a4b7d6775ab199",
+            "html": "<p><style>.chattext .x-risu-a{color:red;}</style>mid<style>.chattext .x-risu-b{color:blue;}</style></p>\n"
+        },
+        "markup/risu-style-raw": {
+            "inputHash": "e6260dfb28b01094",
+            "html": "<p><style>.chattext .x-risu-a{color:red;}</style>x</p>\n"
+        },
+        "markup/risu-style-invalid-hex": {
+            "inputHash": "017f3ec04547749a",
+            "html": "<p><style></style>x</p>\n"
+        },
+        "markup/thoughts": {
+            "inputHash": "4bd9736571ae77da",
+            "html": "<details><summary>Chain of Thoughts</summary>inner reasoning</details>\nVisible answer."
+        },
+        "markup/thoughts-nested": {
+            "inputHash": "e6edf14ea73b2fd5",
+            "html": "<details><summary>Chain of Thoughts</summary>abc</details>done"
+        },
+        "markup/thoughts-unclosed": {
+            "inputHash": "085cd9fe544cc7bc",
+            "html": "<p>never closed<br>\nanswer</p>\n"
+        },
+        "markup/tool-call": {
+            "inputHash": "bb524557b1164c82",
+            "html": "<div class=\"x-risu-tool-call\">🛠️ Tool 'web_search' Called</div>\n<p>result</p>\n"
+        },
+        "markup/katex-inline": {
+            "inputHash": "c563302f8f6b56bc",
+            "html": "<p>Energy: <span class=\"x-risu-katex\"></span> done.</p>\n"
+        },
+        "markup/katex-invalid": {
+            "inputHash": "27bfd88634e6a70d",
+            "html": "<p>Broken: $$\\frac{1}{$$ end</p>\n"
+        },
+        "markup/risu-escape-chars": {
+            "inputHash": "7ab0f1dba4567738",
+            "html": "<p>braces {x} parens (y) lt &lt; gt &gt; colon : semi ;</p>\n"
+        },
+        "markup/rp-narration": {
+            "inputHash": "4e12fa89d6ab26f7",
+            "html": "<p><em>Ari leans against the window, watching the rain.</em></p>\n<p><mark risu-mark=\"quote2\">“You’re late again,”</mark> she says, not turning around. <mark risu-mark=\"quote2\">“Third time this week.”</mark></p>\n<p><em>A small sigh.</em> <mark risu-mark=\"quote1\">‘Whatever,’</mark> she thinks.</p>\n"
+        },
+        "markup/rp-status-panel": {
+            "inputHash": "52a0626cc1ca2511",
+            "html": "<p><style>.chattext .x-risu-panel{border:1px solid #888;padding:8px;border-radius:6px;}.chattext .x-risu-panel .x-risu-row{display:flex;justify-content:space-between;}</style></p>\n<div class=\"x-risu-panel\">\n<div class=\"x-risu-row\"><span>HP</span><span>80/100</span></div>\n<div class=\"x-risu-row\"><span>Mood</span><span>\"Curious\"</span></div>\n</div>\n<p><mark risu-mark=\"quote2\">“Shall we begin?”</mark> <em>She smiles.</em></p>\n"
+        },
+        "markup/rp-mixed-blocks": {
+            "inputHash": "fa5b781f63a036bc",
+            "html": "<h2>Day 3</h2>\n<blockquote>\n<p>Diary entry</p>\n</blockquote>\n<ul>\n<li>woke up</li>\n<li><em>met</em> <mark risu-mark=\"quote2\">“Mina”</mark></li>\n</ul>\n<hr>\n<pre class=\"hljs\" x-hl-lang=\"txt\"><code>log: ok\n</code></pre>\n<p>End.</p>\n"
+        },
+        "message/plain": {
+            "inputHash": "d3d0d581a7a57a1a",
+            "html": "<p>Just text, nothing special.</p>\n"
+        },
+        "message/names": {
+            "inputHash": "32f1f2c76d30b49d",
+            "html": "<p>Mina, meet Ari. Ari waves.</p>\n"
+        },
+        "message/angle-names": {
+            "inputHash": "7ba1298112d10000",
+            "html": "<p>Mina and Ari and Ari.</p>\n"
+        },
+        "message/chat-variables": {
+            "inputHash": "69de94d68790c218",
+            "html": "<p>Mood: happy. Missing: null.</p>\n"
+        },
+        "message/global-variables": {
+            "inputHash": "b32d74b4e4996abf",
+            "html": "<p>Season: winter.</p>\n"
+        },
+        "message/setvar-hidden": {
+            "inputHash": "a271ea9f4f7eb2ac",
+            "html": "<p>BeforeAfter</p>\n"
+        },
+        "message/if-true": {
+            "inputHash": "796be82b36425495",
+            "html": "<p>shown</p>\n"
+        },
+        "message/if-variable": {
+            "inputHash": "dc79f3caefc5b804",
+            "html": "<p>:)</p>\n"
+        },
+        "message/when-else": {
+            "inputHash": "6f9051d8db832db3",
+            "html": "<p>yes</p>\n"
+        },
+        "message/calc": {
+            "inputHash": "8c4c6398ab4a94b0",
+            "html": "<p>7 and 2.5</p>\n"
+        },
+        "message/comment": {
+            "inputHash": "9f5cda480fb6ddb2",
+            "html": "<p>visible{{// hidden note}} text</p>\n"
+        },
+        "message/escapes": {
+            "inputHash": "ca5b6ef98c9e3ff8",
+            "html": "<p>{{x}} {y} a<br>\nb</p>\n"
+        },
+        "message/message-index": {
+            "inputHash": "b92d3c29415ecf18",
+            "html": "<p>idx 1 last 1</p>\n"
+        },
+        "message/unknown-cbs": {
+            "inputHash": "9bc9f96e8a1d8417",
+            "html": "<p>keep {{definitely_not_a_function}} and {{ spaced }}</p>\n"
+        },
+        "message/user-role": {
+            "inputHash": "da7666e93f5126c6",
+            "html": "<p>I am Mina, talking to <mark risu-mark=\"quote2\">“Ari”</mark>.</p>\n"
+        },
+        "message/asset-cbs-missing": {
+            "inputHash": "e32bf61a1199d238",
+            "html": "<p>before   after</p>\n"
+        },
+        "message/asset-image-tag-missing": {
+            "inputHash": "3489c797ab08a6fa",
+            "html": "<p>before &lt;img=<mark risu-mark=\"quote2\">“portrait”</mark>&gt; after</p>\n"
+        },
+        "message/asset-inlay-missing": {
+            "inputHash": "c2d1168858d72920",
+            "html": "<p>look <div data-inlay-id=\"missing-id\" data-inlay-type=\"inlay\" class=\"x-risu-risu-inlay-placeholder x-risu-risu-loading-spinner\" style=\"width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px;\"></div> here <div class=\"x-risu-risu-inlay-image\"><div data-inlay-id=\"other\" data-inlay-type=\"inlayed\" class=\"x-risu-risu-inlay-placeholder x-risu-risu-loading-spinner\" style=\"width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px;\"></div></div></p>\n"
+        },
+        "message/regex-simple": {
+            "inputHash": "d1022cf75689c012",
+            "html": "<p>The <b>secret</b><br>\nword.</p>\n"
+        },
+        "message/regex-flags": {
+            "inputHash": "66c4b3739e7f7b4d",
+            "html": "<p>dog dog dog</p>\n"
+        },
+        "message/regex-no-global": {
+            "inputHash": "6f997c6b3f1cf981",
+            "html": "<p>b a a</p>\n"
+        },
+        "message/regex-newline-token": {
+            "inputHash": "ceeb138aaf362e0d",
+            "html": "<p>one<br>\ntwo<br>\nthree</p>\n"
+        },
+        "message/regex-data-token": {
+            "inputHash": "9807678272535de7",
+            "html": "<p>[{{data}}]</p>\n"
+        },
+        "message/regex-html-trailing-newline": {
+            "inputHash": "faf803cc8cd4c5a3",
+            "html": "<div class=\"x-risu-status\">ok</div>\n then text"
+        },
+        "message/regex-no-end-nl": {
+            "inputHash": "2561d1761cbc4db9",
+            "html": "<div class=\"x-risu-status\">ok</div> then text"
+        },
+        "message/regex-cbs-in-replacement": {
+            "inputHash": "128c1b182ecbcda1",
+            "html": "<p>Ari (Mina) arrives.</p>\n"
+        },
+        "message/regex-matches-cbs-output": {
+            "inputHash": "81c7f032dca5eb01",
+            "html": "<p><b>Ari</b><br>\nsmiles.</p>\n"
+        },
+        "message/regex-order": {
+            "inputHash": "4395908735ecd4a2",
+            "html": "<p>y</p>\n"
+        },
+        "message/regex-move-top": {
+            "inputHash": "01637137300484d2",
+            "html": "<div class=\"x-risu-st\">ok</div>\n<p>body text</p>\n"
+        },
+        "message/regex-move-bottom-action": {
+            "inputHash": "5b3872614485f68e",
+            "html": "<p>body text<br>\n(note)</p>\n"
+        },
+        "message/regex-cbs-pattern": {
+            "inputHash": "14341068cd8be108",
+            "html": "<p>Hello ARI!</p>\n"
+        },
+        "message/regex-delete-all": {
+            "inputHash": "a3f7eff9b9198a4d",
+            "html": ""
+        },
+        "message/regex-style-output": {
+            "inputHash": "0833b5e18cf96f18",
+            "html": "<p><style>.chattext .x-risu-p{color:red;}</style><div class=\"x-risu-p\">Mina</div></p>\n"
+        },
+        "message/regex-quotes": {
+            "inputHash": "3bd1216387504047",
+            "html": "<p><strong>Ari</strong>: <mark risu-mark=\"quote2\">“hello”</mark></p>\n"
+        },
+        "message/regex-invalid-pattern": {
+            "inputHash": "e8b2edd55f4727b6",
+            "html": "<p>stays (unchanged)</p>\n"
+        }
+    }
+}

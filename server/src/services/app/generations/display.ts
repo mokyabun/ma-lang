@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 
 import type { Store } from '@/db'
 import type { LuaRuntime } from '@/services/lua'
-import { collectRegexScripts, processRegexText } from '@/services/prompt/regex-runtime'
-import { renderTemplate } from '@/services/prompt/template-engine'
+import { renderDisplayText } from '@/services/prompt/display-text'
+import { collectRegexScripts } from '@/services/prompt/regex-runtime'
 
 import { regexTemplateContext, type GenerationContext } from './context'
 
@@ -61,17 +61,11 @@ export async function renderDisplayMessages(
                 messages: context.messages.slice(0, index + 1),
                 conversation: store.conversation.get(conversationId) ?? context.conversation,
             }
-            const templateContext = regexTemplateContext(perMessageContext)
-            const regex = await processRegexText({
-                text: String(luaDisplay.data ?? ''),
-                phase: 'editdisplay',
+            const rendered = await renderDisplayText(
+                String(luaDisplay.data ?? ''),
                 scripts,
-                templateContext,
-            })
-            const rendered = renderTemplate(regex.text, {
-                ...templateContext,
-                assetRenderMode: 'display',
-            }).text
+                regexTemplateContext(perMessageContext),
+            )
             output.push({
                 ...message,
                 ...(rendered === message.content ? {} : { displayContent: rendered }),
