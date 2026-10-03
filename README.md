@@ -11,7 +11,9 @@ character cards and prompt presets with Vertex AI Gemini and Ollama providers.
 
 The character workspace includes a dual sidebar, searchable card archive, full profile,
 greeting, lorebook and prompt editing, preserved CHARX asset inspection, card export, chat
-settings, prompt previews, message editing and durable generation history.
+settings, prompt previews, message editing and durable generation history. PocketRisu character
+package ZIPs can be imported and exported with their character card, chats, personas, chat folders
+and inlay assets intact.
 
 ## Server-side prompts and modules
 

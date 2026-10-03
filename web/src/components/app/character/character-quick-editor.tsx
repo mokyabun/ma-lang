@@ -11,6 +11,7 @@ import {
     CheckCircle,
     Cube,
     DownloadSimple,
+    FileArchive,
     ImageSquare,
     Quotes,
     Trash,
@@ -29,7 +30,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { characterExportUrl } from '@/lib/api'
+import { characterExportUrl, characterPackageExportUrl } from '@/lib/api'
 import { useDebouncedSave } from '@/lib/use-debounced-save'
 
 import { personaListAtom, selectedPersonaIdAtom, selectPersonaAtom } from '../settings/persona/atom'
@@ -226,6 +227,26 @@ export function CharacterQuickEditor({
                                     <span>캐릭터 엑스포트</span>
                                     <span className="ml-auto font-mono text-[9px] font-normal text-muted-foreground">
                                         CCV3 · CHARX
+                                    </span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="lg"
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    render={
+                                        <a
+                                            href={characterPackageExportUrl(character.id)}
+                                            download={`${safeExportName(draft.name || character.name)}_package.zip`}
+                                            aria-label="PocketRisu 캐릭터 패키지로 엑스포트"
+                                            onClick={() => void autoSave.flush()}
+                                        />
+                                    }
+                                >
+                                    <FileArchive aria-hidden="true" />
+                                    <span>캐릭터 패키지 엑스포트</span>
+                                    <span className="ml-auto font-mono text-[9px] font-normal text-muted-foreground">
+                                        POCKETRISU · ZIP
                                     </span>
                                 </Button>
                                 <Button

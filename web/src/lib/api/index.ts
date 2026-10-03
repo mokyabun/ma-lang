@@ -71,6 +71,12 @@ export interface BackupSnapshot {
     kind: 'automatic' | 'manual' | 'beforeRestore'
 }
 
+export interface MessagePage {
+    messages: Message[]
+    hasMore: boolean
+    nextCursor: number | null
+}
+
 export interface SystemLogEntry {
     id: number
     timestamp: number
@@ -240,8 +246,13 @@ export const api = {
         request<{ conversations: Conversation[]; groups: ConversationGroup[] }>(
             `/conversations${archived ? '?archived=true' : ''}`,
         ),
-    messages: (conversationId: string) =>
-        request<{ messages: Message[] }>(`/conversations/${conversationId}/messages`),
+    messages: (conversationId: string, options: { before?: number; limit?: number } = {}) => {
+        const query = new URLSearchParams()
+        if (options.before !== undefined) query.set('before', String(options.before))
+        if (options.limit !== undefined) query.set('limit', String(options.limit))
+        const suffix = query.size ? `?${query}` : ''
+        return request<MessagePage>(`/conversations/${conversationId}/messages${suffix}`)
+    },
     createConversation: (
         characterId: string,
         input: {
@@ -370,6 +381,17 @@ export const api = {
             method: 'POST',
             body: form,
         })
+    },
+    importCharacterPackage: async (file: File) => {
+        const form = new FormData()
+        form.set('file', file)
+        return request<{
+            character: Character
+            conversations: Conversation[]
+            conversationGroups: ConversationGroup[]
+            personas: Persona[]
+            warnings: string[]
+        }>('/characters/import-package', { method: 'POST', body: form })
     },
     settings: () => request<AppSettings>('/settings'),
     backupConfig: () => request<{ allowed: boolean }>('/settings/backup'),
@@ -508,6 +530,10 @@ export function characterExportUrl(
     format: 'json' | 'png' | 'charx',
 ): string {
     return `${API_BASE}/characters/${characterId}/export?spec=${spec}&format=${format}`
+}
+
+export function characterPackageExportUrl(characterId: string): string {
+    return `${API_BASE}/characters/${characterId}/export-package`
 }
 
 export const CHARACTER_EXPORT_FORMATS: ReadonlyArray<{

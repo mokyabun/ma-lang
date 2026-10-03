@@ -26,6 +26,10 @@ const ConversationPatchBody = z.object({
     greetingIndex: z.number().int().min(-1).optional(),
 })
 const MessagePatchBody = z.object({ content: z.string().max(1_000_000) })
+const MessagePageQuery = z.object({
+    before: z.coerce.number().int().nonnegative().optional(),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+})
 const GenerationSelectionBody = z.object({ generationId: z.uuid() })
 const ConversationModuleBody = z.object({ enabled: z.boolean().nullable() })
 const ConversationGroupCreateBody = GroupCreateSchema.extend({ characterId: z.uuid() })
@@ -123,9 +127,14 @@ export function createConversationDomain(context: AppContext) {
         })
         .get('/:id/messages', async (c) => {
             requireConversation(context, c.req.param('id'))
-            return c.json({
-                messages: await context.generations.messagesWithDisplay(c.req.param('id')),
+            const query = MessagePageQuery.safeParse({
+                before: c.req.query('before'),
+                limit: c.req.query('limit'),
             })
+            if (!query.success) throw new ValidationError('Invalid message page query')
+            return c.json(
+                await context.generations.messagePageWithDisplay(c.req.param('id'), query.data),
+            )
         })
         .get('/:id/memory', (c) => {
             requireConversation(context, c.req.param('id'))

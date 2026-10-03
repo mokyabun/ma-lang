@@ -291,6 +291,108 @@ describe('Hono API and SQLite persistence', () => {
         expect(body.activatedLoreIds).toHaveLength(1)
     })
 
+    test('imports a PocketRisu character package with chats and inlays', async () => {
+        const encoder = new TextEncoder()
+        const charx = zipSync({
+            'card.json': encoder.encode(
+                JSON.stringify(
+                    v3Card({
+                        name: 'Pocket package character',
+                        first_mes: 'Package greeting',
+                    }),
+                ),
+            ),
+        })
+        const packageBytes = zipSync({
+            'manifest.json': encoder.encode(
+                JSON.stringify({
+                    type: 'risuCharacterPackage',
+                    version: 1,
+                    createdAt: new Date().toISOString(),
+                    character: {
+                        name: 'Pocket package character',
+                        file: 'character/card.charx',
+                    },
+                    chats: { count: 1, file: 'chats/chats.json' },
+                    inlays: {
+                        count: 1,
+                        metaFile: 'inlays/meta.json',
+                        files: ['inlays/inlay-one.png'],
+                    },
+                }),
+            ),
+            'character/card.charx': charx,
+            'chats/chats.json': encoder.encode(
+                JSON.stringify({
+                    type: 'risuAllChats',
+                    ver: 2,
+                    data: [
+                        {
+                            name: 'Imported chat',
+                            note: 'Imported author note',
+                            fmIndex: -1,
+                            folderId: 'package-folder',
+                            message: [
+                                { role: 'user', data: 'Package question' },
+                                { role: 'char', data: '{{inlay::inlay-one}}' },
+                            ],
+                        },
+                    ],
+                    folders: [{ id: 'package-folder', name: 'Package chats', folded: false }],
+                }),
+            ),
+            'inlays/inlay-one.png': new Uint8Array([137, 80, 78, 71]),
+            'inlays/meta.json': encoder.encode('{}'),
+        })
+        const response = await app.request('/api/v1/characters/import-package', {
+            method: 'POST',
+            headers: {
+                cookie,
+                'content-type': 'application/zip',
+                'x-filename': 'aria_package.zip',
+            },
+            body: packageBytes,
+        })
+
+        expect(response.status).toBe(201)
+        const body = (await response.json()) as {
+            character: { id: string; name: string }
+            conversations: Array<{ id: string; title: string; authorNote: string }>
+            conversationGroups: Array<{ id: string; name: string }>
+        }
+        expect(body.character.name).toBe('Pocket package character')
+        expect(body.conversations[0]).toMatchObject({
+            title: 'Imported chat',
+            authorNote: 'Imported author note',
+        })
+        expect(body.conversationGroups).toHaveLength(1)
+        expect(body.conversationGroups[0]!.name).toBe('Package chats')
+        expect(context.store.conversation.get(body.conversations[0]!.id)?.groupId).toBe(
+            body.conversationGroups[0]!.id,
+        )
+        expect(
+            context.store.message.list(body.conversations[0]!.id).map((item) => item.content),
+        ).toEqual(['Package greeting', 'Package question', '{{inlay::inlay-one}}'])
+        expect(context.characters.assets(body.character.id)).toContainEqual(
+            expect.objectContaining({
+                name: 'inlay-one',
+                type: 'inlay',
+                sourceUri: 'inlay:inlay-one',
+            }),
+        )
+
+        const exported = await app.request(
+            `/api/v1/characters/${body.character.id}/export-package`,
+            { headers: { cookie } },
+        )
+        expect(exported.status).toBe(200)
+        expect(exported.headers.get('content-disposition')).toContain('-package.zip')
+        const exportedArchive = unzipSync(new Uint8Array(await exported.arrayBuffer()))
+        expect(exportedArchive['manifest.json']).toBeDefined()
+        expect(exportedArchive['chats/chats.json']).toBeDefined()
+        expect(Object.keys(exportedArchive)).toContain('inlays/inlay-one.png')
+    })
+
     test('persists character and chat groups, ordering, and safe group removal', async () => {
         const characterGroupResponse = await app.request('/api/v1/characters/groups', {
             method: 'POST',
@@ -1235,6 +1337,66 @@ describe('Hono API and SQLite persistence', () => {
         expect(context.store.message.list(id).map((message) => message.id)).toEqual([first.id])
     })
 
+    test('paginates conversation messages from the newest page', async () => {
+        const created = await app.request('/api/v1/conversations', {
+            method: 'POST',
+            headers: { cookie, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                characterId: GENERAL_CHAT_CHARACTER_ID,
+                title: 'Message pagination',
+            }),
+        })
+        expect(created.status).toBe(201)
+        const id = ((await created.json()) as { id: string }).id
+        for (let index = 0; index < 7; index += 1) {
+            context.store.message.create(
+                id,
+                index % 2 ? 'assistant' : 'user',
+                `message-${index}`,
+                'complete',
+            )
+        }
+
+        const latestResponse = await app.request(`/api/v1/conversations/${id}/messages?limit=3`, {
+            headers: { cookie },
+        })
+        expect(latestResponse.status).toBe(200)
+        const latest = (await latestResponse.json()) as {
+            messages: Array<{ content: string; position: number }>
+            hasMore: boolean
+            nextCursor: number | null
+        }
+        expect(latest.messages.map((message) => message.content)).toEqual([
+            'message-4',
+            'message-5',
+            'message-6',
+        ])
+        expect(latest.hasMore).toBe(true)
+        expect(latest.nextCursor).toBe(4)
+
+        const olderResponse = await app.request(
+            `/api/v1/conversations/${id}/messages?limit=3&before=${latest.nextCursor}`,
+            { headers: { cookie } },
+        )
+        const older = (await olderResponse.json()) as typeof latest
+        expect(older.messages.map((message) => message.content)).toEqual([
+            'message-1',
+            'message-2',
+            'message-3',
+        ])
+        expect(older.hasMore).toBe(true)
+        expect(older.nextCursor).toBe(1)
+
+        const oldestResponse = await app.request(
+            `/api/v1/conversations/${id}/messages?limit=3&before=${older.nextCursor}`,
+            { headers: { cookie } },
+        )
+        const oldest = (await oldestResponse.json()) as typeof latest
+        expect(oldest.messages.map((message) => message.content)).toEqual(['message-0'])
+        expect(oldest.hasMore).toBe(false)
+        expect(oldest.nextCursor).toBeNull()
+    })
+
     test('propagates cancellation and preserves partial assistant output', async () => {
         const response = await app.request(`/api/v1/conversations/${conversationId}/generations`, {
             method: 'POST',
@@ -1389,7 +1551,10 @@ describe('Hono API and SQLite persistence', () => {
         cookie = relogin.headers.get('set-cookie')!.split(';')[0]!
         const jsonHeaders = { cookie, 'content-type': 'application/json' }
 
-        const personaCard = v3Card({ name: 'Persona Test Character' })
+        const personaCard = v3Card({
+            name: 'Persona Test Character',
+            description: 'A neutral test character.',
+        })
         const importedCharacter = await app.request('/api/v1/characters/import', {
             method: 'POST',
             headers: { ...jsonHeaders, 'x-filename': 'persona-test.json' },

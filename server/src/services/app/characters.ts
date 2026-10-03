@@ -17,7 +17,17 @@ import {
 } from '@/services/prompt/risu'
 
 import type { AssetStore } from './assets'
-import { type ExportableCard, exportCharacterCard, importCharacterCard } from './character-card'
+import {
+    type ExportableCard,
+    type ImportedAsset,
+    type ImportedCard,
+    exportCharacterCard,
+    importCharacterCard,
+} from './character-card'
+import {
+    exportPocketRisuCharacterPackage,
+    importPocketRisuCharacterPackage,
+} from './character-package'
 
 export class CharacterService {
     constructor(
@@ -143,6 +153,136 @@ export class CharacterService {
 
     async import(bytes: Uint8Array, filename: string) {
         const imported = importCharacterCard(bytes, filename, this.config)
+        return this.persistImportedCard(imported)
+    }
+
+    async importPackage(bytes: Uint8Array) {
+        const importedPackage = importPocketRisuCharacterPackage(bytes, this.config)
+        const inlayAssets: ImportedAsset[] = importedPackage.inlays.map((inlay) => ({
+            bytes: inlay.bytes,
+            mimeType: inlay.mimeType,
+            type: 'inlay',
+            name: inlay.id,
+            extension: inlay.extension,
+            sourceUri: `inlay:${inlay.id}`,
+        }))
+        const importedCard: ImportedCard = importedPackage.characterFile
+            ? importCharacterCard(
+                  importedPackage.characterFile.bytes,
+                  importedPackage.characterFile.filename,
+                  this.config,
+              )
+            : {
+                  card: {
+                      ...this.blankCard(),
+                      data: { ...this.blankCard().data, name: importedPackage.characterName },
+                  },
+                  sourceSpec: 'v3',
+                  assets: [],
+                  warnings: [],
+              }
+        importedCard.assets.push(
+            ...inlayAssets.filter(
+                (inlay) =>
+                    !importedCard.assets.some(
+                        (asset) => asset.type === 'inlay' && asset.name === inlay.name,
+                    ),
+            ),
+        )
+        const { character, warnings } = await this.persistImportedCard(importedCard)
+        const createdPersonaIds: string[] = []
+
+        try {
+            const personaIds = new Map<string, string>()
+            const personas = []
+            for (const imported of importedPackage.personas) {
+                const persona = this.store.persona.create({
+                    name: imported.name,
+                    description: imported.description,
+                    note: imported.note,
+                })
+                createdPersonaIds.push(persona.id)
+                const avatar = await this.assetStore.put(imported.avatar, 'image/png')
+                const saved = this.store.persona.setAvatar(persona.id, avatar.id) || persona
+                personas.push(saved)
+                if (imported.originalId) personaIds.set(imported.originalId, persona.id)
+            }
+
+            const groupIds = new Map<string, string>()
+            const conversationGroups = importedPackage.chatGroups.flatMap((imported) => {
+                const group = this.store.conversationGroup.create(character.id, imported.name)
+                if (!group) return []
+                groupIds.set(imported.originalId, group.id)
+                return [group]
+            })
+
+            const conversations = importedPackage.chats.map((chat) => {
+                const greetingIndex =
+                    chat.greetingIndex >= 0 &&
+                    character.alternateGreetings[chat.greetingIndex] === undefined
+                        ? -1
+                        : chat.greetingIndex
+                const conversation = this.store.conversation.create({
+                    characterId: character.id,
+                    title: chat.title,
+                    greetingIndex,
+                })
+                const greeting =
+                    greetingIndex >= 0
+                        ? character.alternateGreetings[greetingIndex] || ''
+                        : character.firstMessage
+                this.store.message.replace(conversation.id, [
+                    ...(chat.firstMessageDisabled || !greeting
+                        ? []
+                        : [{ role: 'assistant' as const, content: greeting }]),
+                    ...chat.messages,
+                ])
+                return (
+                    this.store.conversation.update(conversation.id, {
+                        authorNote: chat.authorNote,
+                        variables: chat.variables,
+                        boundPersonaId: chat.boundPersonaId
+                            ? personaIds.get(chat.boundPersonaId) || null
+                            : null,
+                        personaLocked: Boolean(
+                            chat.boundPersonaId && personaIds.has(chat.boundPersonaId),
+                        ),
+                    }) || conversation
+                )
+            })
+            this.store.conversationOrganization.update({
+                characterId: character.id,
+                groups: conversationGroups.map((group, sortOrder) => ({
+                    id: group.id,
+                    sortOrder,
+                })),
+                conversations: conversations.map((conversation, sortOrder) => ({
+                    id: conversation.id,
+                    groupId: importedPackage.chats[sortOrder]?.folderId
+                        ? groupIds.get(importedPackage.chats[sortOrder]!.folderId!) || null
+                        : null,
+                    sortOrder,
+                })),
+            })
+            const organizedConversations = conversations.map(
+                (conversation) => this.store.conversation.get(conversation.id) || conversation,
+            )
+
+            return {
+                character,
+                conversations: organizedConversations,
+                conversationGroups: this.store.conversationGroup.list(character.id),
+                personas,
+                warnings: [...warnings, ...importedPackage.warnings],
+            }
+        } catch (error) {
+            this.store.character.delete(character.id)
+            for (const id of createdPersonaIds) this.store.persona.delete(id)
+            throw error
+        }
+    }
+
+    private async persistImportedCard(imported: ImportedCard) {
         const id = crypto.randomUUID()
         const avatar = imported.avatar
             ? await this.assetStore.put(imported.avatar.bytes, imported.avatar.mimeType)
@@ -332,6 +472,106 @@ export class CharacterService {
         }
 
         return exportCharacterCard(exportable, spec, format)
+    }
+
+    async exportPackage(id: string) {
+        const character = this.get(id)
+        if (!character) return null
+        const card = await this.export(id, 'v3', 'charx')
+        if (!card) return null
+        const conversations = this.store.conversation
+            .list(true)
+            .filter((conversation) => conversation.characterId === id)
+        const personaIds = new Set(
+            conversations.flatMap((conversation) =>
+                conversation.boundPersonaId ? [conversation.boundPersonaId] : [],
+            ),
+        )
+        const packageWarnings = [...card.warnings]
+        const personas = []
+        for (const personaId of personaIds) {
+            const persona = this.store.persona.get(personaId)
+            if (!persona) continue
+            let avatar: Uint8Array | undefined
+            if (persona.avatarAssetId) {
+                const asset = this.store.asset.get(persona.avatarAssetId)
+                if (asset?.mimeType === 'image/png') {
+                    avatar = (await this.assetStore.read(persona.avatarAssetId)) || undefined
+                } else {
+                    packageWarnings.push(
+                        `Persona “${persona.name}” used a non-PNG avatar, so the package contains a placeholder`,
+                    )
+                }
+            }
+            personas.push({
+                id: persona.id,
+                name: persona.name,
+                description: persona.description,
+                note: persona.note,
+                avatar,
+            })
+        }
+        const chats = conversations.map((conversation) => {
+            const greeting =
+                conversation.greetingIndex >= 0
+                    ? character.alternateGreetings[conversation.greetingIndex] || ''
+                    : character.firstMessage
+            const messages = this.store.message.list(conversation.id)
+            const hasGreeting =
+                Boolean(greeting) &&
+                messages[0]?.role === 'assistant' &&
+                messages[0]?.content === greeting
+            return {
+                id: conversation.id,
+                name: conversation.title,
+                note: conversation.authorNote,
+                fmIndex: conversation.greetingIndex,
+                firstMessageDisabled: Boolean(greeting) && !hasGreeting,
+                folderId: conversation.groupId,
+                bindedPersona: conversation.personaLocked ? conversation.boundPersonaId : null,
+                scriptstate: conversation.variables,
+                messages: (hasGreeting ? messages.slice(1) : messages).map((message) => ({
+                    role: message.role === 'assistant' ? ('assistant' as const) : ('user' as const),
+                    content:
+                        message.role === 'system'
+                            ? `[System]\n${message.content}`
+                            : message.content,
+                })),
+            }
+        })
+        const inlays = []
+        const seenInlays = new Set<string>()
+        for (const link of this.store.characterAsset.list(id)) {
+            if (link.type !== 'inlay' && !link.sourceUri.startsWith('inlay:')) continue
+            const inlayId = link.sourceUri.startsWith('inlay:')
+                ? link.sourceUri.slice('inlay:'.length)
+                : link.name
+            if (!inlayId || seenInlays.has(inlayId)) continue
+            const bytes = await this.assetStore.read(link.assetId)
+            const asset = this.store.asset.get(link.assetId)
+            if (!bytes || !asset) continue
+            seenInlays.add(inlayId)
+            inlays.push({
+                id: inlayId,
+                bytes,
+                extension: link.extension,
+                mimeType: asset.mimeType,
+            })
+        }
+
+        return {
+            bytes: exportPocketRisuCharacterPackage({
+                characterName: character.name,
+                characterCard: card.bytes,
+                chats,
+                chatGroups: this.store.conversationGroup.list(id),
+                personas,
+                inlays,
+            }),
+            mimeType: 'application/zip',
+            extension: 'zip',
+            warnings: packageWarnings,
+        }
     }
 
     private blankCard(): CharacterCardV3 {

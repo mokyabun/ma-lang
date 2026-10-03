@@ -17,6 +17,7 @@ import {
     Trash,
     X,
 } from '@phosphor-icons/react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import {
@@ -56,6 +57,9 @@ export function MessageTranscript({
     userPersona,
     messages,
     loading,
+    hasOlderMessages,
+    loadingOlderMessages,
+    onLoadOlder,
     greetingIndex,
     greetingCount,
     onRegenerate,
@@ -73,6 +77,9 @@ export function MessageTranscript({
     userPersona: Persona | null
     messages: Message[]
     loading: boolean
+    hasOlderMessages: boolean
+    loadingOlderMessages: boolean
+    onLoadOlder: () => Promise<void>
     greetingIndex: number
     greetingCount: number
     onRegenerate: () => void
@@ -87,9 +94,22 @@ export function MessageTranscript({
     const restoredConversationRef = useRef<string | null>(null)
     const atBottomRef = useRef(true)
     const pendingScrollTopRef = useRef<number | null>(null)
+    const loadingOlderRef = useRef(false)
+    const pendingPrependRef = useRef<{ scrollTop: number; totalSize: number } | null>(null)
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
     const hasUserMessage = messages.some((message) => message.role === 'user')
     const canSelectGreeting = !hasUserMessage && greetingCount > 1
+    const firstMessageId = messages[0]?.id
+    // TanStack Virtual intentionally exposes an imperative instance that React Compiler skips.
+    // oxlint-disable-next-line react/incompatible-library
+    const rowVirtualizer = useVirtualizer({
+        count: messages.length,
+        getScrollElement: () => viewportRef.current,
+        getItemKey: (index) => messages[index]?.id ?? index,
+        estimateSize: () => 280,
+        overscan: 4,
+        measureElement: (element) => element.getBoundingClientRect().height,
+    })
 
     useLayoutEffect(() => {
         const viewport = viewportRef.current
@@ -125,6 +145,17 @@ export function MessageTranscript({
         rememberTranscriptScroll(conversationId, viewport)
     }, [conversationId, editingMessageId])
 
+    useLayoutEffect(() => {
+        const viewport = viewportRef.current
+        const pending = pendingPrependRef.current
+        if (!viewport || !pending) return
+        rowVirtualizer.measure()
+        viewport.scrollTop = pending.scrollTop + (rowVirtualizer.getTotalSize() - pending.totalSize)
+        pendingPrependRef.current = null
+        atBottomRef.current = isNearBottom(viewport)
+        rememberTranscriptScroll(conversationId, viewport)
+    }, [conversationId, firstMessageId, rowVirtualizer])
+
     function changeEditingMessage(messageId: string | null) {
         const viewport = viewportRef.current
         if (viewport) {
@@ -139,6 +170,27 @@ export function MessageTranscript({
         if (!viewport) return
         atBottomRef.current = isNearBottom(viewport)
         rememberTranscriptScroll(conversationId, viewport)
+        if (viewport.scrollTop < 240) void loadOlder()
+    }
+
+    async function loadOlder() {
+        const viewport = viewportRef.current
+        if (!viewport || !hasOlderMessages || loadingOlderMessages || loadingOlderRef.current)
+            return
+        loadingOlderRef.current = true
+        const pending = {
+            scrollTop: viewport.scrollTop,
+            totalSize: rowVirtualizer.getTotalSize(),
+        }
+        pendingPrependRef.current = pending
+        try {
+            await onLoadOlder()
+        } finally {
+            loadingOlderRef.current = false
+            window.requestAnimationFrame(() => {
+                if (pendingPrependRef.current === pending) pendingPrependRef.current = null
+            })
+        }
     }
 
     async function handleLuaClick(event: MouseEvent) {
@@ -211,8 +263,21 @@ export function MessageTranscript({
         >
             <div className="malang-transcript__inner mx-auto py-5 sm:py-8">
                 <div className="malang-scene-marker mb-5 flex items-center gap-4 px-2 font-mono text-[8px] uppercase tracking-widest text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border sm:mb-7">
-                    <span>SCENE</span>
-                    <p>{character.scenario || '새로운 장면이 시작됩니다.'}</p>
+                    {hasOlderMessages ? (
+                        <button
+                            type="button"
+                            className="hover:text-foreground disabled:cursor-wait"
+                            disabled={loadingOlderMessages}
+                            onClick={() => void loadOlder()}
+                        >
+                            {loadingOlderMessages ? '불러오는 중…' : '이전 메시지 불러오기'}
+                        </button>
+                    ) : (
+                        <>
+                            <span>SCENE</span>
+                            <p>{character.scenario || '새로운 장면이 시작됩니다.'}</p>
+                        </>
+                    )}
                 </div>
                 {loading && !messages.length ? <MessageSkeleton /> : null}
                 {!loading && !messages.length ? (
@@ -234,123 +299,131 @@ export function MessageTranscript({
                         ) : null}
                     </Empty>
                 ) : null}
-                {messages.map((message, index) => {
-                    const isEditing = editingMessageId === message.id
+                <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const index = virtualRow.index
+                        const message = messages[index]!
+                        const isEditing = editingMessageId === message.id
 
-                    return (
-                        <article
-                            key={message.id}
-                            data-chat-index={index}
-                            data-chat-role={message.role}
-                            data-message-id={message.id}
-                            className={cn(
-                                'risu-chat malang-message-card group mb-5 text-card-foreground transition-colors sm:mb-7',
-                                message.role === 'assistant' && 'char',
-                                message.role === 'user' && 'user',
-                                message.role === 'system' && 'system',
-                                message.status === 'streaming' && 'animate-pulse',
-                            )}
-                        >
-                            <div className="malang-message-card__surface min-w-0">
-                                {message.role !== 'system' ? (
-                                    <header className="malang-message-card__header">
-                                        {message.role === 'assistant' ? (
-                                            <span className="malang-message-card__avatar">
-                                                <CharacterAvatar character={character} />
-                                            </span>
-                                        ) : (
-                                            <span className="malang-message-card__avatar">
-                                                <PersonaAvatar
-                                                    persona={userPersona}
-                                                    fallbackName={userName}
-                                                    className="malang-message-card__user-avatar size-full rounded-[inherit]"
-                                                />
-                                            </span>
-                                        )}
-                                        <div className="min-w-0 flex-1">
-                                            <strong>
-                                                {message.role === 'assistant'
-                                                    ? character.name
-                                                    : userName}
-                                            </strong>
-                                            <small>
-                                                {message.role === 'assistant'
-                                                    ? 'CHARACTER'
-                                                    : 'PLAYER'}
-                                            </small>
+                        return (
+                            <article
+                                key={message.id}
+                                ref={rowVirtualizer.measureElement}
+                                data-index={virtualRow.index}
+                                data-chat-index={message.position}
+                                data-chat-role={message.role}
+                                data-message-id={message.id}
+                                className={cn(
+                                    'risu-chat malang-message-card group absolute left-0 top-0 w-full pb-5 text-card-foreground transition-colors sm:pb-7',
+                                    message.role === 'assistant' && 'char',
+                                    message.role === 'user' && 'user',
+                                    message.role === 'system' && 'system',
+                                    message.status === 'streaming' && 'animate-pulse',
+                                )}
+                                style={{ transform: `translateY(${virtualRow.start}px)` }}
+                            >
+                                <div className="malang-message-card__surface min-w-0">
+                                    {message.role !== 'system' ? (
+                                        <header className="malang-message-card__header">
+                                            {message.role === 'assistant' ? (
+                                                <span className="malang-message-card__avatar">
+                                                    <CharacterAvatar character={character} />
+                                                </span>
+                                            ) : (
+                                                <span className="malang-message-card__avatar">
+                                                    <PersonaAvatar
+                                                        persona={userPersona}
+                                                        fallbackName={userName}
+                                                        className="malang-message-card__user-avatar size-full rounded-[inherit]"
+                                                    />
+                                                </span>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                                <strong>
+                                                    {message.role === 'assistant'
+                                                        ? character.name
+                                                        : userName}
+                                                </strong>
+                                                <small>
+                                                    {message.role === 'assistant'
+                                                        ? 'CHARACTER'
+                                                        : 'PLAYER'}
+                                                </small>
+                                            </div>
+                                            <time dateTime={message.createdAt}>
+                                                {formatClock(message.createdAt)}
+                                                {message.status !== 'complete'
+                                                    ? ` · ${statusLabel(message.status)}`
+                                                    : ''}
+                                            </time>
+                                        </header>
+                                    ) : (
+                                        <div className="malang-message-card__system-label">
+                                            <strong>SYSTEM</strong>
+                                            <time dateTime={message.createdAt}>
+                                                {formatClock(message.createdAt)}
+                                            </time>
                                         </div>
-                                        <time dateTime={message.createdAt}>
-                                            {formatClock(message.createdAt)}
-                                            {message.status !== 'complete'
-                                                ? ` · ${statusLabel(message.status)}`
-                                                : ''}
-                                        </time>
-                                    </header>
-                                ) : (
-                                    <div className="malang-message-card__system-label">
-                                        <strong>SYSTEM</strong>
-                                        <time dateTime={message.createdAt}>
-                                            {formatClock(message.createdAt)}
-                                        </time>
-                                    </div>
-                                )}
-                                {isEditing ? (
-                                    <InlineMessageEditor
-                                        message={message}
-                                        onCancel={() => changeEditingMessage(null)}
-                                        onSave={async (content) => {
-                                            await onEdit(message, content)
-                                            changeEditingMessage(null)
-                                        }}
-                                    />
-                                ) : (
-                                    <div
-                                        aria-label={
-                                            message.role === 'user'
-                                                ? `${userName} 메시지`
-                                                : undefined
-                                        }
-                                        className={cn(
-                                            'malang-message-card__content',
-                                            message.role === 'system' && 'text-center',
-                                            message.status === 'failed' &&
-                                                'ring-1 ring-destructive/50',
-                                        )}
-                                    >
-                                        <MessageContent
+                                    )}
+                                    {isEditing ? (
+                                        <InlineMessageEditor
                                             message={message}
-                                            imageAssets={imageAssets}
+                                            onCancel={() => changeEditingMessage(null)}
+                                            onSave={async (content) => {
+                                                await onEdit(message, content)
+                                                changeEditingMessage(null)
+                                            }}
                                         />
-                                    </div>
-                                )}
-                                {!isEditing &&
-                                message.role === 'assistant' &&
-                                message.position === 0 ? (
-                                    <GreetingNavigator
-                                        currentIndex={greetingIndex}
-                                        count={greetingCount}
-                                        copyContent={message.content}
-                                        canNavigate={canSelectGreeting}
-                                        onSelect={onSelectGreeting}
-                                    />
-                                ) : null}
-                                {isEditing ||
-                                (message.role === 'assistant' && message.position === 0) ? null : (
-                                    <MessageTools
-                                        message={message}
-                                        isLast={index === messages.length - 1}
-                                        onRegenerate={onRegenerate}
-                                        onStartEdit={() => changeEditingMessage(message.id)}
-                                        deleteCount={messages.length - index}
-                                        onDelete={onDelete}
-                                        onVersions={onVersions}
-                                        onSelectVersion={onSelectVersion}
-                                    />
-                                )}
-                            </div>
-                        </article>
-                    )
-                })}
+                                    ) : (
+                                        <div
+                                            aria-label={
+                                                message.role === 'user'
+                                                    ? `${userName} 메시지`
+                                                    : undefined
+                                            }
+                                            className={cn(
+                                                'malang-message-card__content',
+                                                message.role === 'system' && 'text-center',
+                                                message.status === 'failed' &&
+                                                    'ring-1 ring-destructive/50',
+                                            )}
+                                        >
+                                            <MessageContent
+                                                message={message}
+                                                imageAssets={imageAssets}
+                                            />
+                                        </div>
+                                    )}
+                                    {!isEditing &&
+                                    message.role === 'assistant' &&
+                                    message.position === 0 ? (
+                                        <GreetingNavigator
+                                            currentIndex={greetingIndex}
+                                            count={greetingCount}
+                                            copyContent={message.content}
+                                            canNavigate={canSelectGreeting}
+                                            onSelect={onSelectGreeting}
+                                        />
+                                    ) : null}
+                                    {isEditing ||
+                                    (message.role === 'assistant' &&
+                                        message.position === 0) ? null : (
+                                        <MessageTools
+                                            message={message}
+                                            isLast={index === messages.length - 1}
+                                            onRegenerate={onRegenerate}
+                                            onStartEdit={() => changeEditingMessage(message.id)}
+                                            deleteCount={messages.length - index}
+                                            onDelete={onDelete}
+                                            onVersions={onVersions}
+                                            onSelectVersion={onSelectVersion}
+                                        />
+                                    )}
+                                </div>
+                            </article>
+                        )
+                    })}
+                </div>
             </div>
         </div>
     )

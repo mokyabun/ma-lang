@@ -19,8 +19,10 @@ import {
 import {
     characterCreatingAtom,
     characterImportRequestedAtom,
+    characterPackageImportRequestedAtom,
     createCharacterAtom,
     importCharacterAtom,
+    importCharacterPackageAtom,
 } from '../character/atom'
 import { useCharacterDelete } from '../character/use-character-delete'
 import { generatingConversationIdsAtom } from '../chat/atom'
@@ -40,9 +42,14 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useAtom(mobileSidebarOpenAtom)
     const characterCreating = useAtomValue(characterCreatingAtom)
     const importCharacter = useSetAtom(importCharacterAtom)
+    const importCharacterPackage = useSetAtom(importCharacterPackageAtom)
     const createCharacter = useSetAtom(createCharacterAtom)
     const [importRequested, setImportRequested] = useAtom(characterImportRequestedAtom)
+    const [packageImportRequested, setPackageImportRequested] = useAtom(
+        characterPackageImportRequestedAtom,
+    )
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const packageInputRef = useRef<HTMLInputElement>(null)
     const confirmDeleteCharacter = useCharacterDelete()
     const startConversation = useStartConversation()
     const setCharacters = useSetAtom(charactersAtom)
@@ -59,6 +66,12 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         fileInputRef.current?.click()
         setImportRequested(false)
     }, [importRequested, setImportRequested])
+
+    useEffect(() => {
+        if (!packageImportRequested) return
+        packageInputRef.current?.click()
+        setPackageImportRequested(false)
+    }, [packageImportRequested, setPackageImportRequested])
 
     useEffect(() => {
         if (!mobileSidebarOpen) return
@@ -109,6 +122,28 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         })
     }
 
+    async function handlePackageImport(event: ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0]
+        event.target.value = ''
+        if (!file) return
+        const result = await importCharacterPackage(file)
+        if (!result) return
+        if (result.conversations[0]) {
+            await navigate({
+                to: '/characters/$characterId/chats/$conversationId',
+                params: {
+                    characterId: result.character.id,
+                    conversationId: result.conversations[0].id,
+                },
+            })
+            return
+        }
+        await navigate({
+            to: '/characters/$characterId/character/$section',
+            params: { characterId: result.character.id, section: 'profile' },
+        })
+    }
+
     return (
         <main className="relative grid h-dvh w-full grid-cols-[4.5rem_22rem_minmax(0,1fr)] bg-background max-[820px]:grid-cols-1">
             <Input
@@ -117,6 +152,13 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                 type="file"
                 accept=".json,.png,.charx,application/json,image/png"
                 onChange={handleImport}
+            />
+            <Input
+                ref={packageInputRef}
+                className="sr-only"
+                type="file"
+                accept=".zip,application/zip"
+                onChange={handlePackageImport}
             />
             <Button
                 type="button"
@@ -151,6 +193,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
                 }
                 onDelete={confirmDeleteCharacter}
                 onImport={() => setImportRequested(true)}
+                onImportPackage={() => setPackageImportRequested(true)}
                 onCreate={() => void handleCreateCharacter()}
                 onCreateGroup={async (name) => {
                     try {

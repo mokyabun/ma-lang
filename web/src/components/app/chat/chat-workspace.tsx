@@ -33,11 +33,14 @@ import {
     cancelGenerationAtom,
     conversationModuleStatesAtom,
     generateReplyAtom,
+    hasOlderMessagesAtom,
     hasStreamingMessageAtom,
     inspectorOpenAtom,
     loadConversationAtom,
+    loadOlderMessagesAtom,
     messageLoadingAtom,
     messagesAtom,
+    olderMessagesLoadingAtom,
     updateConversationAtom,
 } from './atom'
 import { ChatHeader } from './chat-header'
@@ -60,6 +63,8 @@ export function ChatWorkspace({
     const presets = useAtomValue(promptPresetsAtom)
     const messages = useAtomValue(messagesAtom)
     const messageLoading = useAtomValue(messageLoadingAtom)
+    const hasOlderMessages = useAtomValue(hasOlderMessagesAtom)
+    const olderMessagesLoading = useAtomValue(olderMessagesLoadingAtom)
     const activeGenerations = useAtomValue(activeGenerationsAtom)
     const moduleStates = useAtomValue(conversationModuleStatesAtom)
     const characterAssets = useAtomValue(characterAssetsAtom)
@@ -67,6 +72,7 @@ export function ChatWorkspace({
     const hasStreamingMessage = useAtomValue(hasStreamingMessageAtom)
     const [inspectorOpen, setInspectorOpen] = useAtom(inspectorOpenAtom)
     const loadConversation = useSetAtom(loadConversationAtom)
+    const loadOlderMessages = useSetAtom(loadOlderMessagesAtom)
     const updateConversation = useSetAtom(updateConversationAtom)
     const updatePromptToggleValues = useSetAtom(updatePromptToggleValuesAtom)
     const generateReply = useSetAtom(generateReplyAtom)
@@ -195,6 +201,9 @@ export function ChatWorkspace({
                                 userPersona={activePersona}
                                 messages={messages}
                                 loading={messageLoading}
+                                hasOlderMessages={hasOlderMessages}
+                                loadingOlderMessages={olderMessagesLoading}
+                                onLoadOlder={() => loadOlderMessages(conversation.id)}
                                 greetingIndex={conversation.greetingIndex}
                                 greetingCount={1 + character.alternateGreetings.length}
                                 onRegenerate={() =>
@@ -203,17 +212,29 @@ export function ChatWorkspace({
                                         regenerate: true,
                                     })
                                 }
-                                onLuaTriggered={() => loadConversation(conversation.id)}
+                                onLuaTriggered={() =>
+                                    loadConversation({
+                                        conversationId: conversation.id,
+                                        resetMessages: true,
+                                    })
+                                }
                                 onSelectGreeting={async (greetingIndex) => {
                                     const updated = await updateConversation({
                                         conversationId: conversation.id,
                                         input: { greetingIndex },
                                     })
-                                    if (updated) await loadConversation(conversation.id)
+                                    if (updated)
+                                        await loadConversation({
+                                            conversationId: conversation.id,
+                                            resetMessages: true,
+                                        })
                                 }}
                                 onEdit={async (message, content) => {
                                     await api.updateMessage(conversation.id, message.id, content)
-                                    await loadConversation(conversation.id)
+                                    await loadConversation({
+                                        conversationId: conversation.id,
+                                        resetMessages: true,
+                                    })
                                 }}
                                 onDelete={async (message, scope) => {
                                     if (scope === 'from') {
@@ -221,7 +242,10 @@ export function ChatWorkspace({
                                     } else {
                                         await api.deleteMessage(conversation.id, message.id)
                                     }
-                                    await loadConversation(conversation.id)
+                                    await loadConversation({
+                                        conversationId: conversation.id,
+                                        resetMessages: true,
+                                    })
                                 }}
                                 onVersions={(message) =>
                                     api.messageGenerations(conversation.id, message.id)
@@ -232,7 +256,10 @@ export function ChatWorkspace({
                                         message.id,
                                         generationId,
                                     )
-                                    await loadConversation(conversation.id)
+                                    await loadConversation({
+                                        conversationId: conversation.id,
+                                        resetMessages: true,
+                                    })
                                 }}
                             />
                             <Composer

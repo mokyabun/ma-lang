@@ -663,6 +663,21 @@ export class GenerationService {
         return renderDisplayMessages(this.store, this.lua, conversationId, context)
     }
 
+    async messagePageWithDisplay(conversationId: string, page: { before?: number; limit: number }) {
+        const rendered = await this.messagesWithDisplay(conversationId)
+        const eligible =
+            page.before === undefined
+                ? rendered
+                : rendered.filter((message) => message.position < page.before!)
+        const messages = eligible.slice(-page.limit)
+        const hasMore = eligible.length > messages.length
+        return {
+            messages,
+            hasMore,
+            nextCursor: hasMore ? (messages[0]?.position ?? null) : null,
+        }
+    }
+
     private context(conversationId: string) {
         return loadGenerationContext(this.store, this.personas, conversationId)
     }

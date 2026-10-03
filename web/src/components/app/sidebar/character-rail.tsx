@@ -86,6 +86,7 @@ export function CharacterRail({
     onEdit,
     onDelete,
     onImport,
+    onImportPackage,
     onCreate,
     onCreateGroup,
     onRenameGroup,
@@ -104,6 +105,7 @@ export function CharacterRail({
     onEdit: (id: string) => void
     onDelete: (character: Character) => void
     onImport: () => void
+    onImportPackage: () => void
     onCreate: () => void
     onCreateGroup: (name: string) => void | Promise<void>
     onRenameGroup: (id: string, name: string) => void | Promise<void>
@@ -298,7 +300,10 @@ export function CharacterRail({
                             <DropdownMenuGroup>
                                 <DropdownMenuLabel>캐릭터 추가</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={onImport}>
-                                    <UploadSimple aria-hidden="true" /> 캐릭터 임포트
+                                    <UploadSimple aria-hidden="true" /> 캐릭터 카드 임포트
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={onImportPackage}>
+                                    <UploadSimple aria-hidden="true" /> PocketRisu 패키지 임포트
                                 </DropdownMenuItem>
                                 <DropdownMenuItem disabled={creating} onClick={onCreate}>
                                     {creating ? (

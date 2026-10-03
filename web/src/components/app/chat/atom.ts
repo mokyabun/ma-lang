@@ -21,6 +21,10 @@ export interface ActiveGeneration {
 }
 
 export const messagesAtom = atom<Message[]>([])
+export const hasOlderMessagesAtom = atom(false)
+export const olderMessagesLoadingAtom = atom(false)
+const nextMessageCursorAtom = atom<number | null>(null)
+const loadedMessagesConversationIdAtom = atom<string | null>(null)
 export const conversationModuleStatesAtom = atom<ConversationModuleState[]>([])
 export const activeGenerationsAtom = atom<Record<string, ActiveGeneration>>({})
 export const messageLoadingAtom = atom(false)
@@ -35,34 +39,99 @@ export const generatingConversationIdsAtom = atom(
     (get) => new Set(Object.keys(get(activeGenerationsAtom))),
 )
 
-export const loadConversationAtom = atom(null, async (get, set, conversationId: string) => {
-    set(messageLoadingAtom, true)
-    try {
-        const [messageResult, activeResult, moduleResult] = await Promise.all([
-            api.messages(conversationId),
-            api.activeGeneration(conversationId),
-            api.conversationModules(conversationId),
-        ])
-        if (get(selectedConversationIdAtom) === conversationId) {
-            set(messagesAtom, messageResult.messages)
-            set(conversationModuleStatesAtom, moduleResult.modules)
+const MESSAGE_PAGE_SIZE = 50
+
+export const loadConversationAtom = atom(
+    null,
+    async (get, set, request: string | { conversationId: string; resetMessages?: boolean }) => {
+        const conversationId = typeof request === 'string' ? request : request.conversationId
+        const resetMessages = typeof request === 'string' ? false : request.resetMessages === true
+        const isFirstPage =
+            resetMessages || get(loadedMessagesConversationIdAtom) !== conversationId
+        if (isFirstPage && get(selectedConversationIdAtom) === conversationId) {
+            set(messagesAtom, [])
+            set(hasOlderMessagesAtom, false)
+            set(nextMessageCursorAtom, null)
+            set(loadedMessagesConversationIdAtom, conversationId)
         }
-        set(activeGenerationsAtom, (current) => {
-            const next = { ...current }
-            if (activeResult.generation) {
-                next[conversationId] = { generationId: activeResult.generation.id }
-            } else {
-                delete next[conversationId]
+        set(messageLoadingAtom, true)
+        try {
+            const [messageResult, activeResult, moduleResult] = await Promise.all([
+                api.messages(conversationId, { limit: MESSAGE_PAGE_SIZE }),
+                api.activeGeneration(conversationId),
+                api.conversationModules(conversationId),
+            ])
+            if (get(selectedConversationIdAtom) === conversationId) {
+                if (isFirstPage) {
+                    set(messagesAtom, messageResult.messages)
+                    set(hasOlderMessagesAtom, messageResult.hasMore)
+                    set(nextMessageCursorAtom, messageResult.nextCursor)
+                } else {
+                    set(messagesAtom, (current) => {
+                        const firstLatestPosition = messageResult.messages[0]?.position
+                        const older =
+                            firstLatestPosition === undefined
+                                ? []
+                                : current.filter(
+                                      (message) => message.position < firstLatestPosition,
+                                  )
+                        return [...older, ...messageResult.messages]
+                    })
+                }
+                set(conversationModuleStatesAtom, moduleResult.modules)
             }
-            return next
+            set(activeGenerationsAtom, (current) => {
+                const next = { ...current }
+                if (activeResult.generation) {
+                    next[conversationId] = { generationId: activeResult.generation.id }
+                } else {
+                    delete next[conversationId]
+                }
+                return next
+            })
+        } catch (cause) {
+            set(
+                workspaceErrorAtom,
+                cause instanceof Error ? cause.message : '메시지를 불러오지 못했습니다.',
+            )
+        } finally {
+            set(messageLoadingAtom, false)
+        }
+    },
+)
+
+export const loadOlderMessagesAtom = atom(null, async (get, set, conversationId: string) => {
+    if (
+        get(olderMessagesLoadingAtom) ||
+        !get(hasOlderMessagesAtom) ||
+        get(loadedMessagesConversationIdAtom) !== conversationId
+    ) {
+        return
+    }
+    const before = get(nextMessageCursorAtom)
+    if (before === null) return
+    set(olderMessagesLoadingAtom, true)
+    try {
+        const page = await api.messages(conversationId, { before, limit: MESSAGE_PAGE_SIZE })
+        if (
+            get(selectedConversationIdAtom) !== conversationId ||
+            get(loadedMessagesConversationIdAtom) !== conversationId
+        ) {
+            return
+        }
+        set(messagesAtom, (current) => {
+            const currentIds = new Set(current.map((message) => message.id))
+            return [...page.messages.filter((message) => !currentIds.has(message.id)), ...current]
         })
+        set(hasOlderMessagesAtom, page.hasMore)
+        set(nextMessageCursorAtom, page.nextCursor)
     } catch (cause) {
         set(
             workspaceErrorAtom,
-            cause instanceof Error ? cause.message : '메시지를 불러오지 못했습니다.',
+            cause instanceof Error ? cause.message : '이전 메시지를 불러오지 못했습니다.',
         )
     } finally {
-        set(messageLoadingAtom, false)
+        set(olderMessagesLoadingAtom, false)
     }
 })
 
@@ -201,6 +270,9 @@ export const deleteConversationAtom = atom(null, async (get, set, conversationId
         if (get(selectedConversationIdAtom) === conversationId) {
             set(selectedConversationIdAtom, nextConversation?.id ?? null)
             set(messagesAtom, [])
+            set(hasOlderMessagesAtom, false)
+            set(nextMessageCursorAtom, null)
+            set(loadedMessagesConversationIdAtom, null)
             set(conversationModuleStatesAtom, [])
         }
         set(activeGenerationsAtom, (current) => {
@@ -243,7 +315,7 @@ export const generateReplyAtom = atom(
                     conversationId,
                     role: 'user',
                     content,
-                    position: current.length,
+                    position: (current.at(-1)?.position ?? -1) + 1,
                     status: 'complete',
                     createdAt: now,
                     updatedAt: now,
@@ -284,7 +356,7 @@ export const generateReplyAtom = atom(
                             conversationId,
                             role: 'assistant',
                             content: contentValue,
-                            position: current.length,
+                            position: (current.at(-1)?.position ?? -1) + 1,
                             status: 'streaming',
                             createdAt: now,
                             updatedAt: now,

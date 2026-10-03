@@ -52,6 +52,10 @@ export function createCharacterDomain(context: AppContext) {
             const file = await readImportFile(c, context.config.limits.importBytes)
             return c.json(await context.characters.import(file.bytes, file.filename), 201)
         })
+        .post('/import-package', async (c) => {
+            const file = await readImportFile(c, context.config.limits.importBytes)
+            return c.json(await context.characters.importPackage(file.bytes), 201)
+        })
         .post('/:id/restore', (c) => {
             if (!context.characters.restore(c.req.param('id'))) {
                 throw new NotFoundError('Character not found')
@@ -99,6 +103,16 @@ export function createCharacterDomain(context: AppContext) {
                 value.bytes,
                 value.mimeType,
                 `character-${c.req.param('id')}.${value.extension}`,
+                value.warnings,
+            )
+        })
+        .get('/:id/export-package', async (c) => {
+            const value = await context.characters.exportPackage(c.req.param('id'))
+            if (!value) throw new NotFoundError('Character not found')
+            return binaryResponse(
+                value.bytes,
+                value.mimeType,
+                `character-${c.req.param('id')}-package.${value.extension}`,
                 value.warnings,
             )
         })

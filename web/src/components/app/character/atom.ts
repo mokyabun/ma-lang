@@ -5,20 +5,27 @@ import { api } from '@/lib/api'
 
 import {
     charactersAtom,
+    conversationGroupsAtom,
     conversationsAtom,
     selectedCharacterIdAtom,
     selectedConversationIdAtom,
     workspaceErrorAtom,
 } from '../atom'
+import { personaListAtom } from '../settings/persona/atom'
 import { mobileSidebarOpenAtom } from '../sidebar/atom'
 
 export const characterAssetsAtom = atom<CharacterAsset[]>([])
 export const characterSavingAtom = atom(false)
 export const characterCreatingAtom = atom(false)
 export const characterImportRequestedAtom = atom(false)
+export const characterPackageImportRequestedAtom = atom(false)
 
 export const requestCharacterImportAtom = atom(null, (_get, set) => {
     set(characterImportRequestedAtom, true)
+})
+
+export const requestCharacterPackageImportAtom = atom(null, (_get, set) => {
+    set(characterPackageImportRequestedAtom, true)
 })
 
 export const importCharacterAtom = atom(null, async (_get, set, file: File) => {
@@ -36,6 +43,31 @@ export const importCharacterAtom = atom(null, async (_get, set, file: File) => {
         set(
             workspaceErrorAtom,
             cause instanceof Error ? cause.message : '캐릭터 카드를 가져오지 못했습니다.',
+        )
+        return null
+    }
+})
+
+export const importCharacterPackageAtom = atom(null, async (_get, set, file: File) => {
+    set(workspaceErrorAtom, '')
+    try {
+        const result = await api.importCharacterPackage(file)
+        const assetResult = await api.characterAssets(result.character.id)
+        set(charactersAtom, (current) => [result.character, ...current])
+        set(conversationsAtom, (current) => [...result.conversations, ...current])
+        set(conversationGroupsAtom, (current) => [...current, ...result.conversationGroups])
+        set(personaListAtom, (current) => [...current, ...result.personas])
+        set(characterAssetsAtom, assetResult.assets)
+        set(selectedCharacterIdAtom, result.character.id)
+        set(selectedConversationIdAtom, result.conversations[0]?.id ?? null)
+        set(mobileSidebarOpenAtom, true)
+        return result
+    } catch (cause) {
+        set(
+            workspaceErrorAtom,
+            cause instanceof Error
+                ? cause.message
+                : 'PocketRisu 캐릭터 패키지를 가져오지 못했습니다.',
         )
         return null
     }
