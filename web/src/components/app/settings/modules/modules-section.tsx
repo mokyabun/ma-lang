@@ -1,7 +1,10 @@
 import type { PromptModule } from '@malang/shared'
+import { useSetAtom } from 'jotai'
 
 import { api, promptModuleExportUrl } from '@/lib/api'
 
+import { loadingAtom } from '../../dialogs/atom'
+import { withImportProgress } from '../../dialogs/import-progress'
 import { EditableWorkbench } from '../shared/editable-workbench'
 import { useEditableCatalog } from '../shared/use-editable-catalog'
 import { blankModule, moduleInput } from './model'
@@ -14,6 +17,7 @@ export function ModulesSection({
     modules: PromptModule[]
     onChanged: (modules: PromptModule[]) => void
 }) {
+    const setLoading = useSetAtom(loadingAtom)
     const catalog = useEditableCatalog({
         items: modules,
         toDraft: moduleInput,
@@ -21,7 +25,10 @@ export function ModulesSection({
         create: () => api.createPromptModule(blankModule()),
         update: api.updatePromptModule,
         remove: api.deletePromptModule,
-        importFile: api.importPromptModule,
+        importFile: (file) =>
+            withImportProgress(setLoading, file, (onProgress) =>
+                api.importPromptModule(file, onProgress),
+            ),
         onChanged,
         createdMessage: '새 모듈을 만들었습니다.',
     })

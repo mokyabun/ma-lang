@@ -11,6 +11,8 @@ import {
     selectedConversationIdAtom,
     workspaceErrorAtom,
 } from '../atom'
+import { loadingAtom } from '../dialogs/atom'
+import { withImportProgress } from '../dialogs/import-progress'
 import { personaListAtom } from '../settings/persona/atom'
 import { mobileSidebarOpenAtom } from '../sidebar/atom'
 
@@ -31,7 +33,11 @@ export const requestCharacterPackageImportAtom = atom(null, (_get, set) => {
 export const importCharacterAtom = atom(null, async (_get, set, file: File) => {
     set(workspaceErrorAtom, '')
     try {
-        const result = await api.importCharacter(file)
+        const result = await withImportProgress(
+            (loading) => set(loadingAtom, loading),
+            file,
+            (onProgress) => api.importCharacter(file, onProgress),
+        )
         const assetResult = await api.characterAssets(result.character.id)
         set(charactersAtom, (current) => [result.character, ...current])
         set(characterAssetsAtom, assetResult.assets)
@@ -51,7 +57,11 @@ export const importCharacterAtom = atom(null, async (_get, set, file: File) => {
 export const importCharacterPackageAtom = atom(null, async (_get, set, file: File) => {
     set(workspaceErrorAtom, '')
     try {
-        const result = await api.importCharacterPackage(file)
+        const result = await withImportProgress(
+            (loading) => set(loadingAtom, loading),
+            file,
+            (onProgress) => api.importCharacterPackage(file, onProgress),
+        )
         const assetResult = await api.characterAssets(result.character.id)
         set(charactersAtom, (current) => [result.character, ...current])
         set(conversationsAtom, (current) => [...result.conversations, ...current])

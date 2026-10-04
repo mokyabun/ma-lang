@@ -1,5 +1,6 @@
 import type {
     ApiError,
+    ImportEvent,
     AppSettings,
     Character,
     CharacterAsset,
@@ -59,6 +60,7 @@ export class ApiClientError extends Error {
         message: string,
         readonly status: number,
         readonly code?: ApiError['code'],
+        readonly details?: unknown,
     ) {
         super(message)
     }
@@ -151,7 +153,12 @@ async function requestBlob(path: string): Promise<Blob> {
 async function responseError(response: Response): Promise<ApiClientError> {
     try {
         const body = (await response.json()) as Partial<ApiError>
-        return new ApiClientError(body.message || response.statusText, response.status, body.code)
+        return new ApiClientError(
+            body.message || response.statusText,
+            response.status,
+            body.code,
+            body.details,
+        )
     } catch {
         return new ApiClientError(response.statusText || 'Request failed', response.status)
     }
@@ -374,25 +381,20 @@ export const api = {
         request<void>(`/conversations/${conversationId}/memory/summaries/${summaryId}`, {
             method: 'DELETE',
         }),
-    importCharacter: async (file: File) => {
-        const form = new FormData()
-        form.set('file', file)
-        return request<{ character: Character; warnings: string[] }>('/characters/import', {
-            method: 'POST',
-            body: form,
-        })
-    },
-    importCharacterPackage: async (file: File) => {
-        const form = new FormData()
-        form.set('file', file)
-        return request<{
+    importCharacter: (file: File, onProgress?: (progress: ImportProgress) => void) =>
+        uploadImport<{ character: Character; warnings: string[] }>(
+            '/characters/import',
+            file,
+            onProgress,
+        ),
+    importCharacterPackage: (file: File, onProgress?: (progress: ImportProgress) => void) =>
+        uploadImport<{
             character: Character
             conversations: Conversation[]
             conversationGroups: ConversationGroup[]
             personas: Persona[]
             warnings: string[]
-        }>('/characters/import-package', { method: 'POST', body: form })
-    },
+        }>('/characters/import-package', file, onProgress),
     settings: () => request<AppSettings>('/settings'),
     backupConfig: () => request<{ allowed: boolean }>('/settings/backup'),
     backupSnapshots: () => request<{ snapshots: BackupSnapshot[] }>('/settings/backups'),
@@ -502,7 +504,8 @@ export const api = {
         }),
     deletePromptModule: (moduleId: string) =>
         request<void>(`/prompt-modules/${moduleId}`, { method: 'DELETE' }),
-    importPromptModule: (file: File) => uploadFile<PromptModule>('/prompt-modules/import', file),
+    importPromptModule: (file: File, onProgress?: (progress: ImportProgress) => void) =>
+        uploadImport<PromptModule>('/prompt-modules/import', file, onProgress),
     conversationModules: (conversationId: string) =>
         request<{ modules: ConversationModuleState[] }>(`/conversations/${conversationId}/modules`),
     updateConversationModule: (conversationId: string, moduleId: string, enabled: boolean | null) =>
@@ -512,6 +515,180 @@ export const api = {
         ),
     cancelGeneration: (generationId: string) =>
         request<void>(`/generations/${generationId}`, { method: 'DELETE' }),
+}
+
+export type ImportProgress =
+    | { phase: 'upload'; loaded: number; total: number }
+    | { phase: 'reading' }
+    | { phase: 'assets'; done: number; total: number }
+
+const UPLOAD_CONCURRENCY = 4
+const UPLOAD_CHUNK_ATTEMPTS = 3
+const UPLOAD_CHUNK_TIMEOUT_MS = 60_000
+
+interface UploadSession {
+    id: string
+    chunkBytes: number
+    chunkCount: number
+}
+
+// Imports are uploaded in small chunks so every request fits under reverse-proxy body limits
+// (nginx defaults to 1 MiB) and a failed chunk can be retried on its own. The import request
+// then streams server-sent events: progress (asset X/Y) followed by the result.
+async function uploadImport<T>(
+    path: string,
+    file: File,
+    onProgress?: (progress: ImportProgress) => void,
+): Promise<T> {
+    const session = await createUpload(file)
+    try {
+        await uploadChunks(session, file, onProgress)
+    } catch (error) {
+        void request(`/uploads/${session.id}`, { method: 'DELETE' }).catch(() => {})
+        throw error
+    }
+    return streamImport<T>(path, session.id, onProgress)
+}
+
+async function createUpload(file: File): Promise<UploadSession> {
+    try {
+        return await request<UploadSession>('/uploads', {
+            method: 'POST',
+            body: JSON.stringify({ filename: file.name, size: file.size }),
+        })
+    } catch (error) {
+        if (!(error instanceof ApiClientError) || error.status !== 413) throw error
+        const maxBytes = (error.details as { maxBytes?: number } | undefined)?.maxBytes
+        throw new ApiClientError(
+            `파일(${formatMiB(file.size)})이 서버의 가져오기 한도${maxBytes ? `(${formatMiB(maxBytes)})` : ''}를 넘습니다. 서버의 MAX_IMPORT_BYTES를 늘려주세요.`,
+            413,
+            error.code,
+        )
+    }
+}
+
+async function uploadChunks(
+    session: UploadSession,
+    file: File,
+    onProgress?: (progress: ImportProgress) => void,
+) {
+    const abort = new AbortController()
+    let next = 0
+    let loaded = 0
+    onProgress?.({ phase: 'upload', loaded, total: file.size })
+    const worker = async () => {
+        while (next < session.chunkCount && !abort.signal.aborted) {
+            const index = next
+            next += 1
+            const start = index * session.chunkBytes
+            const chunk = file.slice(start, start + session.chunkBytes)
+            await putChunk(session, index, chunk, abort.signal)
+            loaded += chunk.size
+            onProgress?.({ phase: 'upload', loaded, total: file.size })
+        }
+    }
+    try {
+        await Promise.all(
+            Array.from({ length: Math.min(UPLOAD_CONCURRENCY, session.chunkCount) }, worker),
+        )
+    } catch (error) {
+        abort.abort()
+        throw error
+    }
+}
+
+async function putChunk(session: UploadSession, index: number, chunk: Blob, signal: AbortSignal) {
+    for (let attempt = 1; ; attempt += 1) {
+        let response: Response
+        try {
+            response = await fetch(`${API_BASE}/uploads/${session.id}/chunks/${index}`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'content-type': 'application/octet-stream' },
+                body: chunk,
+                signal: AbortSignal.any([signal, AbortSignal.timeout(UPLOAD_CHUNK_TIMEOUT_MS)]),
+            })
+        } catch {
+            if (signal.aborted) throw new ApiClientError('업로드를 중단했습니다.', 0)
+            if (attempt >= UPLOAD_CHUNK_ATTEMPTS)
+                throw new ApiClientError('업로드 중 연결이 끊어졌습니다.', 0)
+            await retryDelay(attempt)
+            continue
+        }
+        if (response.ok) {
+            await response.text()
+            return
+        }
+        if (response.status === 413) {
+            throw new ApiClientError(
+                `업로드 조각(${formatMiB(session.chunkBytes)})이 프록시의 요청 크기 제한에 걸렸습니다. 서버의 UPLOAD_CHUNK_BYTES를 줄이거나 프록시 제한을 늘려주세요.`,
+                413,
+            )
+        }
+        // Client errors will not succeed on retry; server and gateway errors might.
+        if (response.status < 500 || attempt >= UPLOAD_CHUNK_ATTEMPTS)
+            throw await responseError(response)
+        await retryDelay(attempt)
+    }
+}
+
+function retryDelay(attempt: number) {
+    return new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+}
+
+async function streamImport<T>(
+    path: string,
+    uploadId: string,
+    onProgress?: (progress: ImportProgress) => void,
+): Promise<T> {
+    const response = await fetch(`${API_BASE}${path}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { accept: 'text/event-stream', 'x-upload-id': uploadId },
+    })
+    if (!response.ok) throw await responseError(response)
+    if (!response.body) throw new ApiClientError('Streaming response is unavailable', 502)
+
+    for await (const data of readSseData(response.body)) {
+        const event = JSON.parse(data) as ImportEvent<T>
+        if (event.type === 'import.completed') return event.result
+        if (event.type === 'import.failed') {
+            throw new ApiClientError(event.error.message, event.status, event.error.code)
+        }
+        onProgress?.(
+            event.stage === 'assets'
+                ? { phase: 'assets', done: event.done, total: event.total }
+                : { phase: 'reading' },
+        )
+    }
+    throw new ApiClientError('가져오기 응답이 중간에 끊어졌습니다.', 502)
+}
+
+function formatMiB(bytes: number): string {
+    return `${(bytes / 1_048_576).toFixed(1)} MiB`
+}
+
+async function* readSseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+    const reader = body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+        const { done, value } = await reader.read()
+        buffer += decoder.decode(value, { stream: !done })
+        const blocks = buffer.split('\n\n')
+        buffer = blocks.pop() || ''
+
+        for (const block of blocks) {
+            const data = block
+                .split('\n')
+                .filter((line) => line.startsWith('data:'))
+                .map((line) => line.slice(5).trimStart())
+                .join('\n')
+            if (data) yield data
+        }
+        if (done) break
+    }
 }
 
 async function uploadFile<T>(path: string, file: File): Promise<T> {
@@ -603,26 +780,8 @@ async function streamGenerationOnce(
     if (!response.body) throw new ApiClientError('Streaming response is unavailable', 502)
 
     const generationId = response.headers.get('x-generation-id') || ''
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-        const { done, value } = await reader.read()
-        buffer += decoder.decode(value, { stream: !done })
-        const blocks = buffer.split('\n\n')
-        buffer = blocks.pop() || ''
-
-        for (const block of blocks) {
-            const data = block
-                .split('\n')
-                .filter((line) => line.startsWith('data:'))
-                .map((line) => line.slice(5).trimStart())
-                .join('\n')
-            if (data) onEvent(JSON.parse(data) as GenerationEvent)
-        }
-        if (done) break
+    for await (const data of readSseData(response.body)) {
+        onEvent(JSON.parse(data) as GenerationEvent)
     }
-
     return generationId
 }
