@@ -12,6 +12,8 @@ import { ConflictError, NotFoundError, ValidationError } from '@/errors'
 import type { AppContext } from '@/services'
 import { type AppEnv, binaryResponse, jsonValidator, parseEnum, readImportFile } from '@/utils'
 
+import { respondToImport } from './import-response'
+
 export function createCharacterDomain(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) =>
@@ -48,14 +50,16 @@ export function createCharacterDomain(context: AppContext) {
                 groups: context.store.characterGroup.list(),
             })
         })
-        .post('/import', async (c) => {
-            const file = await readImportFile(c, context.config.limits.importBytes)
-            return c.json(await context.characters.import(file.bytes, file.filename), 201)
-        })
-        .post('/import-package', async (c) => {
-            const file = await readImportFile(c, context.config.limits.importBytes)
-            return c.json(await context.characters.importPackage(file.bytes), 201)
-        })
+        .post('/import', (c) =>
+            respondToImport(c, context, context.config.limits.importBytes, (upload, onProgress) =>
+                context.characters.import(upload.source, upload.filename, onProgress),
+            ),
+        )
+        .post('/import-package', (c) =>
+            respondToImport(c, context, context.config.limits.importBytes, (upload, onProgress) =>
+                context.characters.importPackage(upload.source, onProgress),
+            ),
+        )
         .post('/:id/restore', (c) => {
             if (!context.characters.restore(c.req.param('id'))) {
                 throw new NotFoundError('Character not found')

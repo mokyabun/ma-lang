@@ -3,6 +3,7 @@ import type { Context } from 'hono'
 import type { ZodType } from 'zod'
 
 import { PayloadTooLargeError, ValidationError, validationDetails } from './errors'
+import { decodeFilename } from './services/import/uploads'
 
 export type AppEnv = {
     Variables: {
@@ -59,7 +60,7 @@ export async function readImportFile(
 
     return {
         bytes,
-        filename: c.req.header('x-filename') ?? 'import.json',
+        filename: decodeFilename(c.req.header('x-filename')) ?? 'import.json',
         mimeType: contentType.split(';')[0] || 'application/octet-stream',
     }
 }

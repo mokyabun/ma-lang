@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
 import { exportPromptModule, importPromptModule } from '../src/services/prompt/module-codec'
+import { appConfig } from './fixtures'
+
+const limits = appConfig().limits
 
 describe('Risu prompt module codec', () => {
     const input = {
@@ -50,7 +53,34 @@ describe('Risu prompt module codec', () => {
         ],
     }
 
-    test('round-trips the legacy .risum envelope', () => {
+    test('reads .risum modules with more assets than the old fixed cap, up to the configured limit', async () => {
+        const encoded = exportPromptModule(
+            input,
+            'risum',
+            Array.from({ length: 5000 }, (_, index) => ({
+                bytes: new Uint8Array([index % 256]),
+                type: 'other',
+                name: `asset-${index}`,
+                extension: 'webp',
+                sourceUri: 'test:',
+                mimeType: 'image/webp',
+            })),
+        )
+        const decoded = await importPromptModule(encoded, 'many.risum', {
+            ...limits,
+            archiveEntries: 65536,
+        })
+        expect(decoded.assets).toHaveLength(5000)
+        expect(await decoded.assets[4999]!.read()).toEqual(new Uint8Array([4999 % 256]))
+        expect(
+            importPromptModule(encoded, 'many.risum', { ...limits, archiveEntries: 4999 }),
+        ).rejects.toThrow('MAX_ARCHIVE_ENTRIES=4999')
+        expect(
+            importPromptModule(encoded, 'many.risum', { ...limits, assetBytes: 0 }),
+        ).rejects.toThrow('MAX_ASSET_BYTES=0')
+    })
+
+    test('round-trips the legacy .risum envelope', async () => {
         const encoded = exportPromptModule(input, 'risum', [
             {
                 bytes: new Uint8Array([1, 2, 3, 4]),
@@ -62,7 +92,7 @@ describe('Risu prompt module codec', () => {
             },
         ])
         expect(encoded[0]).toBe(111)
-        const decoded = importPromptModule(encoded, 'moon.risum')
+        const decoded = await importPromptModule(encoded, 'moon.risum', limits)
         expect(decoded.input.name).toBe(input.name)
         expect(decoded.input.namespace).toBe(input.namespace)
         expect(decoded.input.prompts[0]).toMatchObject({
@@ -80,10 +110,10 @@ describe('Risu prompt module codec', () => {
         })
         expect(decoded.input.backgroundEmbedding).toBe(input.backgroundEmbedding)
         expect(decoded.assets[0]).toMatchObject({ name: 'moon-icon', extension: 'webp' })
-        expect(decoded.assets[0]?.bytes).toEqual(new Uint8Array([1, 2, 3, 4]))
+        expect(await decoded.assets[0]?.read()).toEqual(new Uint8Array([1, 2, 3, 4]))
     })
 
-    test('preserves background CSS and round-trips inert PocketRisu metadata', () => {
+    test('preserves background CSS and round-trips inert PocketRisu metadata', async () => {
         const source = new TextEncoder().encode(
             JSON.stringify({
                 type: 'risuModule',
@@ -99,14 +129,15 @@ describe('Risu prompt module codec', () => {
                 lorebook: [],
             }),
         )
-        const decoded = importPromptModule(source, 'unsafe.json')
+        const decoded = await importPromptModule(source, 'unsafe.json', limits)
         expect(decoded.warnings.join('\n')).toContain('never executed')
         expect(decoded.input.backgroundEmbedding).toBe('<script>alert(1)</script>')
         expect(decoded.source.cjs).toContain('fetch')
 
-        const roundTrip = importPromptModule(
+        const roundTrip = await importPromptModule(
             exportPromptModule(decoded.input, 'risum', [], decoded.source),
             'unsafe.risum',
+            limits,
         )
         expect(roundTrip.source).toMatchObject({
             module: {
@@ -118,7 +149,7 @@ describe('Risu prompt module codec', () => {
         })
     })
 
-    test('keeps implicit module toggle references without inventing declarations', () => {
+    test('keeps implicit module toggle references without inventing declarations', async () => {
         const source = new TextEncoder().encode(
             JSON.stringify({
                 type: 'risuModule',
@@ -137,12 +168,12 @@ describe('Risu prompt module codec', () => {
                 regex: [{ in: '{{getglobalvar::toggle_ruby}}', out: '$&' }],
             }),
         )
-        const decoded = importPromptModule(source, 'implicit.json')
+        const decoded = await importPromptModule(source, 'implicit.json', limits)
         expect(decoded.input.toggles).toEqual([])
         expect(decoded.input.regexScripts).toHaveLength(1)
     })
 
-    test('imports legacy object module toggle declarations', () => {
+    test('imports legacy object module toggle declarations', async () => {
         const source = new TextEncoder().encode(
             JSON.stringify({
                 type: 'risuModule',
@@ -155,7 +186,7 @@ describe('Risu prompt module codec', () => {
                 lorebook: [],
             }),
         )
-        const decoded = importPromptModule(source, 'object.json')
+        const decoded = await importPromptModule(source, 'object.json', limits)
         expect(decoded.input.toggles).toEqual([
             {
                 key: 'prose',
@@ -174,7 +205,7 @@ describe('Risu prompt module codec', () => {
         ])
     })
 
-    test('round-trips every PocketRisu custom toggle control used by modules', () => {
+    test('round-trips every PocketRisu custom toggle control used by modules', async () => {
         const syntax = [
             '=⚡ GigaTrans=group',
             'gigatrans.auto=자동 번역',
@@ -185,7 +216,7 @@ describe('Risu prompt module codec', () => {
             '=프롬프트=divider',
             '==groupEnd',
         ].join('\n')
-        const decoded = importPromptModule(
+        const decoded = await importPromptModule(
             new TextEncoder().encode(
                 JSON.stringify({
                     type: 'risuModule',
@@ -196,6 +227,7 @@ describe('Risu prompt module codec', () => {
                 }),
             ),
             'giga.json',
+            limits,
         )
 
         expect(
@@ -221,14 +253,15 @@ describe('Risu prompt module codec', () => {
             { key: '', label: '', type: 'groupEnd', options: [] },
         ])
 
-        const roundTrip = importPromptModule(
+        const roundTrip = await importPromptModule(
             exportPromptModule(decoded.input, 'risum'),
             'giga.risum',
+            limits,
         )
         expect(roundTrip.input.toggles).toEqual(decoded.input.toggles)
     })
 
-    test('executes the first Lua trigger and round-trips permission, raw triggers, and order', () => {
+    test('executes the first Lua trigger and round-trips permission, raw triggers, and order', async () => {
         const triggers = [
             {
                 type: 'manual',
@@ -243,7 +276,7 @@ describe('Risu prompt module codec', () => {
                 effect: [{ type: 'triggerlua', code: 'function ignored(id) end' }],
             },
         ]
-        const decoded = importPromptModule(
+        const decoded = await importPromptModule(
             new TextEncoder().encode(
                 JSON.stringify({
                     type: 'risuModule',
@@ -255,6 +288,7 @@ describe('Risu prompt module codec', () => {
                 }),
             ),
             'lua.json',
+            limits,
         )
         expect(decoded.input.luaScript).toMatchObject({
             enabled: true,
@@ -266,9 +300,10 @@ describe('Risu prompt module codec', () => {
         expect(decoded.warnings.join('\n')).toContain('only the first is executed')
 
         decoded.input.luaScript!.code = 'function ping(id) setChatVar(id, "x", "2") end'
-        const roundTrip = importPromptModule(
+        const roundTrip = await importPromptModule(
             exportPromptModule(decoded.input, 'risum'),
             'lua.risum',
+            limits,
         )
         expect(roundTrip.input.luaScript).toMatchObject({
             code: expect.stringContaining('"2"'),

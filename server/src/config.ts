@@ -33,10 +33,14 @@ export const EnvConfigSchema = z
         LOG_LEVEL: LogLevelSchema.optional(),
         LOG_PRETTY: EnvBooleanSchema.optional(),
         LOG_COLORIZE: EnvBooleanSchema.optional(),
-        MAX_IMPORT_BYTES: EnvPositiveIntegerSchema.default(128 * 1024 * 1024),
+        MAX_IMPORT_BYTES: EnvPositiveIntegerSchema.default(1024 * 1024 * 1024),
         MAX_CARD_JSON_BYTES: EnvPositiveIntegerSchema.default(8 * 1024 * 1024),
         MAX_ASSET_BYTES: EnvPositiveIntegerSchema.optional(),
-        MAX_ARCHIVE_ENTRIES: EnvPositiveIntegerSchema.default(4096),
+        // RisuAI writes two entries per asset (the file and its x_meta/*.json).
+        MAX_ARCHIVE_ENTRIES: EnvPositiveIntegerSchema.default(65536),
+        // Imports are uploaded in chunks of this size so they pass proxies with small body limits
+        // (nginx defaults to 1 MiB).
+        UPLOAD_CHUNK_BYTES: EnvPositiveIntegerSchema.default(512 * 1024),
     })
     .transform((raw) => {
         const isProduction = raw.NODE_ENV === 'production'
@@ -66,6 +70,7 @@ export const EnvConfigSchema = z
                 jsonBytes: raw.MAX_CARD_JSON_BYTES,
                 assetBytes: raw.MAX_ASSET_BYTES ?? raw.MAX_IMPORT_BYTES,
                 archiveEntries: raw.MAX_ARCHIVE_ENTRIES,
+                uploadChunkBytes: raw.UPLOAD_CHUNK_BYTES,
             },
         }
     })

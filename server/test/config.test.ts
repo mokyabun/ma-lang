@@ -89,6 +89,13 @@ describe('runtime config', () => {
         )
     })
 
+    it('accepts imports up to 1 GiB by default', () => {
+        expect(parseConfig({ NODE_ENV: 'test' }).limits).toMatchObject({
+            importBytes: 1024 * 1024 * 1024,
+            assetBytes: 1024 * 1024 * 1024,
+        })
+    })
+
     it('allows a single asset up to the total import limit by default', () => {
         const defaults = parseConfig({ NODE_ENV: 'test', MAX_IMPORT_BYTES: '67108864' })
         expect(defaults.limits).toMatchObject({

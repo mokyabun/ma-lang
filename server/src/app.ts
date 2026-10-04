@@ -20,6 +20,7 @@ import {
     createRuntimeDomain,
     createProviderDomain,
     createSettingsDomain,
+    createUploadDomain,
     SESSION_COOKIE,
 } from '@/domains'
 import {
@@ -44,6 +45,7 @@ function routeApi(app: Hono<AppEnv>, context: AppContext) {
         .route('/api/v1/characters', createCharacterDomain(context))
         .route('/api/v1/personas', createPersonaDomain(context))
         .route('/api/v1/assets', createAssetDomain(context))
+        .route('/api/v1/uploads', createUploadDomain(context))
         .route('/api/v1/prompt-presets', createPromptPresetDomain(context))
         .route('/api/v1/prompt-modules', createPromptModuleDomain(context))
         .route('/api/v1/conversations', createConversationDomain(context))
@@ -90,7 +92,10 @@ export function createApp(context: AppContext) {
                 throw new ForbiddenError('Origin is not allowed')
             }
             c.header('access-control-allow-methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-            c.header('access-control-allow-headers', 'content-type,x-request-id')
+            c.header(
+                'access-control-allow-headers',
+                'content-type,x-request-id,x-filename,x-upload-id',
+            )
             return c.body(null, 204)
         }
         if (

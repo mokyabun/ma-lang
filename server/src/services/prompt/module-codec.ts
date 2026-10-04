@@ -7,6 +7,7 @@ import {
 } from '@malang/shared'
 
 import { ValidationError } from '@/errors/app-error'
+import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/services/import/source'
 
 import {
     mergeLuaTriggers,
@@ -70,18 +71,29 @@ export interface ImportedPromptModuleAsset {
     mimeType: string
 }
 
-export function importPromptModule(
-    bytes: Uint8Array,
+/** Size and count limits for .risum containers, taken from the server's import limits. */
+export interface RisumLimits {
+    /** Main module JSON payload (MAX_CARD_JSON_BYTES). */
+    jsonBytes: number
+    /** A single asset payload (MAX_ASSET_BYTES). */
+    assetBytes: number
+    /** Number of assets (MAX_ARCHIVE_ENTRIES). */
+    archiveEntries: number
+}
+
+export async function importPromptModule(
+    input: Uint8Array | ByteSource,
     filename: string,
-): {
+    limits: RisumLimits,
+): Promise<{
     input: PromptModuleInput
     source: Record<string, unknown>
     warnings: string[]
-    assets: ImportedPromptModuleAsset[]
-} {
+    assets: LazyAsset[]
+}> {
     const decoded = filename.toLocaleLowerCase().endsWith('.risum')
-        ? decodeRisum(bytes)
-        : { source: decodeJson(bytes), assets: [] }
+        ? await readRisum(input, limits)
+        : { source: decodeJson(await readAll(toByteSource(input))), assets: [] }
     const { source } = decoded
     const native = source.type === 'malangPromptModule' ? source.module : null
     if (native && typeof native === 'object') {
@@ -138,45 +150,55 @@ function preservedRisuModuleFields(source: Record<string, unknown>): Record<stri
     return result
 }
 
-export function decodeRisum(bytes: Uint8Array): {
+// Parses the .risum container by offset so asset payloads are read (and RPack-decoded) only
+// when each asset is persisted.
+export async function readRisum(
+    input: Uint8Array | ByteSource,
+    limits: RisumLimits,
+): Promise<{
     source: Record<string, unknown>
-    assets: ImportedPromptModuleAsset[]
-} {
-    if (bytes.length < 7 || bytes[0] !== 111 || bytes[1] !== 0) {
+    assets: LazyAsset[]
+}> {
+    const bytes = toByteSource(input)
+    if (bytes.size < 7) throw new ModuleFormatError('Invalid or unsupported .risum header')
+    const header = await bytes.read(0, 6)
+    if (header[0] !== 111 || header[1] !== 0) {
         throw new ModuleFormatError('Invalid or unsupported .risum header')
     }
-    const mainLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(
-        2,
-        true,
-    )
-    if (mainLength > bytes.length - 7 || mainLength > 8 * 1024 * 1024) {
+    const mainLength = uint32(header, 2)
+    if (mainLength > bytes.size - 7 || mainLength > limits.jsonBytes) {
         throw new ModuleFormatError('Invalid .risum main payload length')
     }
-    const source = decodeJson(decodeRPack(bytes.subarray(6, 6 + mainLength)))
+    const source = decodeJson(decodeRPack(await bytes.read(6, mainLength)))
     const module = isRecord(source.module) ? source.module : {}
     const metadata = Array.isArray(module.assets) ? module.assets : []
-    const assets: ImportedPromptModuleAsset[] = []
+    const assets: LazyAsset[] = []
     let offset = 6 + mainLength
     let assetCount = 0
-    while (offset < bytes.length) {
-        const marker = bytes[offset]
+    while (offset < bytes.size) {
+        const section = await bytes.read(offset, Math.min(5, bytes.size - offset))
         offset += 1
-        if (marker === 0) break
-        if (marker !== 1 || offset + 4 > bytes.length) {
+        if (section[0] === 0) break
+        if (section[0] !== 1 || section.length < 5) {
             throw new ModuleFormatError('Invalid .risum asset section')
         }
-        const length = new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getUint32(0, true)
+        const length = uint32(section, 1)
         offset += 4
-        if (length > bytes.length - offset || length > 32 * 1024 * 1024) {
+        if (length > bytes.size - offset) {
             throw new ModuleFormatError('Invalid .risum asset payload length')
         }
-        const encoded = bytes.subarray(offset, offset + length)
+        if (length > limits.assetBytes) {
+            throw new ModuleFormatError(
+                `.risum asset is too large (MAX_ASSET_BYTES=${limits.assetBytes})`,
+            )
+        }
+        const dataOffset = offset
         offset += length
         const tuple = Array.isArray(metadata[assetCount]) ? metadata[assetCount] : []
         const name = stringValue(tuple[0]) || `asset-${assetCount + 1}`
         const extension = stringValue(tuple[2]) || 'webp'
         assets.push({
-            bytes: decodeRPack(encoded),
+            read: async () => decodeRPack(await bytes.read(dataOffset, length)),
             type: 'other',
             name,
             extension,
@@ -184,10 +206,18 @@ export function decodeRisum(bytes: Uint8Array): {
             mimeType: mimeForExtension(extension),
         })
         assetCount += 1
-        if (assetCount > 4_096) throw new ModuleFormatError('Too many .risum assets')
+        if (assetCount > limits.archiveEntries) {
+            throw new ModuleFormatError(
+                `Too many .risum assets (MAX_ARCHIVE_ENTRIES=${limits.archiveEntries})`,
+            )
+        }
     }
     if (assetCount) source.__malangImportedAssetCount = assetCount
     return { source, assets }
+}
+
+function uint32(bytes: Uint8Array, offset: number): number {
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(offset, true)
 }
 
 function decodeJson(bytes: Uint8Array): Record<string, unknown> {

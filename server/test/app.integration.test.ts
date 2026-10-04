@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
+import { GENERAL_CHAT_CHARACTER_ID, type ImportEvent } from '@malang/shared'
 import { unzipSync, zipSync } from 'fflate'
 
 import { createApp } from '../src/app'
@@ -76,6 +76,85 @@ describe('Hono API and SQLite persistence', () => {
         expect(response.status).toBe(200)
         cookie = response.headers.get('set-cookie')!.split(';')[0]!
         expect(cookie).toStartWith('malang_session=')
+    })
+
+    test('imports a CHARX uploaded in out-of-order, retried chunks', async () => {
+        const bytes = new Uint8Array(
+            await Bun.file(new URL('./test.charx', import.meta.url)).arrayBuffer(),
+        )
+        const json = { cookie, 'content-type': 'application/json' }
+        const uploadsDirectory = join(directory, 'tmp', 'uploads')
+
+        const tooLarge = await app.request('/api/v1/uploads', {
+            method: 'POST',
+            headers: json,
+            body: JSON.stringify({ filename: 'huge.charx', size: config.limits.importBytes + 1 }),
+        })
+        expect(tooLarge.status).toBe(413)
+        expect(await tooLarge.json()).toMatchObject({
+            details: { maxBytes: config.limits.importBytes },
+        })
+
+        const created = await app.request('/api/v1/uploads', {
+            method: 'POST',
+            headers: json,
+            body: JSON.stringify({ filename: '청크 캐릭터.charx', size: bytes.byteLength }),
+        })
+        expect(created.status).toBe(201)
+        const session = (await created.json()) as {
+            id: string
+            chunkBytes: number
+            chunkCount: number
+        }
+        expect(session.chunkBytes).toBe(config.limits.uploadChunkBytes)
+        expect(session.chunkCount).toBe(Math.ceil(bytes.byteLength / session.chunkBytes))
+
+        const putChunk = (index: number, body = bytes) =>
+            app.request(`/api/v1/uploads/${session.id}/chunks/${index}`, {
+                method: 'PUT',
+                headers: { cookie, 'content-type': 'application/octet-stream' },
+                body: body.slice(index * session.chunkBytes, (index + 1) * session.chunkBytes),
+            })
+        const importUpload = () =>
+            app.request('/api/v1/characters/import', {
+                method: 'POST',
+                headers: { cookie, accept: 'text/event-stream', 'x-upload-id': session.id },
+            })
+
+        expect((await putChunk(0, new Uint8Array(10))).status).toBe(422)
+        expect((await importUpload()).status).toBe(422)
+        for (let index = session.chunkCount - 1; index >= 0; index -= 1) {
+            expect((await putChunk(index)).status).toBe(200)
+        }
+        expect(await (await putChunk(0)).json()).toEqual({
+            received: session.chunkCount,
+            chunkCount: session.chunkCount,
+        })
+
+        const imported = await importUpload()
+        expect(imported.headers.get('x-accel-buffering')).toBe('no')
+        const events = (await imported.text()).split('\n\n').filter(Boolean)
+        expect(JSON.parse(events.at(-1)!.replace(/^data: /, ''))).toMatchObject({
+            type: 'import.completed',
+            status: 201,
+        })
+        expect(readdirSync(uploadsDirectory)).toEqual([])
+        expect((await importUpload()).status).toBe(404)
+
+        const cancelled = (await (
+            await app.request('/api/v1/uploads', {
+                method: 'POST',
+                headers: json,
+                body: JSON.stringify({ filename: 'cancel.charx', size: 1 }),
+            })
+        ).json()) as { id: string }
+        expect(readdirSync(uploadsDirectory)).toEqual([cancelled.id])
+        const deleted = await app.request(`/api/v1/uploads/${cancelled.id}`, {
+            method: 'DELETE',
+            headers: { cookie },
+        })
+        expect(deleted.status).toBe(204)
+        expect(readdirSync(uploadsDirectory)).toEqual([])
     })
 
     test('persists backup settings and exposes the environment override behind authentication', async () => {
@@ -548,6 +627,126 @@ describe('Hono API and SQLite persistence', () => {
                 })
             ).status,
         ).toBe(200)
+    })
+
+    test('imports a raw CHARX body with a URI-encoded filename', async () => {
+        const imported = await app.request('/api/v1/characters/import', {
+            method: 'POST',
+            headers: {
+                cookie,
+                'content-type': 'application/octet-stream',
+                'x-filename': encodeURIComponent('테스트 캐릭터.charx'),
+            },
+            body: await Bun.file(new URL('./test.charx', import.meta.url)).arrayBuffer(),
+        })
+        expect(imported.status).toBe(201)
+    })
+
+    test('imports CHARX asset links and lorebooks beyond SQLite bound-parameter limits', async () => {
+        const assetCount = 1500
+        const loreCount = 5000
+        const files: Record<string, Uint8Array> = {}
+        const assets = []
+        for (let index = 0; index < assetCount; index += 1) {
+            files[`x_meta/a${index}.json`] = new TextEncoder().encode('{}')
+            files[`assets/other/image/a${index}.webp`] = new Uint8Array([index % 256, index >> 8])
+            assets.push({
+                type: 'x-risu-asset',
+                uri: `embeded://assets/other/image/a${index}.webp`,
+                name: `a${index}`,
+                ext: 'webp',
+            })
+        }
+        const card = v3Card({
+            name: 'Many assets',
+            assets,
+            character_book: {
+                extensions: {},
+                entries: Array.from({ length: loreCount }, (_, index) => ({
+                    keys: [`key${index}`],
+                    secondary_keys: [],
+                    content: `entry ${index}`,
+                    enabled: true,
+                    insertion_order: index,
+                    case_sensitive: false,
+                    use_regex: false,
+                    constant: false,
+                    selective: false,
+                    priority: 0,
+                    name: `entry ${index}`,
+                    comment: '',
+                    extensions: {},
+                })),
+            },
+        })
+        files['card.json'] = new TextEncoder().encode(JSON.stringify(card))
+
+        const imported = await app.request('/api/v1/characters/import', {
+            method: 'POST',
+            headers: {
+                cookie,
+                'content-type': 'application/octet-stream',
+                'x-filename': 'many.charx',
+            },
+            body: zipSync(files, { level: 0 }),
+        })
+        expect(imported.status).toBe(201)
+        const { character } = (await imported.json()) as {
+            character: { id: string; lorebook: unknown[] }
+        }
+        expect(character.lorebook).toHaveLength(loreCount)
+        const linked = await app.request(`/api/v1/characters/${character.id}/assets`, {
+            headers: { cookie },
+        })
+        expect(((await linked.json()) as { assets: unknown[] }).assets).toHaveLength(assetCount)
+    })
+
+    test('streams CHARX import progress and removes the spooled upload', async () => {
+        const readEvents = async (response: Response) =>
+            (await response.text())
+                .split('\n\n')
+                .filter(Boolean)
+                .map((block) => JSON.parse(block.replace(/^data: /, '')) as ImportEvent)
+        const uploadsDirectory = join(directory, 'tmp', 'uploads')
+        const upload = (body: string | ArrayBuffer, filename: string) =>
+            app.request('/api/v1/characters/import', {
+                method: 'POST',
+                headers: {
+                    cookie,
+                    accept: 'text/event-stream',
+                    'content-type': 'application/octet-stream',
+                    'x-filename': filename,
+                },
+                body,
+            })
+
+        const response = await upload(
+            await Bun.file(new URL('./test.charx', import.meta.url)).arrayBuffer(),
+            'stream.charx',
+        )
+        expect(response.headers.get('content-type')).toContain('text/event-stream')
+        const events = await readEvents(response)
+        expect(events[0]).toEqual({ type: 'import.progress', stage: 'reading' })
+        const assetEvents = events.filter(
+            (event) => event.type === 'import.progress' && event.stage === 'assets',
+        )
+        const total = (assetEvents[0] as { total: number }).total
+        expect(total).toBeGreaterThan(0)
+        expect(assetEvents.map((event) => (event as { done: number }).done)).toEqual(
+            Array.from({ length: total + 1 }, (_, index) => index),
+        )
+        const completed = events.at(-1) as Extract<ImportEvent, { type: 'import.completed' }>
+        expect(completed).toMatchObject({ type: 'import.completed', status: 201 })
+        expect((completed.result as { character: { id: string } }).character.id).toBeString()
+        expect(readdirSync(uploadsDirectory)).toEqual([])
+
+        const failed = await readEvents(await upload('not a zip', 'broken.charx'))
+        expect(failed.at(-1)).toMatchObject({
+            type: 'import.failed',
+            status: 422,
+            error: { message: 'Invalid CHARX archive' },
+        })
+        expect(readdirSync(uploadsDirectory)).toEqual([])
     })
 
     test('permanently deletes conversations and characters with dependent history', async () => {

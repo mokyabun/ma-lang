@@ -36,6 +36,7 @@ function testConfig(directory: string): AppConfig {
             jsonBytes: 32 << 20,
             assetBytes: 32 << 20,
             archiveEntries: 4096,
+            uploadChunkBytes: 64 << 10,
         },
     }
 }

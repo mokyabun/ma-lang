@@ -4,6 +4,13 @@ import type { CharacterCardV3 } from '@risuai/ccardlib'
 import type { AppConfig } from '@/config'
 import { loreFieldsFromExtensions, type Store } from '@/db'
 import { ValidationError } from '@/errors/app-error'
+import {
+    type ByteSource,
+    type ImportProgress,
+    type LazyAsset,
+    readAll,
+    toByteSource,
+} from '@/services/import/source'
 import { exportPromptModule } from '@/services/prompt/module-codec'
 import {
     mergeLuaTriggers,
@@ -19,7 +26,6 @@ import {
 import type { AssetStore } from './assets'
 import {
     type ExportableCard,
-    type ImportedAsset,
     type ImportedCard,
     exportCharacterCard,
     importCharacterCard,
@@ -151,15 +157,23 @@ export class CharacterService {
         return linked
     }
 
-    async import(bytes: Uint8Array, filename: string) {
-        const imported = importCharacterCard(bytes, filename, this.config)
-        return this.persistImportedCard(imported)
+    async import(
+        input: Uint8Array | ByteSource,
+        filename: string,
+        onProgress: ImportProgress = () => {},
+    ) {
+        const imported = await importCharacterCard(input, filename, this.config)
+        return this.persistImportedCard(imported, onProgress)
     }
 
-    async importPackage(bytes: Uint8Array) {
-        const importedPackage = importPocketRisuCharacterPackage(bytes, this.config)
-        const inlayAssets: ImportedAsset[] = importedPackage.inlays.map((inlay) => ({
-            bytes: inlay.bytes,
+    async importPackage(input: Uint8Array | ByteSource, onProgress: ImportProgress = () => {}) {
+        // Packages bundle chats and a nested card file, so they are still decoded in memory.
+        const importedPackage = importPocketRisuCharacterPackage(
+            await readAll(toByteSource(input)),
+            this.config,
+        )
+        const inlayAssets: LazyAsset[] = importedPackage.inlays.map((inlay) => ({
+            read: async () => inlay.bytes,
             mimeType: inlay.mimeType,
             type: 'inlay',
             name: inlay.id,
@@ -167,7 +181,7 @@ export class CharacterService {
             sourceUri: `inlay:${inlay.id}`,
         }))
         const importedCard: ImportedCard = importedPackage.characterFile
-            ? importCharacterCard(
+            ? await importCharacterCard(
                   importedPackage.characterFile.bytes,
                   importedPackage.characterFile.filename,
                   this.config,
@@ -189,7 +203,7 @@ export class CharacterService {
                     ),
             ),
         )
-        const { character, warnings } = await this.persistImportedCard(importedCard)
+        const { character, warnings } = await this.persistImportedCard(importedCard, onProgress)
         const createdPersonaIds: string[] = []
 
         try {
@@ -282,15 +296,23 @@ export class CharacterService {
         }
     }
 
-    private async persistImportedCard(imported: ImportedCard) {
+    private async persistImportedCard(
+        imported: ImportedCard,
+        onProgress: ImportProgress = () => {},
+    ) {
         const id = crypto.randomUUID()
         const avatar = imported.avatar
-            ? await this.assetStore.put(imported.avatar.bytes, imported.avatar.mimeType)
+            ? await this.assetStore.put(await imported.avatar.read(), imported.avatar.mimeType)
             : null
         const linkedAssets = []
+        const total = imported.assets.length
+        if (total) onProgress({ stage: 'assets', done: 0, total })
 
         for (const importedAsset of imported.assets) {
-            const asset = await this.assetStore.put(importedAsset.bytes, importedAsset.mimeType)
+            const asset = await this.assetStore.put(
+                await importedAsset.read(),
+                importedAsset.mimeType,
+            )
             linkedAssets.push({
                 id: crypto.randomUUID(),
                 characterId: id,
@@ -300,6 +322,7 @@ export class CharacterService {
                 extension: importedAsset.extension,
                 sourceUri: importedAsset.sourceUri,
             })
+            onProgress({ stage: 'assets', done: linkedAssets.length, total })
         }
 
         const data = imported.card.data

@@ -5,6 +5,7 @@ import { asc, desc, eq, isNull } from 'drizzle-orm'
 import type { DatabaseHandle } from '../db'
 import { characterAssets, characterLoreEntries, characters, conversations } from '../schema'
 import {
+    insertBatches,
     iso,
     mapLuaScript,
     newLuaColumns,
@@ -174,29 +175,28 @@ export class CharacterRepository extends RepositoryBase {
                     updatedAt: now,
                 })
                 .run()
-            if (input.lorebook.length) {
-                tx.insert(characterLoreEntries)
-                    .values(
-                        input.lorebook.map((entry) => ({
-                            id: entry.id || crypto.randomUUID(),
-                            characterId: input.id,
-                            keysJson: entry.keys,
-                            secondaryKeysJson: entry.secondaryKeys,
-                            content: entry.content,
-                            enabled: entry.enabled,
-                            constant: entry.constant,
-                            selective: entry.selective,
-                            caseSensitive: entry.caseSensitive,
-                            useRegex: entry.useRegex,
-                            insertionOrder: entry.insertionOrder,
-                            priority: entry.priority,
-                            name: entry.name,
-                            extensionsJson: loreExtensions(entry),
-                        })),
-                    )
-                    .run()
+            const loreRows = input.lorebook.map((entry) => ({
+                id: entry.id || crypto.randomUUID(),
+                characterId: input.id,
+                keysJson: entry.keys,
+                secondaryKeysJson: entry.secondaryKeys,
+                content: entry.content,
+                enabled: entry.enabled,
+                constant: entry.constant,
+                selective: entry.selective,
+                caseSensitive: entry.caseSensitive,
+                useRegex: entry.useRegex,
+                insertionOrder: entry.insertionOrder,
+                priority: entry.priority,
+                name: entry.name,
+                extensionsJson: loreExtensions(entry),
+            }))
+            for (const batch of insertBatches(loreRows)) {
+                tx.insert(characterLoreEntries).values(batch).run()
             }
-            if (linkedAssets.length) tx.insert(characterAssets).values(linkedAssets).run()
+            for (const batch of insertBatches(linkedAssets)) {
+                tx.insert(characterAssets).values(batch).run()
+            }
         })
         return requireValue(this.get(input.id), 'Failed to create character')
     }
@@ -262,31 +262,27 @@ export class CharacterRepository extends RepositoryBase {
                     .delete(characterLoreEntries)
                     .where(eq(characterLoreEntries.characterId, id))
                     .run()
-                if (update.lorebook.length) {
-                    this.db
-                        .insert(characterLoreEntries)
-                        .values(
-                            update.lorebook.map((entry) => ({
-                                id: entry.id,
-                                characterId: id,
-                                keysJson: entry.keys,
-                                secondaryKeysJson: entry.secondaryKeys,
-                                content: entry.content,
-                                enabled: entry.enabled,
-                                constant: entry.constant,
-                                selective: entry.selective,
-                                caseSensitive: entry.caseSensitive,
-                                useRegex: entry.useRegex,
-                                insertionOrder: entry.insertionOrder,
-                                priority: entry.priority,
-                                name: entry.name,
-                                extensionsJson: {
-                                    ...extensions.get(entry.id),
-                                    ...loreExtensions(entry),
-                                },
-                            })),
-                        )
-                        .run()
+                const loreRows = update.lorebook.map((entry) => ({
+                    id: entry.id,
+                    characterId: id,
+                    keysJson: entry.keys,
+                    secondaryKeysJson: entry.secondaryKeys,
+                    content: entry.content,
+                    enabled: entry.enabled,
+                    constant: entry.constant,
+                    selective: entry.selective,
+                    caseSensitive: entry.caseSensitive,
+                    useRegex: entry.useRegex,
+                    insertionOrder: entry.insertionOrder,
+                    priority: entry.priority,
+                    name: entry.name,
+                    extensionsJson: {
+                        ...extensions.get(entry.id),
+                        ...loreExtensions(entry),
+                    },
+                }))
+                for (const batch of insertBatches(loreRows)) {
+                    this.db.insert(characterLoreEntries).values(batch).run()
                 }
             }
         })()

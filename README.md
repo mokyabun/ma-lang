@@ -130,6 +130,11 @@ bun run test           # run all workspace tests concurrently
 commands can be run inside `server`, `shared`, or `web`; Oxfmt and Oxlint discover the root
 configuration automatically, so the workspaces cannot drift to separate settings.
 
-CHARX imports enforce the total expanded archive limit and compression-ratio checks. The
-per-asset limit defaults to `MAX_IMPORT_BYTES`; set `MAX_ASSET_BYTES` explicitly only when a
-stricter individual-file cap is desired.
+Imports are capped by `MAX_IMPORT_BYTES` (default 1 GiB). The web client uploads them in
+`UPLOAD_CHUNK_BYTES` pieces (default 512 KiB), so imports pass reverse proxies with small body
+limits such as nginx's default 1 MiB; lower it if your proxy is stricter.
+
+CHARX imports enforce the total expanded archive limit, compression-ratio checks, and
+`MAX_ARCHIVE_ENTRIES` (default 65536; RisuAI stores two entries per asset). The per-asset limit
+defaults to `MAX_IMPORT_BYTES`; set `MAX_ASSET_BYTES` explicitly only when a stricter
+individual-file cap is desired.

@@ -12,6 +12,9 @@ log.info(
         port: context.config.port,
         environment: context.config.nodeEnv,
         logLevel: context.config.logLevel,
+        // .env is read once at process start (`bun --hot` keeps it), so log the effective limits.
+        importBytes: context.config.limits.importBytes,
+        uploadChunkBytes: context.config.limits.uploadChunkBytes,
     },
     'Server started',
 )
@@ -23,8 +26,15 @@ const shutdown = () => {
 process.once('SIGINT', shutdown)
 process.once('SIGTERM', shutdown)
 
+// Bun rejects larger bodies with 413 before routing (default 128 MiB), so the cap must cover
+// the largest import plus multipart framing overhead.
+const MULTIPART_OVERHEAD_BYTES = 1024 * 1024
+
 export default {
     hostname: context.config.host,
     port: context.config.port,
+    maxRequestBodySize:
+        Math.max(context.config.limits.importBytes, context.config.limits.assetBytes) +
+        MULTIPART_OVERHEAD_BYTES,
     fetch: app.fetch,
 }

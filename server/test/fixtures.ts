@@ -25,6 +25,7 @@ export function appConfig(
             jsonBytes: 8 << 20,
             assetBytes: 32 << 20,
             archiveEntries: 4096,
+            uploadChunkBytes: 64 << 10,
         },
         ...overrides,
     }

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { promptModuleAssets } from '../schema'
-import { RepositoryBase } from './base'
+import { insertBatches, RepositoryBase } from './base'
 
 export interface PromptModuleAssetRecord {
     id: string
@@ -17,7 +17,9 @@ export class PromptModuleAssetRepository extends RepositoryBase {
     replace(moduleId: string, links: PromptModuleAssetRecord[]): void {
         this.db.transaction((tx) => {
             tx.delete(promptModuleAssets).where(eq(promptModuleAssets.moduleId, moduleId)).run()
-            if (links.length) tx.insert(promptModuleAssets).values(links).run()
+            for (const batch of insertBatches(links)) {
+                tx.insert(promptModuleAssets).values(batch).run()
+            }
         })
     }
 

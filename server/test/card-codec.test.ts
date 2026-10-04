@@ -25,8 +25,8 @@ function buildRisumModule(module: Record<string, unknown>): Uint8Array {
 const config = appConfig()
 
 describe('character card codec', () => {
-    test('imports v3 JSON and preserves extensions and lore', () => {
-        const value = importCharacterCard(
+    test('imports v3 JSON and preserves extensions and lore', async () => {
+        const value = await importCharacterCard(
             new TextEncoder().encode(JSON.stringify(v3Card())),
             'aria.json',
             config,
@@ -36,30 +36,30 @@ describe('character card codec', () => {
         expect(value.card.data.character_book?.entries).toHaveLength(1)
     })
 
-    test('exports v3 PNG with both v3 and v2 metadata', () => {
-        const imported = importCharacterCard(
+    test('exports v3 PNG with both v3 and v2 metadata', async () => {
+        const imported = await importCharacterCard(
             new TextEncoder().encode(JSON.stringify(v3Card())),
             'aria.json',
             config,
         )
         const png = exportCharacterCard({ card: imported.card, assets: [] }, 'v3', 'png')
-        const reread = importCharacterCard(png.bytes, 'aria.png', config)
+        const reread = await importCharacterCard(png.bytes, 'aria.png', config)
         expect(reread.card.data.name).toBe('Aria')
         expect(reread.sourceSpec).toBe('v3')
     })
 
-    test('exports and imports CHARX', () => {
-        const imported = importCharacterCard(
+    test('exports and imports CHARX', async () => {
+        const imported = await importCharacterCard(
             new TextEncoder().encode(JSON.stringify(v3Card())),
             'aria.json',
             config,
         )
         const charx = exportCharacterCard({ card: imported.card, assets: [] }, 'v3', 'charx')
-        const reread = importCharacterCard(charx.bytes, 'aria.charx', config)
+        const reread = await importCharacterCard(charx.bytes, 'aria.charx', config)
         expect(reread.card.data.name).toBe('Aria')
     })
 
-    test('round-trips PocketRisu lorebook folders through the CHARX module sidecar', () => {
+    test('round-trips PocketRisu lorebook folders through the CHARX module sidecar', async () => {
         const folderId = crypto.randomUUID()
         const groupId = crypto.randomUUID()
         const entryId = crypto.randomUUID()
@@ -119,7 +119,7 @@ describe('character card codec', () => {
         )
         expect(unzipSync(charx.bytes)['module.risum']).toBeDefined()
 
-        const reread = importCharacterCard(charx.bytes, 'aria.charx', config)
+        const reread = await importCharacterCard(charx.bytes, 'aria.charx', config)
         const entries = reread.card.data.character_book?.entries || []
         const folder = entries.find((entry) => entry.comment === 'Places')
         const capital = entries.find((entry) => entry.comment === 'Capital')
@@ -127,8 +127,8 @@ describe('character card codec', () => {
         expect(capital?.extensions?.malang_group).toBe(folder?.extensions?.malang_group)
     })
 
-    test('imports the Devil-chan CHARX compatibility fixture', () => {
-        const imported = importCharacterCard(
+    test('imports the Devil-chan CHARX compatibility fixture', async () => {
+        const imported = await importCharacterCard(
             readFileSync(new URL('./test.charx', import.meta.url)),
             'test.charx',
             config,
@@ -140,7 +140,7 @@ describe('character card codec', () => {
         expect(imported.card.data.extensions).toHaveProperty('risuai')
     })
 
-    test('imports the lorebook from a RisuAI module.risum sidecar, including folder groups', () => {
+    test('imports the lorebook from a RisuAI module.risum sidecar, including folder groups', async () => {
         const card = v3Card({ character_book: undefined })
         const risumModule = buildRisumModule({
             lorebook: [
@@ -197,7 +197,7 @@ describe('character card codec', () => {
             'card.json': new TextEncoder().encode(JSON.stringify(card)),
             'module.risum': risumModule,
         })
-        const imported = importCharacterCard(archive, 'risu-export.charx', config)
+        const imported = await importCharacterCard(archive, 'risu-export.charx', config)
         const entries = imported.card.data.character_book?.entries || []
         expect(entries).toHaveLength(3)
 
@@ -215,7 +215,7 @@ describe('character card codec', () => {
         expect(risuai.customScripts).toHaveLength(1)
     })
 
-    test('normalizes common CHARX directory, dot, and Windows paths', () => {
+    test('normalizes common CHARX directory, dot, and Windows paths', async () => {
         const card = v3Card({
             assets: [
                 {
@@ -231,27 +231,27 @@ describe('character card codec', () => {
             './card.json': new TextEncoder().encode(JSON.stringify(card)),
             'assets\\icon.png': new Uint8Array([137, 80, 78, 71]),
         })
-        const imported = importCharacterCard(archive, 'compatible.charx', config)
+        const imported = await importCharacterCard(archive, 'compatible.charx', config)
         expect(imported.card.data.name).toBe('Aria')
         expect(imported.assets).toHaveLength(1)
         expect(imported.avatar?.name).toBe('main')
     })
 
-    test('still rejects parent traversal and normalized duplicate paths', () => {
+    test('still rejects parent traversal and normalized duplicate paths', async () => {
         const card = new TextEncoder().encode(JSON.stringify(v3Card()))
-        expect(() =>
+        expect(
             importCharacterCard(
                 zipSync({ 'card.json': card, '../outside.png': new Uint8Array([1]) }),
                 'unsafe.charx',
                 config,
             ),
-        ).toThrow('Unsafe CHARX path')
-        expect(() =>
+        ).rejects.toThrow('Unsafe CHARX path')
+        expect(
             importCharacterCard(
                 zipSync({ 'card.json': card, './card.json': card }),
                 'duplicate.charx',
                 config,
             ),
-        ).toThrow('Duplicate CHARX path')
+        ).rejects.toThrow('Duplicate CHARX path')
     })
 })

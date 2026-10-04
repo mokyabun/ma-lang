@@ -15,6 +15,7 @@ import { PromptService } from './app/prompts'
 import { ProviderService } from './app/providers'
 import { SecretVault } from './app/secret-vault'
 import { SystemLogService } from './app/system-logs'
+import { UploadStore } from './import/uploads'
 import { LuaRuntime } from './lua'
 import { HypaMemoryV3Service } from './memory'
 
@@ -28,6 +29,7 @@ export interface AppContext {
     store: Store
     auth: AuthService
     assets: AssetStore
+    uploads: UploadStore
     characters: CharacterService
     personas: PersonaService
     prompts: PromptService
@@ -71,6 +73,7 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
         store,
         auth,
         assets: assetStore,
+        uploads: new UploadStore(config.dataDir, config.limits.uploadChunkBytes),
         characters: new CharacterService(config, store, assetStore),
         personas,
         prompts: new PromptService(store),

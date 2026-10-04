@@ -3,7 +3,9 @@ import { Hono } from 'hono'
 
 import { NotFoundError } from '@/errors'
 import type { AppContext } from '@/services'
-import { type AppEnv, binaryResponse, jsonValidator, parseEnum, readImportFile } from '@/utils'
+import { type AppEnv, binaryResponse, jsonValidator, parseEnum } from '@/utils'
+
+import { respondToImport } from './import-response'
 
 export function createPromptModuleDomain(context: AppContext) {
     return new Hono<AppEnv>()
@@ -11,10 +13,11 @@ export function createPromptModuleDomain(context: AppContext) {
         .post('/', jsonValidator(PromptModuleInputSchema), (c) =>
             c.json(context.modules.create(c.req.valid('json')), 201),
         )
-        .post('/import', async (c) => {
-            const file = await readImportFile(c, context.config.limits.importBytes)
-            return c.json(await context.modules.import(file.bytes, file.filename), 201)
-        })
+        .post('/import', (c) =>
+            respondToImport(c, context, context.config.limits.importBytes, (upload, onProgress) =>
+                context.modules.import(upload.source, upload.filename, onProgress),
+            ),
+        )
         .get('/:id/export', async (c) => {
             const format = parseEnum(
                 c.req.query('format') ?? 'json',

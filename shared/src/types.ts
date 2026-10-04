@@ -139,3 +139,10 @@ export type GenerationRun = z.infer<typeof schemas.GenerationRunSchema>
 export type CompiledMessage = z.infer<typeof schemas.CompiledMessageSchema>
 export type PromptPreview = z.infer<typeof schemas.PromptPreviewSchema>
 export type GenerationEvent = z.infer<typeof schemas.GenerationEventSchema>
+
+/** Server-sent events for an import request made with `Accept: text/event-stream`. */
+export type ImportEvent<T = unknown> =
+    | { type: 'import.progress'; stage: 'reading' }
+    | { type: 'import.progress'; stage: 'assets'; done: number; total: number }
+    | { type: 'import.completed'; status: number; result: T }
+    | { type: 'import.failed'; status: number; error: ApiError }

@@ -1,12 +1,14 @@
 import { CCardLib, type CharacterCardV2, type CharacterCardV3 } from '@risuai/ccardlib'
-import { unzipSync, zipSync } from 'fflate'
+import { zipSync } from 'fflate'
 import * as textChunk from 'png-chunk-text'
 import encodeChunks from 'png-chunks-encode'
 import extractChunks from 'png-chunks-extract'
 
 import type { AppConfig } from '@/config'
 import { ValidationError } from '@/errors/app-error'
-import { decodeRisum } from '@/services/prompt/module-codec'
+import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/services/import/source'
+import { readZipDirectory, readZipEntry, type ZipEntry } from '@/services/import/zip'
+import { readRisum } from '@/services/prompt/module-codec'
 
 const textDecoder = new TextDecoder()
 const textEncoder = new TextEncoder()
@@ -39,9 +41,9 @@ interface RisuModule {
  * the same obfuscated container format as standalone .risum module imports, so we reuse the
  * existing decoder rather than re-parsing the format here.
  */
-function readRisuModule(bytes: Uint8Array): RisuModule | null {
+async function readRisuModule(bytes: Uint8Array, config: AppConfig): Promise<RisuModule | null> {
     try {
-        const { source } = decodeRisum(bytes)
+        const { source } = await readRisum(bytes, config.limits)
         const module = isRecord(source.module) ? source.module : null
         return module as RisuModule | null
     } catch {
@@ -135,8 +137,8 @@ export interface ImportedAsset {
 export interface ImportedCard {
     card: CharacterCardV3
     sourceSpec: 'v2' | 'v3'
-    avatar?: ImportedAsset
-    assets: ImportedAsset[]
+    avatar?: LazyAsset
+    assets: LazyAsset[]
     warnings: string[]
 }
 
@@ -254,7 +256,7 @@ function readPng(bytes: Uint8Array, config: AppConfig): ImportedCard {
     return {
         ...normalized,
         avatar: {
-            bytes,
+            read: async () => bytes,
             mimeType: 'image/png',
             type: 'icon',
             name: 'main',
@@ -266,58 +268,61 @@ function readPng(bytes: Uint8Array, config: AppConfig): ImportedCard {
     }
 }
 
-function readCharx(bytes: Uint8Array, config: AppConfig): ImportedCard {
-    let entriesSeen = 0
-    let expandedBytes = 0
-    const paths = new Set<string>()
-    let entries: Record<string, Uint8Array>
+// Reads the archive through its central directory: card.json and module.risum (which RisuAI
+// writes last) are parsed first, and each referenced asset is extracted only when persisted.
+async function readCharx(source: ByteSource, config: AppConfig): Promise<ImportedCard> {
+    let directory: ZipEntry[]
     try {
-        entries = unzipSync(bytes, {
-            filter: (file) => {
-                entriesSeen += 1
-                if (entriesSeen > config.limits.archiveEntries)
-                    throw new CardFormatError('CHARX contains too many entries')
-                const normalized = normalizeArchivePath(file.name)
-                if (!normalized) throw new CardFormatError(`Unsafe CHARX path: ${file.name}`)
-                if (normalized.directory) return false
-                if (paths.has(normalized.path))
-                    throw new CardFormatError(`Duplicate CHARX path: ${normalized.path}`)
-                paths.add(normalized.path)
-                if (file.originalSize > config.limits.assetBytes && file.name !== 'card.json') {
-                    throw new CardFormatError(`CHARX asset is too large: ${file.name}`)
-                }
-                if (file.originalSize > config.limits.jsonBytes && file.name === 'card.json') {
-                    throw new CardFormatError('CHARX card.json is too large')
-                }
-                if (file.size > 0 && file.originalSize / file.size > 100) {
-                    throw new CardFormatError(`Suspicious CHARX compression ratio: ${file.name}`)
-                }
-                expandedBytes += file.originalSize
-                if (expandedBytes > config.limits.importBytes)
-                    throw new CardFormatError('Expanded CHARX is too large')
-                return true
-            },
-        })
-    } catch (error) {
-        if (error instanceof CardFormatError) throw error
+        directory = await readZipDirectory(source)
+    } catch {
         throw new CardFormatError('Invalid CHARX archive')
     }
+    if (directory.length > config.limits.archiveEntries)
+        throw new CardFormatError('CHARX contains too many entries')
 
-    entries = Object.fromEntries(
-        Object.entries(entries).map(([path, value]) => [normalizeArchivePath(path)!.path, value]),
+    const entries = new Map<string, ZipEntry>()
+    let expandedBytes = 0
+    for (const file of directory) {
+        const normalized = normalizeArchivePath(file.name)
+        if (!normalized) throw new CardFormatError(`Unsafe CHARX path: ${file.name}`)
+        if (normalized.directory) continue
+        if (entries.has(normalized.path))
+            throw new CardFormatError(`Duplicate CHARX path: ${normalized.path}`)
+        if (file.size > config.limits.assetBytes && file.name !== 'card.json') {
+            throw new CardFormatError(`CHARX asset is too large: ${file.name}`)
+        }
+        if (file.size > config.limits.jsonBytes && file.name === 'card.json') {
+            throw new CardFormatError('CHARX card.json is too large')
+        }
+        if (file.compressedSize > 0 && file.size / file.compressedSize > 100) {
+            throw new CardFormatError(`Suspicious CHARX compression ratio: ${file.name}`)
+        }
+        expandedBytes += file.size
+        if (expandedBytes > config.limits.importBytes)
+            throw new CardFormatError('Expanded CHARX is too large')
+        entries.set(normalized.path, file)
+    }
+
+    const readEntry = async (path: string) => {
+        const entry = entries.get(path)!
+        try {
+            return await readZipEntry(source, entry)
+        } catch {
+            throw new CardFormatError(`Invalid CHARX entry: ${entry.name}`)
+        }
+    }
+
+    if (!entries.has('card.json')) throw new CardFormatError('CHARX is missing card.json')
+    const normalized = normalizeCard(
+        parseJson(await readEntry('card.json'), config.limits.jsonBytes),
     )
-
-    const cardBytes = entries['card.json']
-    if (!cardBytes) throw new CardFormatError('CHARX is missing card.json')
-    const normalized = normalizeCard(parseJson(cardBytes, config.limits.jsonBytes))
 
     // RisuAI-exported CHARX files store the actual lorebook (and regex/trigger scripts) in a
     // sibling `module.risum` entry, not in card.json's `character_book`. When present, it takes
     // precedence over `character_book.entries` (matching RisuAI's own import behavior), while
     // scan_depth/token_budget/recursive_scanning still come from `character_book` if present.
-    const moduleBytes = entries['module.risum']
-    if (moduleBytes) {
-        const risuModule = readRisuModule(moduleBytes)
+    if (entries.has('module.risum')) {
+        const risuModule = await readRisuModule(await readEntry('module.risum'), config)
         const lorebook = Array.isArray(risuModule?.lorebook) ? risuModule.lorebook : []
         const regex = Array.isArray(risuModule?.regex) ? risuModule.regex : []
         const trigger = Array.isArray(risuModule?.trigger) ? risuModule.trigger : []
@@ -344,8 +349,17 @@ function readCharx(bytes: Uint8Array, config: AppConfig): ImportedCard {
         }
     }
 
-    const importedAssets: ImportedAsset[] = []
-    let avatar: ImportedAsset | undefined
+    const importedAssets: LazyAsset[] = []
+    let avatar: LazyAsset | undefined
+    // Maps every "/"-delimited path suffix to the first entry ending with it, so descriptors whose
+    // URI omits leading directories resolve without scanning all entries per asset.
+    const pathsBySuffix = new Map<string, string>()
+    for (const path of entries.keys()) {
+        for (let index = path.indexOf('/'); index !== -1; index = path.indexOf('/', index + 1)) {
+            const suffix = path.slice(index + 1)
+            if (!pathsBySuffix.has(suffix)) pathsBySuffix.set(suffix, path)
+        }
+    }
 
     for (const descriptor of normalized.card.data.assets || []) {
         const uri = descriptor.uri.replace(/^embeded:\/\//, '').replace(/^__asset:/, '')
@@ -354,17 +368,13 @@ function readCharx(bytes: Uint8Array, config: AppConfig): ImportedCard {
         const candidates = [
             normalizedUri,
             decodedUri,
-            ...Object.keys(entries).filter(
-                (path) => normalizedUri && path.endsWith(`/${normalizedUri}`),
-            ),
+            normalizedUri && pathsBySuffix.get(normalizedUri),
         ]
-        const path = candidates.find((candidate) => candidate && entries[candidate])
+        const path = candidates.find((candidate) => candidate && entries.has(candidate))
         if (!path) continue
-        const assetBytes = entries[path]
-        if (!assetBytes) continue
         const extension = descriptor.ext || extensionOf(path)
-        const asset: ImportedAsset = {
-            bytes: assetBytes,
+        const asset: LazyAsset = {
+            read: () => readEntry(path),
             mimeType: mimeFromExtension(extension),
             type: descriptor.type || 'asset',
             name: descriptor.name || path.split('/').at(-1) || 'asset',
@@ -386,19 +396,22 @@ function decodeURIComponentSafe(value: string): string {
     }
 }
 
-export function importCharacterCard(
-    bytes: Uint8Array,
+export async function importCharacterCard(
+    input: Uint8Array | ByteSource,
     filename: string,
     config: AppConfig,
-): ImportedCard {
-    if (bytes.byteLength > config.limits.importBytes)
+): Promise<ImportedCard> {
+    const source = toByteSource(input)
+    if (source.size > config.limits.importBytes)
         throw new CardFormatError('Import file is too large')
     const lower = filename.toLowerCase()
-    if (lower.endsWith('.png')) return readPng(bytes, config)
-    if (lower.endsWith('.charx')) return readCharx(bytes, config)
+    if (lower.endsWith('.png')) return readPng(await readAll(source), config)
+    if (lower.endsWith('.charx')) return readCharx(source, config)
     if (!lower.endsWith('.json'))
         throw new CardFormatError('Expected a JSON, PNG, or CHARX character card')
-    const normalized = normalizeCard(parseJson(bytes, config.limits.jsonBytes))
+    if (source.size > config.limits.jsonBytes)
+        throw new CardFormatError('Character card JSON is too large')
+    const normalized = normalizeCard(parseJson(await readAll(source), config.limits.jsonBytes))
     return { ...normalized, assets: [], warnings: [] }
 }
 

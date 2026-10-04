@@ -5,6 +5,7 @@ import type { AppConfig } from '@/config'
 import type { Store } from '@/db'
 import { ConflictError } from '@/errors/app-error'
 import { exportCharacterCard, importCharacterCard } from '@/services/app/character-card'
+import type { ByteSource, ImportProgress } from '@/services/import/source'
 import {
     exportPromptModule,
     importPromptModule,
@@ -47,29 +48,38 @@ export class PromptModuleService {
         return this.store.promptModule.delete(id)
     }
 
-    async import(bytes: Uint8Array, filename: string) {
+    async import(
+        input: Uint8Array | ByteSource,
+        filename: string,
+        onProgress: ImportProgress = () => {},
+    ) {
         const decoded = filename.toLocaleLowerCase().endsWith('.charx')
-            ? this.importCharx(bytes, filename)
-            : importPromptModule(bytes, filename)
+            ? await this.importCharx(input, filename)
+            : await importPromptModule(input, filename, this.config.limits)
         this.assertNamespaceAvailable(decoded.input.namespace)
+        // Store assets before the module row so a corrupt entry cannot leave a partial module.
+        const stored = []
+        const total = decoded.assets.length
+        if (total) onProgress({ stage: 'assets', done: 0, total })
+        for (const imported of decoded.assets) {
+            const asset = await this.assetStore.put(await imported.read(), imported.mimeType)
+            stored.push({ asset, imported })
+            onProgress({ stage: 'assets', done: stored.length, total })
+        }
         const module = this.store.promptModule.create(
             decoded.input,
             decoded.source,
             decoded.warnings,
         )
-        const links = []
-        for (const imported of decoded.assets) {
-            const asset = await this.assetStore.put(imported.bytes, imported.mimeType)
-            links.push({
-                id: crypto.randomUUID(),
-                moduleId: module.id,
-                assetId: asset.id,
-                type: imported.type,
-                name: imported.name,
-                extension: imported.extension,
-                sourceUri: imported.sourceUri,
-            })
-        }
+        const links = stored.map(({ asset, imported }) => ({
+            id: crypto.randomUUID(),
+            moduleId: module.id,
+            assetId: asset.id,
+            type: imported.type,
+            name: imported.name,
+            extension: imported.extension,
+            sourceUri: imported.sourceUri,
+        }))
         this.store.promptModuleAsset.replace(module.id, links)
         return this.withAssets(module)
     }
@@ -163,8 +173,8 @@ export class PromptModuleService {
         }
     }
 
-    private importCharx(bytes: Uint8Array, filename: string) {
-        const imported = importCharacterCard(bytes, filename, this.config)
+    private async importCharx(input: Uint8Array | ByteSource, filename: string) {
+        const imported = await importCharacterCard(input, filename, this.config)
         const data = imported.card.data
         const risu = record(data.extensions?.risuai)
         const source = {
@@ -193,9 +203,10 @@ export class PromptModuleService {
                 extentions: { risu_case_sensitive: entry.case_sensitive },
             })),
         }
-        const decoded = importPromptModule(
+        const decoded = await importPromptModule(
             new TextEncoder().encode(JSON.stringify(source)),
             'module.json',
+            this.config.limits,
         )
         return {
             ...decoded,
