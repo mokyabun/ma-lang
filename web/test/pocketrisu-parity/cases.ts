@@ -240,6 +240,12 @@ export const messageCases: MessageCase[] = [
     message('when-else', { text: '{{#when::0}}no{{:else}}yes{{/when}}' }),
     message('calc', { text: '{{? 1 + 2 * 3}} and {{calc::10/4}}' }),
     message('comment', { text: 'visible{{// hidden note}} text' }),
+    message('comment-display', { text: 'before {{comment::shown in chat}} after' }),
+    message('file-display', { text: 'see {{file::notes.txt::aGVsbG8=}} here' }),
+    message('setvar-then-getvar', {
+        text: '{{setvar::mood::sad}}{{getvar::mood}} {{addvar::count::1}}{{getvar::count}}',
+        chatVariables: { mood: 'happy', count: '1' },
+    }),
     message('escapes', { text: '{{bo}}x{{bc}} {{decbo}}y{{decbc}} a{{br}}b' }),
     message('message-index', { text: 'idx {{chat_index}} last {{lastmessageid}}' }),
     message('unknown-cbs', { text: 'keep {{definitely_not_a_function}} and {{ spaced }}' }),

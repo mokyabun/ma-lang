@@ -2,6 +2,9 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/jetbrains-mono';
+/* PocketRisu's code-block theme and KaTeX's MathML styles for chat messages. */
+@import 'highlight.js/styles/atom-one-dark.min.css';
+@import 'katex/dist/katex.min.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -197,6 +200,8 @@
     #malang-chat-theme {
         --malang-chat-surface: color-mix(in oklab, var(--card) 94%, var(--background));
         --malang-chat-accent: oklch(0.74 0.16 75);
+        --malang-chat-quote1: oklch(0.52 0.11 215);
+        --malang-chat-quote2: oklch(0.58 0.15 55);
         scrollbar-color: color-mix(in oklab, var(--muted-foreground) 34%, transparent) transparent;
     }
 
@@ -211,6 +216,9 @@
     .dark #malang-chat-theme {
         --malang-chat-surface: color-mix(in oklab, var(--card) 88%, var(--background));
         --malang-chat-accent: oklch(0.8 0.16 80);
+        /* PocketRisu's default FontColorQuote1/FontColorQuote2. */
+        --malang-chat-quote1: #8be9fd;
+        --malang-chat-quote2: #ffb86c;
     }
 
     .malang-scene-marker p {
@@ -407,6 +415,92 @@
     .malang-message-card .chattext audio {
         width: min(100%, 32rem);
         margin: 1rem auto;
+    }
+
+    /* Markup produced by the PocketRisu renderer port (src/styles.css in PocketRisu). */
+    .chattext mark[risu-mark='quote1'] {
+        background-color: transparent;
+        color: var(--malang-chat-quote1);
+    }
+
+    .chattext mark[risu-mark='quote2'] {
+        background-color: transparent;
+        color: var(--malang-chat-quote2);
+    }
+
+    .malang-message-card .chattext pre.hljs {
+        border-color: transparent;
+        background: #282c34;
+        color: #abb2bf;
+    }
+
+    .chattext :where(.x-risu-tool-call, .x-risu-risu-comment) {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: color-mix(in oklab, var(--muted) 45%, transparent);
+        padding: 0.5rem 1rem;
+    }
+
+    .chattext .x-risu-risu-file {
+        max-width: 20rem;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .chattext .x-risu-risu-error {
+        border: 2px solid var(--destructive);
+        border-radius: var(--radius);
+        background: color-mix(in oklab, var(--destructive) 85%, transparent);
+        padding: 0.5rem 1rem;
+        color: white;
+        overflow-wrap: anywhere;
+    }
+
+    .chattext .x-risu-risu-error h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+    }
+
+    .chattext .risu-inlay-missing {
+        display: flex;
+        width: 100%;
+        max-width: 20rem;
+        min-height: 120px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 0.25rem);
+        background: color-mix(in oklab, var(--muted) 35%, transparent);
+        padding: 1.5rem 1rem;
+        color: var(--muted-foreground);
+        text-align: center;
+    }
+
+    .chattext .risu-inlay-missing-title {
+        color: var(--foreground);
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .chattext .risu-inlay-missing-subtitle {
+        font-size: 11px;
+        opacity: 0.7;
+        word-break: break-all;
+    }
+
+    @keyframes risu-fade-in {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
     }
 
     .malang-message-tools {

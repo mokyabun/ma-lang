@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Textarea } from '@/components/ui/textarea'
 import { api, getClientInstanceId } from '@/lib/api'
+import { resolveInlayPlaceholders } from '@/lib/pocketrisu/inlays'
 import { renderMessageContentHtml } from '@/lib/render-message-content'
 import { cn } from '@/lib/utils'
 
@@ -460,21 +461,28 @@ function MessageContent({
             ),
         [imageAssets, message.content, message.displayContent, message.id],
     )
+    const contentRef = useRef<HTMLDivElement>(null)
+    useLayoutEffect(() => {
+        if (contentRef.current) resolveInlayPlaceholders(contentRef.current, imageAssets)
+    }, [imageAssets, renderedContent])
     const baseClassName = 'chattext text-card-foreground'
 
-    if (renderedContent) {
+    // An empty stored message is still streaming. Text that renders to nothing (a regex
+    // that hides it, or only stripped markup) stays empty, as it does in PocketRisu.
+    if (!message.content && !message.displayContent) {
         return (
-            <div
-                className={`${baseClassName} regex-display-content whitespace-normal`}
-                // Every chat message passes through the PocketRisu-compatible DOMPurify renderer.
-                dangerouslySetInnerHTML={{ __html: renderedContent }}
-            />
+            <div className={`${baseClassName} whitespace-pre-wrap`}>
+                <TypingLine />
+            </div>
         )
     }
     return (
-        <div className={`${baseClassName} whitespace-pre-wrap`}>
-            {message.content || <TypingLine />}
-        </div>
+        <div
+            ref={contentRef}
+            className={`${baseClassName} regex-display-content whitespace-normal`}
+            // Every chat message passes through the PocketRisu-ported markdown renderer.
+            dangerouslySetInnerHTML={{ __html: renderedContent }}
+        />
     )
 }
 

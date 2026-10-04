@@ -28,21 +28,23 @@ describe('message image expansion', () => {
         )
     })
 
-    test('matches emotion names with spaces and removes unknown tags', () => {
+    test('matches emotion names with spaces and keeps unknown tags as text', () => {
         const rendered = expandMessageImages(
             '<Emotion="happy smile"><Emotion="missing">',
             assets,
             'message-2',
         )
         expect(rendered).toContain('/api/v1/assets/22222222-2222-4222-8222-222222222222')
-        expect(rendered).not.toContain('missing')
+        expect(rendered).toContain('<Emotion="missing">')
     })
 
     test('supports Risu image shorthand only for local assets or known names', () => {
         expect(expandMessageImages('<img="pouting">', assets, 'message-3')).toContain(
             'class="malang-message-image"',
         )
-        expect(expandMessageImages('<img="https://example.com/tracker.png">', assets, 'x')).toBe('')
+        expect(expandMessageImages('<img="https://example.com/tracker.png">', assets, 'x')).toBe(
+            '<img="https://example.com/tracker.png">',
+        )
     })
 
     test('supports PocketRisu asset CBS and centered image commands', () => {

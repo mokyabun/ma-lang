@@ -22,44 +22,50 @@ export function expandMessageImages(
 ): string {
     const imageAssets = assets.filter((asset) => asset.mimeType.startsWith('image/'))
 
-    return value
-        .replace(EMOTION_TAG, (_full, rawName: string) => {
-            const asset = findImageAsset(imageAssets, rawName, seed)
-            return asset ? imageMarkup(asset, rawName, 'malang-emotion-image') : ''
-        })
-        .replace(RISU_IMAGE_TAG, (_full, rawValue: string) => {
-            if (LOCAL_ASSET_PATH.test(rawValue)) {
-                return `<img class="malang-message-image" src="${rawValue}" alt="" loading="lazy" decoding="async">`
-            }
-            const asset = findImageAsset(imageAssets, rawValue, seed)
-            return asset ? imageMarkup(asset, rawValue) : ''
-        })
-        .replace(RISU_ASSET_TAG, (_full, rawType: string, rawName: string) => {
-            const asset = findImageAsset(imageAssets, rawName, seed)
-            if (!asset) return ''
-            const image = imageMarkup(
-                asset,
-                rawName,
-                rawType.toLocaleLowerCase() === 'emotion' ? 'malang-emotion-image' : '',
+    return (
+        value
+            // These shorthands are Malang extensions; PocketRisu shows an unresolved one as text.
+            .replace(EMOTION_TAG, (full, rawName: string) => {
+                const asset = findImageAsset(imageAssets, rawName, seed)
+                return asset ? imageMarkup(asset, rawName, 'malang-emotion-image') : full
+            })
+            .replace(RISU_IMAGE_TAG, (full, rawValue: string) => {
+                if (LOCAL_ASSET_PATH.test(rawValue)) {
+                    return `<img class="malang-message-image" src="${rawValue}" alt="" loading="lazy" decoding="async">`
+                }
+                const asset = findImageAsset(imageAssets, rawValue, seed)
+                return asset ? imageMarkup(asset, rawValue) : full
+            })
+            .replace(RISU_ASSET_TAG, (_full, rawType: string, rawName: string) => {
+                const asset = findImageAsset(imageAssets, rawName, seed)
+                if (!asset) return ''
+                const image = imageMarkup(
+                    asset,
+                    rawName,
+                    rawType.toLocaleLowerCase() === 'emotion' ? 'malang-emotion-image' : '',
+                )
+                return rawType.toLocaleLowerCase() === 'image'
+                    ? `<div class="risu-inlay-image">${image}</div>`
+                    : image
+            })
+            .replace(
+                HTML_IMAGE_SOURCE,
+                (full, prefix: string, quote: string, rawSource: string) => {
+                    const source = resolveRelativeImageSource(imageAssets, rawSource, seed)
+                    return source ? `${prefix}${quote}${source}${quote}` : full
+                },
             )
-            return rawType.toLocaleLowerCase() === 'image'
-                ? `<div class="risu-inlay-image">${image}</div>`
-                : image
-        })
-        .replace(HTML_IMAGE_SOURCE, (full, prefix: string, quote: string, rawSource: string) => {
-            const source = resolveRelativeImageSource(imageAssets, rawSource, seed)
-            return source ? `${prefix}${quote}${source}${quote}` : full
-        })
-        .replace(
-            MARKDOWN_IMAGE_SOURCE,
-            (full, prefix: string, rawSource: string, suffix: string) => {
-                const bracketed = rawSource.startsWith('<') && rawSource.endsWith('>')
-                const sourceValue = bracketed ? rawSource.slice(1, -1) : rawSource
-                const source = resolveRelativeImageSource(imageAssets, sourceValue, seed)
-                if (!source) return full
-                return `${prefix}${bracketed ? `<${source}>` : source}${suffix}`
-            },
-        )
+            .replace(
+                MARKDOWN_IMAGE_SOURCE,
+                (full, prefix: string, rawSource: string, suffix: string) => {
+                    const bracketed = rawSource.startsWith('<') && rawSource.endsWith('>')
+                    const sourceValue = bracketed ? rawSource.slice(1, -1) : rawSource
+                    const source = resolveRelativeImageSource(imageAssets, sourceValue, seed)
+                    if (!source) return full
+                    return `${prefix}${bracketed ? `<${source}>` : source}${suffix}`
+                },
+            )
+    )
 }
 
 function resolveRelativeImageSource(

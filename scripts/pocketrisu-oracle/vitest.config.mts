@@ -54,7 +54,7 @@ export default {
     test: {
         dir: oracleDir,
         include: ['runner.oracle.ts'],
-        environment: 'happy-dom',
+        environment: resolve(oracleDir, 'happy-dom-environment.mjs'),
         setupFiles: [resolve(oracleDir, 'setup.ts')],
         testTimeout: 600_000,
     },

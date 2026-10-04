@@ -16,8 +16,10 @@ import { parityCases } from './cases'
 import { installHappyDom } from './dom'
 import { fuzzCases } from './fuzz'
 import { readGolden } from './golden'
+import { isKnownDeviation } from './known-deviations'
 
 const LIVE = process.env.PARITY_LIVE === '1'
+const STRICT = process.env.PARITY_STRICT === '1'
 const unavailable = LIVE ? pocketRisuOracleUnavailableReason() : 'PARITY_LIVE is not set'
 const seed = Number(process.env.PARITY_FUZZ_SEED ?? 1)
 const count = Number(process.env.PARITY_FUZZ_COUNT ?? 200)
@@ -67,7 +69,10 @@ describe.skipIf(!!unavailable)('live PocketRisu oracle', () => {
         for (const entry of fuzz) {
             const pocketRisu = canonicalHtml(expected.get(entry.id) ?? '')
             const malang = canonicalHtml(await renderWithMalang(entry))
-            if (pocketRisu !== malang) mismatches.push({ entry, pocketRisu, malang })
+            if (pocketRisu === malang) continue
+            const input = entry.kind === 'markup' ? entry.input : JSON.stringify(entry.scenario)
+            if (!STRICT && isKnownDeviation(input, pocketRisu, malang)) continue
+            mismatches.push({ entry, pocketRisu, malang })
         }
         writeFileSync(REPORT_PATH, `${JSON.stringify({ seed, mismatches }, null, 2)}\n`)
         expect(

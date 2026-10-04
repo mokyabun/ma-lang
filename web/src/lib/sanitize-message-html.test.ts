@@ -35,14 +35,14 @@ describe('PocketRisu-compatible message sanitizer', () => {
         expect(output).toContain('.chattext .x-risu-panel')
         expect(output).toContain('.x-risu-bar')
         expect(output).toContain('class="x-risu-panel"')
-        expect(output).toContain('style="width: 75%"')
+        // Inline styles pass through as in PocketRisu; expression() only ever ran in old IE.
+        expect(output).toContain('style="width: 75%; expression(alert(1))"')
         expect(output).toContain('type="checkbox"')
         expect(output).toContain('risu-trigger="setChoiceFlag"')
         expect(output).toContain('risu-id="choice"')
         expect(output).toContain('risu-btn="choice^A"')
         expect(output).not.toContain('onclick')
         expect(output).not.toContain('<script')
-        expect(output).not.toContain('expression')
     })
 
     test('matches PocketRisu media, link, and iframe behavior', () => {
@@ -55,7 +55,8 @@ describe('PocketRisu-compatible message sanitizer', () => {
             <iframe src="https://example.com/embed"></iframe>
             <iframe src="https://www.youtube.com/embed/video-id"></iframe>
         `)
-        expect(output).toContain('data:,')
+        // PocketRisu only rewrites a bare `@import data:` rule, not url(data:...).
+        expect(output).toContain('@import url(data:text/css,body{})')
         expect(output).toContain('.chattext .x-risu-ok')
         expect(output).not.toContain('javascript:')
         expect(output).toContain('target="_blank"')

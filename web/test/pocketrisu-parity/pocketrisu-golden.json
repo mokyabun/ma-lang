@@ -216,7 +216,7 @@
         },
         "markup/html-event-handlers": {
             "inputHash": "c85a30e4bfc9dcdc",
-            "html": "<p><img src=\"https://e.com/a.png\" loading=\"lazy\" decoding=\"async\"><div>hi</div></p>\n"
+            "html": "<p><img src=\"https://e.com/a.png\" loading=\"lazy\" decoding=\"async\"></p><div>hi</div>\n"
         },
         "markup/html-iframe-youtube": {
             "inputHash": "b2d2c84a929e0467",
@@ -284,7 +284,7 @@
         },
         "markup/style-simple": {
             "inputHash": "d649a60acbe6fbc9",
-            "html": "<p><style>.chattext .x-risu-box{color:red;}</style><div class=\"x-risu-box\">x</div></p>\n"
+            "html": "<p><style>.chattext .x-risu-box{color:red;}</style></p><div class=\"x-risu-box\">x</div>\n"
         },
         "markup/style-root-and-elements": {
             "inputHash": "9f036bddf44f119f",
@@ -422,6 +422,18 @@
             "inputHash": "9f5cda480fb6ddb2",
             "html": "<p>visible{{// hidden note}} text</p>\n"
         },
+        "message/comment-display": {
+            "inputHash": "b48bf5814b19add1",
+            "html": "<p>before </p><div class=\"x-risu-risu-comment\">shown in chat</div> after\n"
+        },
+        "message/file-display": {
+            "inputHash": "05460fe61a98344d",
+            "html": "<p>see <br></p><div class=\"x-risu-risu-file\">notes.txt</div><br> here\n"
+        },
+        "message/setvar-then-getvar": {
+            "inputHash": "b4ddd37bc4d0db3d",
+            "html": "<p>happy 1</p>\n"
+        },
         "message/escapes": {
             "inputHash": "ca5b6ef98c9e3ff8",
             "html": "<p>{{x}} {y} a<br>\nb</p>\n"
@@ -448,7 +460,7 @@
         },
         "message/asset-inlay-missing": {
             "inputHash": "c2d1168858d72920",
-            "html": "<p>look <div data-inlay-id=\"missing-id\" data-inlay-type=\"inlay\" class=\"x-risu-risu-inlay-placeholder x-risu-risu-loading-spinner\" style=\"width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px;\"></div> here <div class=\"x-risu-risu-inlay-image\"><div data-inlay-id=\"other\" data-inlay-type=\"inlayed\" class=\"x-risu-risu-inlay-placeholder x-risu-risu-loading-spinner\" style=\"width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px;\"></div></div></p>\n"
+            "html": "<p>look </p><div data-inlay-id=\"missing-id\" data-inlay-type=\"inlay\" class=\"x-risu-risu-inlay-placeholder x-risu-risu-loading-spinner\" style=\"width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px;\"></div> here <div class=\"x-risu-risu-inlay-image\"><div data-inlay-id=\"other\" data-inlay-type=\"inlayed\" class=\"x-risu-risu-inlay-placeholder x-risu-risu-loading-spinner\" style=\"width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px;\"></div></div>\n"
         },
         "message/regex-simple": {
             "inputHash": "d1022cf75689c012",
@@ -508,7 +520,7 @@
         },
         "message/regex-style-output": {
             "inputHash": "0833b5e18cf96f18",
-            "html": "<p><style>.chattext .x-risu-p{color:red;}</style><div class=\"x-risu-p\">Mina</div></p>\n"
+            "html": "<p><style>.chattext .x-risu-p{color:red;}</style></p><div class=\"x-risu-p\">Mina</div>\n"
         },
         "message/regex-quotes": {
             "inputHash": "3bd1216387504047",

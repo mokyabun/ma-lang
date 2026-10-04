@@ -47,10 +47,14 @@ Live runs and regeneration need a PocketRisu checkout with its dependencies inst
 
 ## Oracle notes
 
-- The oracle runs inside PocketRisu's own Vitest toolchain (its Vite, Svelte plugin,
-  happy-dom and dependency versions). Only `stores.svelte.ts` and `globalApi.svelte.ts`
-  are stubbed; database defaults come from PocketRisu's real `setDatabase()`.
-- Both sides run in happy-dom, not a browser. `test/happy-dom-node-name.ts` corrects
-  a happy-dom `Node.prototype.nodeName` quirk that made DOMPurify 3.4 drop every
-  element. MathML (KaTeX) output and other namespace handling can still differ from
-  Chrome.
+- The oracle runs inside PocketRisu's own Vitest toolchain (its Vite, Svelte plugin
+  and dependency versions). Only `stores.svelte.ts` and `globalApi.svelte.ts` are
+  stubbed; database defaults come from PocketRisu's real `setDatabase()`.
+- Both sides render in the same happy-dom (Malang's version, through
+  `happy-dom-environment.mjs`). PocketRisu's pinned happy-dom mis-nests unclosed tags
+  and skips named character references, which showed up as false differences.
+  `test/happy-dom-node-name.ts` corrects a happy-dom quirk that made DOMPurify 3.4
+  drop every element. MathML (KaTeX) output can still differ from Chrome.
+- Inlay placeholders are compared as PocketRisu emits them. Swapping them for media
+  happens after render (`resolveInlayPlaceholders`) and is covered by unit tests,
+  since the oracle has no inlay storage.
