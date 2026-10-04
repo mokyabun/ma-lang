@@ -7,6 +7,7 @@ import extractChunks from 'png-chunks-extract'
 
 import type { AppConfig } from '@/config'
 import { ValidationError } from '@/errors/app-error'
+import { mimeFromExtension } from '@/services/import/mime'
 
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
@@ -308,18 +309,6 @@ function chatsFrom(bytes: Uint8Array, maxBytes: number, warnings: string[]) {
     return { chats, groups }
 }
 
-function mimeType(extension: string): string {
-    return (
-        {
-            png: 'image/png',
-            jpg: 'image/jpeg',
-            jpeg: 'image/jpeg',
-            webp: 'image/webp',
-            gif: 'image/gif',
-        }[extension] || 'application/octet-stream'
-    )
-}
-
 function safeFilename(value: string): string {
     return value.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/[. ]+$/, '') || 'character'
 }
@@ -510,7 +499,7 @@ export function importPocketRisuCharacterPackage(
         const id = dot > 0 ? filename.slice(0, dot) : filename
         const extension = dot > 0 ? filename.slice(dot + 1).toLowerCase() : 'png'
         if (!id) return []
-        return [{ id, bytes: value, extension, mimeType: mimeType(extension) }]
+        return [{ id, bytes: value, extension, mimeType: mimeFromExtension(extension) }]
     })
 
     return {

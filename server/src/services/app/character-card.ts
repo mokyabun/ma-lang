@@ -6,6 +6,7 @@ import extractChunks from 'png-chunks-extract'
 
 import type { AppConfig } from '@/config'
 import { ValidationError } from '@/errors/app-error'
+import { mimeFromExtension } from '@/services/import/mime'
 import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/services/import/source'
 import { readZipDirectory, readZipEntry, type ZipEntry } from '@/services/import/zip'
 import { readRisum } from '@/services/prompt/module-codec'
@@ -184,24 +185,6 @@ function extensionOf(path: string): string {
     const filename = path.split('/').at(-1) || ''
     const index = filename.lastIndexOf('.')
     return index === -1 ? '' : filename.slice(index + 1).toLowerCase()
-}
-
-function mimeFromExtension(extension: string): string {
-    return (
-        {
-            png: 'image/png',
-            jpg: 'image/jpeg',
-            jpeg: 'image/jpeg',
-            webp: 'image/webp',
-            gif: 'image/gif',
-            mp3: 'audio/mpeg',
-            wav: 'audio/wav',
-            ogg: 'audio/ogg',
-            mp4: 'video/mp4',
-            webm: 'video/webm',
-            json: 'application/json',
-        }[extension] || 'application/octet-stream'
-    )
 }
 
 function normalizeArchivePath(value: string): { path: string; directory: boolean } | null {

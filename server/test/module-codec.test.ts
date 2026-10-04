@@ -80,6 +80,21 @@ describe('Risu prompt module codec', () => {
         ).rejects.toThrow('MAX_ASSET_BYTES=0')
     })
 
+    test('derives image MIME types for AVIF .risum assets', async () => {
+        const encoded = exportPromptModule(input, 'risum', [
+            {
+                bytes: new Uint8Array([1]),
+                type: 'other',
+                name: 'portrait',
+                extension: 'avif',
+                sourceUri: 'test:',
+                mimeType: 'image/avif',
+            },
+        ])
+        const decoded = await importPromptModule(encoded, 'avif.risum', limits)
+        expect(decoded.assets[0]).toMatchObject({ extension: 'avif', mimeType: 'image/avif' })
+    })
+
     test('round-trips the legacy .risum envelope', async () => {
         const encoded = exportPromptModule(input, 'risum', [
             {

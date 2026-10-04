@@ -7,6 +7,7 @@ import {
 } from '@malang/shared'
 
 import { ValidationError } from '@/errors/app-error'
+import { mimeFromExtension } from '@/services/import/mime'
 import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/services/import/source'
 
 import {
@@ -203,7 +204,7 @@ export async function readRisum(
             name,
             extension,
             sourceUri: `risum:${assetCount}`,
-            mimeType: mimeForExtension(extension),
+            mimeType: mimeFromExtension(extension),
         })
         assetCount += 1
         if (assetCount > limits.archiveEntries) {
@@ -521,14 +522,4 @@ function finiteInteger(value: unknown, fallback: number): number {
 
 function isUuid(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-}
-
-function mimeForExtension(extension: string): string {
-    const value = extension.toLocaleLowerCase().replace(/^\./, '')
-    if (value === 'png') return 'image/png'
-    if (value === 'jpg' || value === 'jpeg') return 'image/jpeg'
-    if (value === 'gif') return 'image/gif'
-    if (value === 'webp') return 'image/webp'
-    if (value === 'svg') return 'image/svg+xml'
-    return 'application/octet-stream'
 }
