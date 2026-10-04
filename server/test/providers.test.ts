@@ -45,45 +45,6 @@ async function collect(runtime: RuntimeProviderConfig) {
 }
 
 describe('PocketRisu provider compatibility', () => {
-    test('accepts every PocketRisu provider family in the public contract', () => {
-        const providers = [
-            'openai',
-            'openrouter',
-            'anthropic',
-            'google',
-            'vertex',
-            'mistral',
-            'cohere',
-            'novelai',
-            'novellist',
-            'horde',
-            'aws',
-            'deepseek',
-            'deepinfra',
-            'nanogpt',
-            'openai-compatible',
-            'ooba',
-            'mancer',
-            'kobold',
-            'ollama',
-            'echo',
-            'webllm',
-            'plugin',
-        ] as const
-        for (const provider of providers) {
-            const result = ProviderConfigSchema.safeParse({
-                provider,
-                modelId: 'model',
-                defaults: {},
-                providerOptions: {},
-                ...(provider === 'vertex' ? { projectId: '', location: 'global' } : {}),
-                ...(provider === 'aws' ? { region: 'us-east-1' } : {}),
-                ...(provider === 'ollama' ? { baseUrl: 'http://127.0.0.1:11434' } : {}),
-            })
-            expect(result.success).toBe(true)
-        }
-    })
-
     test('streams OpenAI-compatible chat deltas', async () => {
         globalThis.fetch = (async () =>
             new Response(
@@ -164,48 +125,32 @@ describe('PocketRisu provider compatibility', () => {
         ).toBe('Claude')
     })
 
-    test('supports Cohere, Kobold, Mancer and developer Echo response formats', async () => {
-        globalThis.fetch = (async (input) => {
-            const url =
-                typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-            if (url.includes('cohere')) return Response.json({ text: 'Cohere' })
-            if (url.includes('mancer')) return Response.json({ results: [{ text: 'Mancer' }] })
-            return Response.json({ results: [{ text: 'Kobold' }] })
-        }) as typeof fetch
+    test.each([
+        ['cohere', { text: 'Cohere' }, 'Cohere'],
+        ['kobold', { results: [{ text: 'Kobold' }] }, 'Kobold'],
+        ['mancer', { results: [{ text: 'Mancer' }] }, 'Mancer'],
+    ] as const)('reads the %s response format', async (provider, response, expected) => {
+        globalThis.fetch = (async () => Response.json(response)) as unknown as typeof fetch
         expect(
             await collect(
-                config('cohere', {
-                    apiKey: 'secret',
-                    baseUrl: 'https://cohere.test',
-                }),
+                config(provider, { apiKey: 'secret', baseUrl: `https://${provider}.test` }),
             ),
-        ).toBe('Cohere')
-        expect(
-            await collect(config('kobold', { baseUrl: 'https://kobold.test/api/v1/generate' })),
-        ).toBe('Kobold')
-        expect(
-            await collect(
-                config('mancer', {
-                    apiKey: 'secret',
-                    baseUrl: 'https://mancer.test',
-                }),
-            ),
-        ).toBe('Mancer')
+        ).toBe(expected)
+    })
+
+    test('generates a developer Echo response', async () => {
         expect(
             await collect(
-                config('echo', {
-                    providerOptions: { message: 'Echo Message', delayMs: 0 },
-                }),
+                config('echo', { providerOptions: { message: 'Echo Message', delayMs: 0 } }),
             ),
         ).toBe('Echo Message')
     })
 
-    test('explains server-incompatible WebLLM and browser plugin providers', () => {
-        expect(() => providerFor(config('webllm')).validateConfig(config('webllm'))).toThrow(
-            'browser GPU runtime',
-        )
-        expect(() => providerFor(config('plugin')).validateConfig(config('plugin'))).toThrow(
-            'browser plugins',
-        )
+    test.each([
+        ['webllm', /browser GPU runtime/i],
+        ['plugin', /browser plugins/i],
+    ] as const)('explains why %s cannot run on the server', (provider, message) => {
+        const runtime = config(provider)
+        expect(() => providerFor(runtime).validateConfig(runtime)).toThrow(message)
     })
 })

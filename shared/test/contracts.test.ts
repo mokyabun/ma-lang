@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
     AppSettingsSchema,
+    GenerationEventSchema,
     GenerationRequestSchema,
     LongTermMemorySettingsPatchSchema,
     ModelChainPresetInputSchema,
@@ -27,14 +28,49 @@ describe('shared contracts', () => {
         })
     })
 
-    test('accepts a valid Ollama configuration', () => {
+    test.each([
+        'openai',
+        'openrouter',
+        'anthropic',
+        'google',
+        'vertex',
+        'mistral',
+        'cohere',
+        'novelai',
+        'novellist',
+        'horde',
+        'aws',
+        'deepseek',
+        'deepinfra',
+        'nanogpt',
+        'openai-compatible',
+        'ooba',
+        'mancer',
+        'kobold',
+        'ollama',
+        'echo',
+        'webllm',
+        'plugin',
+    ])('accepts the %s provider configuration', (provider) => {
         expect(
             ProviderConfigSchema.parse({
-                provider: 'ollama',
-                baseUrl: 'http://localhost:11434',
-                modelId: 'gemma3',
+                provider,
+                modelId: 'model',
+                ...(provider === 'vertex' ? { projectId: '', location: 'global' } : {}),
+                ...(provider === 'aws' ? { region: 'us-east-1' } : {}),
+                ...(provider === 'ollama' ? { baseUrl: 'http://127.0.0.1:11434' } : {}),
             }).provider,
-        ).toBe('ollama')
+        ).toBe(provider)
+    })
+
+    test('validates message delta events', () => {
+        const event = {
+            type: 'message.delta' as const,
+            generationId: crypto.randomUUID(),
+            messageId: crypto.randomUUID(),
+            delta: 'x',
+        }
+        expect(GenerationEventSchema.parse(event)).toEqual(event)
     })
 
     test('requires idempotency keys for generations', () => {

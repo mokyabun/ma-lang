@@ -11,32 +11,12 @@ import {
     type ModelChainAgent,
 } from '@malang/shared'
 
-import type { AppConfig } from '../src/config'
 import { type AppContext, createContext } from '../src/services'
+import { appConfig } from './fixtures'
 
 describe('server-side model chains', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-chains-'))
-    const config: AppConfig = {
-        nodeEnv: 'test',
-        autoBackupEnabled: false,
-        host: '127.0.0.1',
-        dataDir: directory,
-        databasePath: join(directory, 'data.sqlite'),
-        adminPassword: 'correct horse battery staple',
-        sessionSecret: 'model-chain-test-secret-with-enough-entropy',
-        allowedOrigins: new Set(),
-        cookieSecure: false,
-        port: 3000,
-        logLevel: 'silent',
-        logPretty: false,
-        logColorize: false,
-        limits: {
-            importBytes: 128 << 20,
-            jsonBytes: 8 << 20,
-            assetBytes: 32 << 20,
-            archiveEntries: 4096,
-        },
-    }
+    const config = appConfig(directory)
     let context: AppContext
 
     beforeAll(async () => {
@@ -48,18 +28,20 @@ describe('server-side model chains', () => {
         rmSync(directory, { recursive: true, force: true })
     })
 
+    function createEcho(name: string, message: string, delayMs = 0) {
+        return context.store.modelPreset.create({
+            name,
+            apiKeyId: null,
+            config: {
+                provider: 'echo',
+                modelId: name.toLocaleLowerCase().replaceAll(' ', '-'),
+                defaults: {},
+                providerOptions: { message, delayMs },
+            },
+        })
+    }
+
     test('keeps single-model generation as the default and runs selected chains on the server', async () => {
-        const createEcho = (name: string, message: string) =>
-            context.store.modelPreset.create({
-                name,
-                apiKeyId: null,
-                config: {
-                    provider: 'echo',
-                    modelId: name.toLocaleLowerCase().replaceAll(' ', '-'),
-                    defaults: {},
-                    providerOptions: { message },
-                },
-            })
         const main = createEcho('Main', 'MAIN BODY')
         const analyst = createEcho('Analyst', 'PRE NOTE')
         const editor = createEcho('Editor', 'POST BODY')
@@ -144,17 +126,6 @@ describe('server-side model chains', () => {
     })
 
     test('runs multiple pre and post agents concurrently and applies post results in order', async () => {
-        const createEcho = (name: string, message: string, delayMs = 0) =>
-            context.store.modelPreset.create({
-                name,
-                apiKeyId: null,
-                config: {
-                    provider: 'echo',
-                    modelId: name.toLocaleLowerCase().replaceAll(' ', '-'),
-                    defaults: {},
-                    providerOptions: { message, delayMs },
-                },
-            })
         const main = createEcho('Parallel Main', 'MAIN')
         const preA = createEcho('Parallel Pre A', 'PRE A', 160)
         const preB = createEcho('Parallel Pre B', 'PRE B', 160)
@@ -199,17 +170,6 @@ describe('server-side model chains', () => {
     })
 
     test('persists free graphs, runs side branches and never calls disconnected models', async () => {
-        const createEcho = (name: string, message: string) =>
-            context.store.modelPreset.create({
-                name,
-                apiKeyId: null,
-                config: {
-                    provider: 'echo',
-                    modelId: name.toLowerCase(),
-                    defaults: {},
-                    providerOptions: { message },
-                },
-            })
         const mainModel = createEcho('GraphMain', 'MAIN')
         const makeAgent = (name: string, postMode: ModelChainAgent['postMode'] = 'replace') =>
             chainAgent(name, createEcho(name, `OUTPUT_${name}`).id, { postMode })
@@ -327,17 +287,6 @@ describe('server-side model chains', () => {
     })
 
     test('persists tagged pre-agent memory per conversation', async () => {
-        const createEcho = (name: string, message: string) =>
-            context.store.modelPreset.create({
-                name,
-                apiKeyId: null,
-                config: {
-                    provider: 'echo',
-                    modelId: name.toLocaleLowerCase().replaceAll(' ', '-'),
-                    defaults: {},
-                    providerOptions: { message },
-                },
-            })
         const main = createEcho('Memory Main', 'MAIN')
         const memoryModel = createEcho(
             'Memory Agent',

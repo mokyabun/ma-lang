@@ -6,36 +6,15 @@ import * as textChunk from 'png-chunk-text'
 import encodeChunks from 'png-chunks-encode'
 import extractChunks from 'png-chunks-extract'
 
-import type { AppConfig } from '../src/config'
 import { exportCharacterCard } from '../src/services/app/character-card'
 import {
     CharacterPackageFormatError,
     exportPocketRisuCharacterPackage,
     importPocketRisuCharacterPackage,
 } from '../src/services/app/character-package'
-import { v3Card } from './fixtures'
+import { appConfig, v3Card } from './fixtures'
 
-const config: AppConfig = {
-    nodeEnv: 'test',
-    autoBackupEnabled: false,
-    host: '127.0.0.1',
-    dataDir: '/tmp/malang-test',
-    databasePath: '/tmp/malang-test.sqlite',
-    adminPassword: 'password',
-    sessionSecret: 'test-secret',
-    allowedOrigins: new Set(),
-    cookieSecure: false,
-    port: 3000,
-    logLevel: 'silent',
-    logPretty: false,
-    logColorize: false,
-    limits: {
-        importBytes: 128 << 20,
-        jsonBytes: 8 << 20,
-        assetBytes: 32 << 20,
-        archiveEntries: 4096,
-    },
-}
+const config = appConfig()
 
 const encoder = new TextEncoder()
 const emptyPng = Uint8Array.from(

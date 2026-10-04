@@ -3,9 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import { EnvConfigSchema } from '../src/config'
 
 function parseConfig(env: Record<string, string | undefined>) {
-    const parsed = EnvConfigSchema.safeParse(env)
-    if (!parsed.success) throw parsed.error
-    return parsed.data
+    return EnvConfigSchema.parse(env)
 }
 
 describe('runtime config', () => {

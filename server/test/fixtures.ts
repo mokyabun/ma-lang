@@ -1,3 +1,35 @@
+import { join } from 'node:path'
+
+import type { AppConfig } from '../src/config'
+
+export function appConfig(
+    dataDir = '/tmp/malang-test',
+    overrides: Partial<AppConfig> = {},
+): AppConfig {
+    return {
+        nodeEnv: 'test',
+        autoBackupEnabled: false,
+        host: '127.0.0.1',
+        dataDir,
+        databasePath: join(dataDir, 'data.sqlite'),
+        adminPassword: 'correct horse battery staple',
+        sessionSecret: 'test-session-secret-with-enough-entropy',
+        allowedOrigins: new Set(),
+        cookieSecure: false,
+        port: 3000,
+        logLevel: 'silent',
+        logPretty: false,
+        logColorize: false,
+        limits: {
+            importBytes: 128 << 20,
+            jsonBytes: 8 << 20,
+            assetBytes: 32 << 20,
+            archiveEntries: 4096,
+        },
+        ...overrides,
+    }
+}
+
 export function v3Card(overrides: Record<string, unknown> = {}) {
     return {
         spec: 'chara_card_v3',

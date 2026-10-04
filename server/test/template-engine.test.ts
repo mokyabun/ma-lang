@@ -64,8 +64,6 @@ describe('safe template engine', () => {
         )
 
         expect(result.text).toBe('A-BC')
-        expect(result.text).not.toContain('{{#if')
-        expect(result.text).not.toContain('{{/')
     })
 
     test('supports nested CBS boolean helpers inside legacy expressions', () => {
@@ -176,9 +174,6 @@ describe('safe template engine', () => {
         )
     })
 
-    // RisuAI's `tis`/`tisnot` compare the raw stored toggle value (a select toggle's chosen
-    // index, say), not a boolean — collapsing it through `toggles` first would make a
-    // multi-value toggle's `tis::2` unmatchable no matter what.
     test('tis/tisnot compare the raw toggle value, not its on/off boolean', () => {
         const withToggleValues = { ...context, toggleValues: { route: '2' } }
         const matched = renderTemplate(
@@ -201,10 +196,6 @@ describe('safe template engine', () => {
 })
 
 describe('Risu-compatible calc engine ({{? ...}} / {{calc::...}})', () => {
-    // RisuAI's calc engine is a shunting-yard/RPN evaluator over single-char operators, not a
-    // conventional parser. '=' and '>' are separate tokens, so a preset author's typo'd "a=>b"
-    // (meant as ">=") silently parses as two chained comparisons and evaluates to 0 either way —
-    // matching that exactly (rather than "fixing" it) is the point: it's what Risu itself does.
     test('parses "=>" as two chained single-char comparisons, not >=, on both sides', () => {
         const off = renderTemplate('{{? 0=>1}}', context)
         const on = renderTemplate('{{? 1=>1}}', context)
@@ -220,10 +211,14 @@ describe('Risu-compatible calc engine ({{? ...}} / {{calc::...}})', () => {
         expect(on.text).toBe('shown')
     })
 
-    test('supports basic arithmetic, parens, and >=/<=', () => {
-        expect(renderTemplate('{{calc::2+3*4}}', context).text).toBe('14')
-        expect(renderTemplate('{{calc::(2+3)*4}}', context).text).toBe('20')
-        expect(renderTemplate('{{calc::5>=5}}', context).text).toBe('1')
-        expect(renderTemplate('{{calc::4>=5}}', context).text).toBe('0')
+    test.each([
+        ['2+3*4', '14'],
+        ['(2+3)*4', '20'],
+        ['5>=5', '1'],
+        ['4>=5', '0'],
+        ['5<=5', '1'],
+        ['6<=5', '0'],
+    ])('evaluates %s to %s', (expression, expected) => {
+        expect(renderTemplate(`{{calc::${expression}}}`, context).text).toBe(expected)
     })
 })

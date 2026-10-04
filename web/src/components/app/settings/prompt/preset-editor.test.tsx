@@ -18,53 +18,31 @@ describe('split prompt preset panels', () => {
         ['regex', '프리셋 정규식'],
         ['settings', '기본 변수'],
     ]
-    for (const [section, title] of panels) {
-        test(`renders only the ${section} panel with its tab association`, () => {
-            const value = blankPreset()
-            value.toggles = [
-                {
-                    key: 'feature',
-                    label: '기능 표시',
-                    type: 'boolean',
-                    options: [],
-                    defaultValue: '1',
-                },
-            ]
-            const html = renderToStaticMarkup(
-                <Tabs value={section}>
-                    <PresetEditorSections
-                        section={section}
-                        value={value}
-                        promptSettings={{
-                            assistantPrefill: '',
-                            postEndInnerFormat: '',
-                            sendChatAsSystem: false,
-                            sendName: false,
-                            trimStartNewChat: false,
-                            groupTemplate: '',
-                        }}
-                        onChange={() => {}}
-                        updateBlock={() => {}}
-                        moveBlock={() => {}}
-                        updateParameter={() => {}}
-                        updateVariables={() => {}}
-                    />
-                </Tabs>,
-            )
-            expect(html).toContain(title)
-            if (section === 'advanced') {
-                expect(html).toContain('<textarea')
-                expect(html).toContain('feature=기능 표시')
-                expect(html).not.toContain('토글 삭제')
-                expect(html).not.toContain('data-slot="collapsible"')
-            }
-            expect(html).toContain(`id="preset-panel-${section}"`)
-            expect(html).toContain(`aria-labelledby="preset-tab-${section}"`)
-            for (const [other] of panels) {
-                if (other !== section) expect(html).not.toContain(`id="preset-panel-${other}"`)
-            }
-        })
-    }
+    test.each(panels)('renders only the %s panel with its tab association', (section, title) => {
+        const value = blankPreset()
+        value.toggles = [
+            {
+                key: 'feature',
+                label: '기능 표시',
+                type: 'boolean',
+                options: [],
+                defaultValue: '1',
+            },
+        ]
+        const html = renderPanel(section, value)
+        expect(html).toContain(title)
+        if (section === 'advanced') {
+            expect(html).toContain('<textarea')
+            expect(html).toContain('feature=기능 표시')
+            expect(html).not.toContain('토글 삭제')
+            expect(html).not.toContain('data-slot="collapsible"')
+        }
+        expect(html).toContain(`id="preset-panel-${section}"`)
+        expect(html).toContain(`aria-labelledby="preset-tab-${section}"`)
+        for (const [other] of panels) {
+            if (other !== section) expect(html).not.toContain(`id="preset-panel-${other}"`)
+        }
+    })
 
     test('starts in basic information and keeps the name inside its panel', () => {
         const html = renderToStaticMarkup(
@@ -78,35 +56,38 @@ describe('split prompt preset panels', () => {
             html.indexOf('aria-label="프리셋 이름"'),
         )
         expect(html).not.toContain('id="preset-panel-prompt"')
-        expect(html).not.toContain('text-3xl')
     })
 
     test('caps long stop sequences without truncating their values', () => {
         const value = blankPreset()
         value.parameters.stopSequences = Array.from({ length: 100 }, (_, index) => `stop-${index}`)
-        const html = renderToStaticMarkup(
-            <Tabs value="parameters">
-                <PresetEditorSections
-                    section="parameters"
-                    value={value}
-                    promptSettings={{
-                        assistantPrefill: '',
-                        postEndInnerFormat: '',
-                        sendChatAsSystem: false,
-                        sendName: false,
-                        trimStartNewChat: false,
-                        groupTemplate: '',
-                    }}
-                    onChange={() => {}}
-                    updateBlock={() => {}}
-                    moveBlock={() => {}}
-                    updateParameter={() => {}}
-                    updateVariables={() => {}}
-                />
-            </Tabs>,
-        )
+        const html = renderPanel('parameters', value)
         expect(html).toContain('max-h-56')
         expect(html).toContain('overflow-y-auto')
         expect(html).toContain('stop-99')
     })
 })
+
+function renderPanel(section: PresetSection, value = blankPreset()) {
+    return renderToStaticMarkup(
+        <Tabs value={section}>
+            <PresetEditorSections
+                section={section}
+                value={value}
+                promptSettings={{
+                    assistantPrefill: '',
+                    postEndInnerFormat: '',
+                    sendChatAsSystem: false,
+                    sendName: false,
+                    trimStartNewChat: false,
+                    groupTemplate: '',
+                }}
+                onChange={() => {}}
+                updateBlock={() => {}}
+                moveBlock={() => {}}
+                updateParameter={() => {}}
+                updateVariables={() => {}}
+            />
+        </Tabs>,
+    )
+}

@@ -1,63 +1,35 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { AppConfig } from '../src/config'
+import { CharacterCreateSchema } from '@malang/shared'
+
 import { type AppContext, createContext } from '../src/services'
+import { appConfig } from './fixtures'
 
 describe('PocketRisu Lua runtime', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-lua-'))
-    const config: AppConfig = {
-        nodeEnv: 'test',
-        autoBackupEnabled: false,
-        host: '127.0.0.1',
-        dataDir: directory,
-        databasePath: join(directory, 'data.sqlite'),
-        adminPassword: 'correct horse battery staple',
-        sessionSecret: 'lua-test-session-secret-with-enough-entropy',
-        allowedOrigins: new Set(),
-        cookieSecure: false,
-        port: 3000,
-        logLevel: 'silent',
-        logPretty: false,
-        logColorize: false,
-        limits: {
-            importBytes: 128 << 20,
-            jsonBytes: 8 << 20,
-            assetBytes: 32 << 20,
-            archiveEntries: 4096,
-        },
-    }
+    const config = appConfig(directory)
     let context: AppContext
     let conversationId: string
 
     beforeAll(async () => {
         context = await createContext(config)
-        const character = context.characters.create({
-            name: 'Lua fixture',
-            description: '',
-            personality: '',
-            scenario: '',
-            firstMessage: 'Start',
-            alternateGreetings: [],
-            exampleMessage: '',
-            systemPrompt: '',
-            postHistoryInstructions: '',
-            creator: '',
-            characterVersion: '',
-            tags: [],
-            lorebook: [],
-            loreSettings: {},
-            regexScripts: [],
-            moduleReferences: [],
-            defaultVariables: { fallback_value: 'character-default' },
-            luaScript: {
-                code: readFileSync(join(import.meta.dir, '../../example.lua'), 'utf8'),
-                enabled: true,
-                lowLevelAccess: true,
-            },
-        })
+    })
+
+    beforeEach(() => {
+        const character = context.characters.create(
+            CharacterCreateSchema.parse({
+                name: 'Lua fixture',
+                defaultVariables: { fallback_value: 'character-default', choice: '0' },
+                luaScript: {
+                    code: readFileSync(join(import.meta.dir, 'fixtures/lua-runtime.lua'), 'utf8'),
+                    enabled: true,
+                    lowLevelAccess: true,
+                },
+            }),
+        )
         conversationId = context.store.conversation.create({
             characterId: character.id,
             greetingIndex: -1,
@@ -69,11 +41,11 @@ describe('PocketRisu Lua runtime', () => {
         rmSync(directory, { recursive: true, force: true })
     })
 
-    test('runs the complete example fixture and deduplicates a manual invocation', async () => {
+    test('runs a manual invocation once per idempotency key', async () => {
         const key = crypto.randomUUID()
         const request = {
             type: 'manual' as const,
-            name: 'initEroTrapDungeon',
+            name: 'initialize',
             idempotencyKey: key,
             clientInstanceId: crypto.randomUUID(),
             sourceMessageId: null,
@@ -81,12 +53,13 @@ describe('PocketRisu Lua runtime', () => {
         }
         await context.lua.trigger(conversationId, request)
         expect(context.store.conversation.get(conversationId)?.variables).toMatchObject({
-            ero_Init: '0',
-            ero_Language: '1',
-            ero_startHP: '1000',
-            ero_floor_max: '26',
+            initialized: '1',
+            choice: '0',
+            hp: '1000',
+            fallback: 'character-default',
         })
         await context.lua.trigger(conversationId, request)
+        expect(context.store.conversation.get(conversationId)?.variables.initializations).toBe('1')
         expect(
             context.store.sqlite
                 .query<{ count: number }, [string, string]>(
@@ -97,17 +70,14 @@ describe('PocketRisu Lua runtime', () => {
     })
 
     test('supports named triggers, button data, and one display batch per epoch', async () => {
-        const before = context.store.conversation.get(conversationId)?.variables.ero_choice_flag
         await context.lua.trigger(conversationId, {
             type: 'manual',
-            name: 'setChoiceFlag',
+            name: 'toggleChoice',
             idempotencyKey: crypto.randomUUID(),
             clientInstanceId: crypto.randomUUID(),
             triggerElementId: 'choice',
         })
-        expect(context.store.conversation.get(conversationId)?.variables.ero_choice_flag).not.toBe(
-            before,
-        )
+        expect(context.store.conversation.get(conversationId)?.variables.choice).toBe('1')
         await context.lua.trigger(conversationId, {
             type: 'button',
             data: 'choice^Take the silver key',
@@ -117,14 +87,12 @@ describe('PocketRisu Lua runtime', () => {
         })
         expect(context.store.message.list(conversationId).at(-1)).toMatchObject({
             role: 'user',
+            content: 'Take the silver key',
         })
-        expect(context.store.message.list(conversationId).at(-1)?.content).toContain(
-            'Take the silver key',
-        )
         context.store.message.create(conversationId, 'assistant', 'Status', 'complete')
         const first = await context.generations.messagesWithDisplay(conversationId)
         const second = await context.generations.messagesWithDisplay(conversationId)
-        expect(first.at(-1)?.displayContent).toContain('ERO STATUS')
+        expect(first.at(-1)?.displayContent).toContain('STATUS')
         expect(second).toEqual(first)
         expect(
             context.store.sqlite
@@ -142,7 +110,7 @@ describe('PocketRisu Lua runtime', () => {
         await reader.read() // connection comment
         const invocation = context.lua.trigger(conversationId, {
             type: 'manual',
-            name: 'setStartHP',
+            name: 'setHP',
             idempotencyKey: crypto.randomUUID(),
             clientInstanceId,
             triggerElementId: 'hp',
@@ -162,7 +130,7 @@ describe('PocketRisu Lua runtime', () => {
         ).toBe('ok')
         // The success alert is fire-and-forget and does not block completion.
         await invocation
-        expect(context.store.conversation.get(conversationId)?.variables.ero_startHP).toBe('250')
+        expect(context.store.conversation.get(conversationId)?.variables.hp).toBe('250')
         await reader.cancel()
     })
 
@@ -170,7 +138,7 @@ describe('PocketRisu Lua runtime', () => {
         expect(
             context.lua.trigger(conversationId, {
                 type: 'manual',
-                name: 'setStartHP',
+                name: 'setHP',
                 idempotencyKey: crypto.randomUUID(),
                 clientInstanceId: crypto.randomUUID(),
             }),
@@ -179,26 +147,12 @@ describe('PocketRisu Lua runtime', () => {
 
     test('commits pre-error callback changes but discards a timed-out invocation', async () => {
         const makeConversation = (code: string) => {
-            const character = context.characters.create({
-                name: 'Lua policy fixture',
-                description: '',
-                personality: '',
-                scenario: '',
-                firstMessage: '',
-                alternateGreetings: [],
-                exampleMessage: '',
-                systemPrompt: '',
-                postHistoryInstructions: '',
-                creator: '',
-                characterVersion: '',
-                tags: [],
-                lorebook: [],
-                loreSettings: {},
-                regexScripts: [],
-                moduleReferences: [],
-                defaultVariables: {},
-                luaScript: { code, enabled: true, lowLevelAccess: false },
-            })
+            const character = context.characters.create(
+                CharacterCreateSchema.parse({
+                    name: 'Lua policy fixture',
+                    luaScript: { code, enabled: true, lowLevelAccess: false },
+                }),
+            )
             return context.store.conversation.create({
                 characterId: character.id,
                 greetingIndex: -1,

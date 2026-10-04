@@ -4,11 +4,10 @@ import { readFileSync } from 'node:fs'
 import type { CharacterCardV3 } from '@risuai/ccardlib'
 import { unzipSync, zipSync } from 'fflate'
 
-import type { AppConfig } from '../src/config'
 import { exportCharacterCard, importCharacterCard } from '../src/services/app/character-card'
 import { exportPromptModule } from '../src/services/prompt/module-codec'
 import { encodeRPack } from '../src/services/prompt/rpack'
-import { v3Card } from './fixtures'
+import { appConfig, v3Card } from './fixtures'
 
 function buildRisumModule(module: Record<string, unknown>): Uint8Array {
     const main = encodeRPack(
@@ -23,27 +22,7 @@ function buildRisumModule(module: Record<string, unknown>): Uint8Array {
     return output
 }
 
-const config: AppConfig = {
-    nodeEnv: 'test',
-    autoBackupEnabled: false,
-    host: '127.0.0.1',
-    dataDir: '/tmp/malang-test',
-    databasePath: '/tmp/malang-test.sqlite',
-    adminPassword: 'password',
-    sessionSecret: 'test-secret',
-    allowedOrigins: new Set(),
-    cookieSecure: false,
-    port: 3000,
-    logLevel: 'silent',
-    logPretty: false,
-    logColorize: false,
-    limits: {
-        importBytes: 128 << 20,
-        jsonBytes: 8 << 20,
-        assetBytes: 32 << 20,
-        archiveEntries: 4096,
-    },
-}
+const config = appConfig()
 
 describe('character card codec', () => {
     test('imports v3 JSON and preserves extensions and lore', () => {

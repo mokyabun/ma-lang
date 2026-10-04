@@ -6,32 +6,12 @@ import { join } from 'node:path'
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 
 import { createApp } from '../src/app'
-import type { AppConfig } from '../src/config'
 import { type AppContext, createContext } from '../src/services'
+import { appConfig } from './fixtures'
 
 describe('model presets, API keys, and conversation bindings', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-presets-'))
-    const config: AppConfig = {
-        nodeEnv: 'test',
-        autoBackupEnabled: false,
-        host: '127.0.0.1',
-        dataDir: directory,
-        databasePath: join(directory, 'data.sqlite'),
-        adminPassword: 'model-preset-test-password',
-        sessionSecret: 'model-preset-session-secret-with-enough-entropy',
-        allowedOrigins: new Set(),
-        cookieSecure: false,
-        port: 3000,
-        logLevel: 'silent',
-        logPretty: false,
-        logColorize: false,
-        limits: {
-            importBytes: 128 << 20,
-            jsonBytes: 8 << 20,
-            assetBytes: 32 << 20,
-            archiveEntries: 4096,
-        },
-    }
+    const config = appConfig(directory)
     let context: AppContext
     let app: ReturnType<typeof createApp>
     let cookie = ''

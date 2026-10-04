@@ -7,16 +7,16 @@ describe('settings navigation', () => {
     test('includes every supported route exactly once', () => {
         const sections = SETTINGS_NAV.map((item) => item.section)
         expect(sections).toEqual([...SETTINGS_SECTIONS])
-        expect(new Set(sections).size).toBe(sections.length)
     })
 
-    test('keeps the modules URL and rejects unsupported sections', () => {
-        expect(isSettingsSection('modules')).toBe(true)
-        expect(isSettingsSection('provider')).toBe(true)
-        expect(isSettingsSection('system')).toBe(true)
-        expect(isSettingsSection('backup')).toBe(false)
-        expect(isSettingsSection('debug')).toBe(false)
-        expect(isSettingsSection('unknown')).toBe(false)
-        expect(isSettingsSection('')).toBe(false)
+    test.each([...SETTINGS_SECTIONS])('accepts the %s section', (section) => {
+        expect(isSettingsSection(section)).toBe(true)
     })
+
+    test.each(['backup', 'debug', 'unknown', ''])(
+        'rejects the unsupported section "%s"',
+        (section) => {
+            expect(isSettingsSection(section)).toBe(false)
+        },
+    )
 })

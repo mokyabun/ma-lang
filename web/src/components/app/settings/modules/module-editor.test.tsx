@@ -47,31 +47,29 @@ describe('split module editor', () => {
         { id: 'regex', Component: ModuleRegexSection, content: '모듈 정규식' },
         { id: 'lorebook', Component: ModuleLorebookSection, content: '모듈 로어북' },
     ]
-    for (const { id, Component, content } of sections) {
-        test(`renders the ${id} panel independently`, () => {
-            const value = blankModule()
-            value.toggles = [
-                {
-                    key: 'feature',
-                    label: '기능 표시',
-                    type: 'boolean',
-                    options: [],
-                    defaultValue: '1',
-                },
-            ]
-            const html = renderToStaticMarkup(
-                <Tabs value={id}>
-                    <Component value={value} assets={[]} onChange={() => {}} />
-                </Tabs>,
-            )
-            expect(html).toContain(content)
-            expect(html).toContain('role="tabpanel"')
-            if (id === 'advanced') {
-                expect(html).toContain('<textarea')
-                expect(html).toContain('feature=기능 표시')
-                expect(html).not.toContain('토글 삭제')
-                expect(html).not.toContain('data-slot="collapsible"')
-            }
-        })
-    }
+    test.each(sections)('renders the $id panel independently', ({ id, Component, content }) => {
+        const value = blankModule()
+        value.toggles = [
+            {
+                key: 'feature',
+                label: '기능 표시',
+                type: 'boolean',
+                options: [],
+                defaultValue: '1',
+            },
+        ]
+        const html = renderToStaticMarkup(
+            <Tabs value={id}>
+                <Component value={value} assets={[]} onChange={() => {}} />
+            </Tabs>,
+        )
+        expect(html).toContain(content)
+        expect(html).toContain('role="tabpanel"')
+        if (id === 'advanced') {
+            expect(html).toContain('<textarea')
+            expect(html).toContain('feature=기능 표시')
+            expect(html).not.toContain('토글 삭제')
+            expect(html).not.toContain('data-slot="collapsible"')
+        }
+    })
 })

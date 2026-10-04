@@ -7,33 +7,14 @@ import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import { unzipSync, zipSync } from 'fflate'
 
 import { createApp } from '../src/app'
-import type { AppConfig } from '../src/config'
 import { type AppContext, createContext } from '../src/services'
-import { v3Card } from './fixtures'
+import { appConfig, v3Card } from './fixtures'
 
 describe('Hono API and SQLite persistence', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-api-'))
-    const config: AppConfig = {
-        nodeEnv: 'test',
-        autoBackupEnabled: false,
-        host: '127.0.0.1',
-        dataDir: directory,
-        databasePath: join(directory, 'data.sqlite'),
-        adminPassword: 'correct horse battery staple',
-        sessionSecret: 'integration-session-secret-with-enough-entropy',
+    const config = appConfig(directory, {
         allowedOrigins: new Set(['https://chat.example']),
-        cookieSecure: false,
-        port: 3000,
-        logLevel: 'silent',
-        logPretty: false,
-        logColorize: false,
-        limits: {
-            importBytes: 128 << 20,
-            jsonBytes: 8 << 20,
-            assetBytes: 32 << 20,
-            archiveEntries: 4096,
-        },
-    }
+    })
     let context: AppContext
     let app: ReturnType<typeof createApp>
     let cookie = ''

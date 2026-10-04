@@ -1,56 +1,37 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
 import type { ModelChainPreset, ModelPreset } from '@malang/shared'
-import { Window } from 'happy-dom'
-import { act, useLayoutEffect } from 'react'
-import { createRoot, type Root } from 'react-dom/client'
+import { act } from 'react'
 
 import { api } from '@/lib/api'
 
+import { hookHarness } from '../../../../../test/react'
 import { starterChain } from './model'
 import { useModelChainEditor } from './use-model-chain-editor'
 
 const modelId = '11111111-1111-4111-8111-111111111111'
 const models = [{ id: modelId, name: 'Model' }] as ModelPreset[]
-let root: Root
-let container: HTMLDivElement
 let editor: ReturnType<typeof useModelChainEditor>
-let restoreMocks: Array<() => void>
-
-beforeEach(() => {
-    const window = new Window({ url: 'https://malang.test/' })
-    Object.assign(globalThis, { window, document: window.document, IS_REACT_ACT_ENVIRONMENT: true })
-    container = document.createElement('div')
-    document.body.append(container)
-    root = createRoot(container)
-    restoreMocks = []
+const harness = hookHarness((value: typeof editor) => {
+    editor = value
 })
 
-afterEach(async () => {
-    await act(async () => root.unmount())
-    container.remove()
-    restoreMocks.forEach((restore) => restore())
-})
+afterEach(() => mock.restore())
 
 async function mount(modelPresets = models) {
     const published: ModelChainPreset[][] = []
-    function Harness() {
-        const value = useModelChainEditor({
+    await harness.mount(() =>
+        useModelChainEditor({
             presets: [],
             modelPresets,
             onChanged: (presets) => published.push(presets),
-        })
-        useLayoutEffect(() => {
-            editor = value
-        })
-        return null
-    }
-    await act(async () => root.render(<Harness />))
+        }),
+    )
     return published
 }
 
 function fileOf(value: unknown): File {
-    return { text: async () => JSON.stringify(value) } as File
+    return new File([JSON.stringify(value)], 'chain.json', { type: 'application/json' })
 }
 
 describe('model chain editor persistence', () => {
@@ -70,11 +51,7 @@ describe('model chain editor persistence', () => {
             createdAt: '',
             updatedAt: '',
         }))
-        const list = spyOn(api, 'modelChains').mockResolvedValue({ presets: [] })
-        restoreMocks.push(
-            () => create.mockRestore(),
-            () => list.mockRestore(),
-        )
+        spyOn(api, 'modelChains').mockResolvedValue({ presets: [] })
         await act(async () => editor.beginCreate())
         const draft = editor.draft!
         await act(async () => {
@@ -102,11 +79,7 @@ describe('model chain editor persistence', () => {
             updatedAt: '',
         }
         const update = spyOn(api, 'updateModelChain').mockResolvedValue(preset)
-        const list = spyOn(api, 'modelChains').mockResolvedValue({ presets: [preset] })
-        restoreMocks.push(
-            () => update.mockRestore(),
-            () => list.mockRestore(),
-        )
+        spyOn(api, 'modelChains').mockResolvedValue({ presets: [preset] })
         await act(async () => editor.beginEdit(preset))
         await act(async () => {
             await editor.savePreset()
@@ -118,10 +91,7 @@ describe('model chain editor persistence', () => {
 
     test('keeps the draft open and reports a failed save', async () => {
         await mount()
-        const create = spyOn(api, 'createModelChain').mockRejectedValue(
-            new Error('테스트 저장 오류'),
-        )
-        restoreMocks.push(() => create.mockRestore())
+        spyOn(api, 'createModelChain').mockRejectedValue(new Error('테스트 저장 오류'))
         await act(async () => editor.beginCreate())
         const draft = editor.draft
         await act(async () => {
@@ -136,7 +106,6 @@ describe('model chain editor persistence', () => {
     test('does not send invalid drafts to the API', async () => {
         await mount()
         const create = spyOn(api, 'createModelChain')
-        restoreMocks.push(() => create.mockRestore())
         await act(async () => editor.beginCreate())
         await act(async () => editor.setDraft({ ...editor.draft!, name: '' }))
         await act(async () => {

@@ -1,32 +1,16 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 
-import { Window } from 'happy-dom'
-import { act, useLayoutEffect } from 'react'
-import { createRoot, type Root } from 'react-dom/client'
+import { act } from 'react'
 
+import { hookHarness } from '../../../../../test/react'
 import { useEditableCatalog } from './use-editable-catalog'
 
 type Item = { id: string; name: string }
 type Draft = { name: string }
-let root: Root
-let container: HTMLDivElement
 let catalog: ReturnType<typeof useEditableCatalog<Item, Draft>>
 
-beforeEach(() => {
-    const window = new Window({ url: 'https://malang.test/' })
-    Object.assign(globalThis, {
-        window,
-        document: window.document,
-        IS_REACT_ACT_ENVIRONMENT: true,
-    })
-    container = document.createElement('div')
-    document.body.append(container)
-    root = createRoot(container)
-})
-
-afterEach(async () => {
-    await act(async () => root.unmount())
-    container.remove()
+const harness = hookHarness((value: typeof catalog) => {
+    catalog = value
 })
 
 async function mount(initialId: string | null = null) {
@@ -72,14 +56,7 @@ async function mount(initialId: string | null = null) {
         },
         createdMessage: 'Created successfully',
     }
-    function Harness() {
-        const current = useEditableCatalog(options)
-        useLayoutEffect(() => {
-            catalog = current
-        })
-        return null
-    }
-    await act(async () => root.render(<Harness />))
+    await harness.mount(() => useEditableCatalog(options))
     return { writes, selected, published, removed }
 }
 
