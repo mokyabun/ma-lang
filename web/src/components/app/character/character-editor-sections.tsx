@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { useScrollParentVirtualizer } from '@/lib/use-scroll-parent-virtualizer'
 
 import { LoreEntryEditor } from '../lorebook/lore-entry-editor'
 import { LorebookTree } from '../lorebook/lorebook-tree'
@@ -563,27 +564,7 @@ export function CharacterEditorSections({
                             않습니다.
                         </p>
                         {assets.length ? (
-                            <div className="divide-y divide-sidebar-border">
-                                {assets.map((asset) => (
-                                    <div
-                                        key={`${asset.assetId}-${asset.sourceUri}`}
-                                        className="grid grid-cols-[auto_1fr] items-center gap-2 py-2"
-                                    >
-                                        <FileArchive
-                                            aria-hidden="true"
-                                            className="text-muted-foreground"
-                                        />
-                                        <span className="min-w-0">
-                                            <strong className="block truncate text-xs">
-                                                {asset.name || asset.sourceUri || 'unnamed'}
-                                            </strong>
-                                            <small className="text-[9px] text-muted-foreground">
-                                                {asset.mimeType} · {formatBytes(asset.size)}
-                                            </small>
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
+                            <PreservedAssetList assets={assets} />
                         ) : (
                             <p className="py-2 text-center text-[10px] text-muted-foreground">
                                 보존된 자산이 없습니다.
@@ -593,6 +574,43 @@ export function CharacterEditorSections({
                 </div>
             ) : null}
         </>
+    )
+}
+
+function PreservedAssetList({ assets }: { assets: CharacterAsset[] }) {
+    const { listRef, virtualizer } = useScrollParentVirtualizer<HTMLDivElement>({
+        count: assets.length,
+        estimateSize: () => 45,
+        getItemKey: (index) => `${assets[index]!.assetId}-${assets[index]!.sourceUri}`,
+        overscan: 12,
+    })
+    const scrollMargin = virtualizer.options.scrollMargin
+
+    return (
+        <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((row) => {
+                const asset = assets[row.index]!
+                return (
+                    <div
+                        key={row.key}
+                        ref={virtualizer.measureElement}
+                        data-index={row.index}
+                        className={`absolute left-0 top-0 grid w-full grid-cols-[auto_1fr] items-center gap-2 border-sidebar-border py-2 ${row.index ? 'border-t' : ''}`}
+                        style={{ transform: `translateY(${row.start - scrollMargin}px)` }}
+                    >
+                        <FileArchive aria-hidden="true" className="text-muted-foreground" />
+                        <span className="min-w-0">
+                            <strong className="block truncate text-xs">
+                                {asset.name || asset.sourceUri || 'unnamed'}
+                            </strong>
+                            <small className="text-[9px] text-muted-foreground">
+                                {asset.mimeType} · {formatBytes(asset.size)}
+                            </small>
+                        </span>
+                    </div>
+                )
+            })}
+        </div>
     )
 }
 
