@@ -1,3 +1,11 @@
+// Executed by PocketRisu's own Vitest toolchain (see request.vitest.config.mts).
+// Loads each scenario through PocketRisu's real import paths, binds the chat to
+// a bundled Gemini Model Preset, and captures sendChat's two built-in previews:
+// `preview` stops right before the request layer, `previewPrompt` returns the
+// request the Model Preset adapter would send.
+//
+// request-setup.ts loads stores.svelte before this file's imports.
+
 import { readFileSync, writeFileSync } from 'node:fs'
 
 import { importCharacterProcess } from 'src/ts/characterCards'
@@ -7,15 +15,6 @@ import * as chatProcess from 'src/ts/process/index.svelte'
 import { refreshModules } from 'src/ts/process/modules'
 import { resetScriptCache } from 'src/ts/process/scripts'
 import { changeToPreset, importPreset, setDatabase } from 'src/ts/storage/database.svelte'
-// Executed by PocketRisu's own Vitest toolchain (see request.vitest.config.mts).
-// Loads each scenario through PocketRisu's real import paths, binds the chat to
-// a bundled Gemini Model Preset, and captures sendChat's two built-in previews:
-// `preview` stops right before the request layer, `previewPrompt` returns the
-// request the Model Preset adapter would send.
-//
-// stores.svelte must be the first PocketRisu import: it registers effects that
-// read database.svelte, and loading it from inside that module's import cycle
-// hits a temporal dead zone.
 import { DBState, selectedCharID } from 'src/ts/stores.svelte'
 import { test } from 'vitest'
 

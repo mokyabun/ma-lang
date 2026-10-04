@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
 
-import { applyEditProcessToMessages } from '../src/services/app/generations/context'
 import { compilePrompt } from '../src/services/prompt/compiler'
 
 describe('PocketRisu editprocess ordering', () => {
@@ -101,13 +100,10 @@ describe('PocketRisu editprocess ordering', () => {
             modelId: 'gemini-test',
         } as unknown as Parameters<typeof compilePrompt>[0]
 
-        const processed = await applyEditProcessToMessages(
-            input.messages,
-            input as unknown as Parameters<typeof applyEditProcessToMessages>[1],
-        )
-        const preview = compilePrompt({ ...input, messages: processed.messages })
+        const preview = await compilePrompt(input)
 
-        expect(processed.messages[0]?.content).toBe('# OOC\nhistory answer')
+        // editprocess rewrites the stored turn; the prompt block it resembles is untouched.
+        expect(preview.messages).toContainEqual({ role: 'user', content: '# OOC\nhistory answer' })
         expect(preview.messages).toContainEqual({
             role: 'user',
             content:

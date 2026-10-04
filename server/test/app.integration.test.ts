@@ -282,7 +282,14 @@ describe('Hono API and SQLite persistence', () => {
             messages: Array<{ content: string }>
             activatedLoreIds: string[]
         }
-        expect(body.messages[0]!.content).toContain('Character wrapper:')
+        // Like PocketRisu's prompt-template path, the card system prompt never replaces the
+        // preset main prompt; post-history instructions do wrap the global note.
+        expect(body.messages[0]!.content).not.toContain('Character wrapper:')
+        expect(
+            body.messages.some((message: { content: string }) =>
+                message.content.startsWith('Final instruction:'),
+            ),
+        ).toBeTrue()
         expect(
             body.messages.some((message: { content: string }) =>
                 message.content.includes('moon archive is restricted'),

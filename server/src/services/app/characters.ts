@@ -346,7 +346,8 @@ export class CharacterService {
                     useRegex: entry.use_regex === true,
                     insertionOrder: entry.insertion_order || 0,
                     priority: entry.priority || 0,
-                    name: entry.name || entry.comment || '',
+                    // convertCharbook: an empty-string name still wins over comment.
+                    name: entry.name ?? entry.comment ?? '',
                     ...loreFieldsFromExtensions(entry.extensions || {}),
                     extensions: entry.extensions || {},
                 })),

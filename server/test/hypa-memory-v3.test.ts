@@ -23,7 +23,7 @@ function summary(
 }
 
 describe('HypaMemory V3 local similarity', () => {
-    test('Korean character n-grams rank related memories above unrelated text', () => {
+    test('Korean character n-grams rank related memories above unrelated text', async () => {
         const query = featureVector('서울 여행에서 먹은 김치찌개')
         const related = featureVector('서울 여행 중 식당에서 김치찌개를 먹었다')
         const unrelated = featureVector('우주선 엔진을 수리하고 화성으로 출발했다')
@@ -31,7 +31,7 @@ describe('HypaMemory V3 local similarity', () => {
         expect(cosineSimilarity(query, related)).toBeGreaterThan(cosineSimilarity(query, unrelated))
     })
 
-    test('selects important memory first and fills the similarity slot', () => {
+    test('selects important memory first and fills the similarity slot', async () => {
         const important = summary('important', '주인공은 반드시 여동생과의 약속을 지켜야 한다.', {
             important: true,
         })
@@ -51,7 +51,7 @@ describe('HypaMemory V3 local similarity', () => {
         expect(result.summaries.map((item) => item.id)).toContain('related')
     })
 
-    test('keeps selected summaries in chronological order', () => {
+    test('keeps selected summaries in chronological order', async () => {
         const old = summary('old', '오래전 서울에서 만났다.')
         const recent = summary('recent', '오늘 부산으로 출발했다.')
         const result = selectMemorySummaries([old, recent], '서울에서 만난 일', 100, {
@@ -64,7 +64,7 @@ describe('HypaMemory V3 local similarity', () => {
 })
 
 describe('HypaMemory V3 prompt integration', () => {
-    test('replaces summarized source turns with the selected memory prompt', () => {
+    test('replaces summarized source turns with the selected memory prompt', async () => {
         const input = {
             character: {
                 id: 'character',
@@ -123,7 +123,7 @@ describe('HypaMemory V3 prompt integration', () => {
             },
         } as unknown as Parameters<typeof compilePrompt>[0]
 
-        const result = compilePrompt(input)
+        const result = await compilePrompt(input)
         const contents = result.messages.map((message) => message.content)
         expect(contents.some((content) => content.includes('Aria found the key.'))).toBe(true)
         expect(contents).not.toContain('This source turn must disappear.')

@@ -26,12 +26,7 @@ import type { RuntimeProviderConfig } from '@/services/providers/types'
 
 import type { PersonaService } from '../personas'
 import type { ProviderService } from '../providers'
-import {
-    applyEditProcessToMessages,
-    loadGenerationContext,
-    normalizeCompiledRole,
-    regexTemplateContext,
-} from './context'
+import { loadGenerationContext, normalizeCompiledRole, regexTemplateContext } from './context'
 import { renderDisplayMessages } from './display'
 import {
     applyPostMode,
@@ -68,15 +63,12 @@ export class GenerationService {
             context.messages,
             parameters.maxContextTokens,
         )
-        const processed = await applyEditProcessToMessages(context.messages, context)
-        const preview = compilePrompt({
+        return compilePrompt({
             ...context,
-            messages: processed.messages,
             parameters,
             longTermMemory,
-            includeStartNewChat: isGeminiProvider(provider),
+            ...providerPromptOptions(provider),
         })
-        return { ...preview, warnings: [...new Set([...preview.warnings, ...processed.warnings])] }
     }
 
     async start(conversationId: string, request: GenerationRequest, requestId: string) {
@@ -189,15 +181,11 @@ export class GenerationService {
             compileMessages = targetMessage
                 ? context.messages.filter((message) => message.id !== targetMessage.id)
                 : context.messages
-            const processed = await applyEditProcessToMessages(compileMessages, {
+            const preliminary = await compilePrompt({
                 ...context,
                 messages: compileMessages,
-            })
-            const preliminary = compilePrompt({
-                ...context,
-                messages: processed.messages,
                 parameters,
-                includeStartNewChat: isGeminiProvider(providerConfig),
+                ...providerPromptOptions(providerConfig),
             })
             const longTermMemory = await this.memory.prepare(
                 conversationId,
@@ -205,14 +193,13 @@ export class GenerationService {
                 parameters.maxContextTokens,
                 preliminary.trimmedMessageIds,
             )
-            preview = compilePrompt({
+            preview = await compilePrompt({
                 ...context,
-                messages: processed.messages,
+                messages: compileMessages,
                 parameters,
                 longTermMemory,
-                includeStartNewChat: isGeminiProvider(providerConfig),
+                ...providerPromptOptions(providerConfig),
             })
-            preview.warnings = [...new Set([...preview.warnings, ...processed.warnings])]
             chainContext = buildChainExecutionContext(
                 context,
                 compileMessages,
@@ -680,6 +667,18 @@ export class GenerationService {
 
     private context(conversationId: string) {
         return loadGenerationContext(this.store, this.personas, conversationId)
+    }
+}
+
+/**
+ * PocketRisu's model-dependent prompt rules: every model but NovelAI gets the
+ * `[Start a new chat]` turn, and only GPT/Claude-family models (plus OpenRouter)
+ * have consecutive system turns merged.
+ */
+function providerPromptOptions(config: { provider: string } | null | undefined) {
+    return {
+        includeStartNewChat: config?.provider !== 'novelai',
+        mergeSystemMessages: ['openai', 'anthropic', 'openrouter'].includes(config?.provider ?? ''),
     }
 }
 

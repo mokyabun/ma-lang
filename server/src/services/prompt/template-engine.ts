@@ -25,11 +25,51 @@ export interface TemplateContext {
     }>
     /** Resolve PocketRisu media CBS commands to safe display markup instead of a bare URL. */
     assetRenderMode?: 'url' | 'display'
+    /** Opt into PocketRisu's risuChatParser semantics for chat variables and legacy tags. */
+    pocketRisu?: PocketRisuParserOptions
 }
+
+export interface PocketRisuParserOptions {
+    /**
+     * How setvar/addvar/setdefaultvar behave: `run` executes them (risuChatParser's runVar),
+     * `remove` drops them (rmVar), `keep` leaves the tag as literal text (neither flag).
+     */
+    variableMode: 'run' | 'remove' | 'keep'
+    /** Character, then preset default variables, consulted by getvar before `null`. */
+    variableDefaults: Record<string, string>
+    /** risuChatParser's chatID: the stored message being processed, or -1. */
+    chatId: number
+    /** The `role` argument risuChatParser was called with. */
+    role?: string
+    /** The chat's selected greeting, the fallback of previouscharchat/previoususerchat. */
+    greeting: string
+    /** Nesting of value re-parses; risuChatParser stops at 20. */
+    callStack?: number
+}
+
+/** CBS values PocketRisu runs through risuChatParser again when they are read. */
+const reparsedValues = new Set([
+    'description',
+    'chardesc',
+    'personality',
+    'charpersona',
+    'scenario',
+    'persona',
+    'userpersona',
+    'exampledialogue',
+    'examplemessage',
+    'authornote',
+    'globalnote',
+    'mainprompt',
+    'systemprompt',
+    'jb',
+])
 
 export interface TemplateResult {
     text: string
     warnings: string[]
+    /** Chat variables after the render, including any setvar/addvar it ran. */
+    variables: Record<string, string>
 }
 
 interface Limits {
@@ -71,6 +111,8 @@ export function renderTemplate(
         functions: new Map(),
     }
     let nodes = 0
+    // risuChatParser rewrites legacy name tags before parsing anything else.
+    if (context.pocketRisu) source = source.replace(/<(user|char|bot)>/gi, '{{$1}}')
 
     function renderRange(input: string, depth: number, slots: TemplateSlots = {}): string {
         if (depth > limits.maxDepth) throw new Error('Template nesting limit exceeded')
@@ -135,7 +177,11 @@ export function renderTemplate(
             } else if (kind === 'code') {
                 output += normalizeCode(renderRange(body, depth + 1, slots))
             } else {
-                const split = splitElse(body)
+                // PocketRisu's #if blocks have no else branch; `{{:else}}` stays literal.
+                const split =
+                    context.pocketRisu && (kind === 'if' || kind === 'ifPure')
+                        ? { truthy: body, falsy: '' }
+                        : splitElse(body)
                 const truthy =
                     kind === 'when'
                         ? evaluateWhen(header.slice(5), context, runtime)
@@ -162,14 +208,26 @@ export function renderTemplate(
     }
 
     const blocked = renderRange(source, 0)
-    const expanded = expandVariables(blocked, context, warnings, {}, runtime)
+    let expanded = expandVariables(blocked, context, warnings, {}, runtime)
         // Risu/CBS exports can include redundant stack markers after the outer
         // block has already closed. They are control syntax, never prompt text.
         .replace(/\{\{\/(?!\/)[^{}]*}}/g, '')
-        .replaceAll('{{:else}}', '')
+    if (!context.pocketRisu) expanded = expanded.replaceAll('{{:else}}', '')
     const text = unescapeRisuLiteral(expanded)
     if (text.length > limits.maxOutputLength) throw new Error('Template output limit exceeded')
-    return { text, warnings: [...new Set(warnings)] }
+    return { text, warnings: [...new Set(warnings)], variables: runtime.variables }
+}
+
+/** getChatVar: the chat's own value, then default variables, then the literal `null`. */
+function chatVariable(
+    key: string,
+    context: TemplateContext,
+    runtime: TemplateRuntimeState,
+): string | undefined {
+    const value = runtime.variables[key]
+    if (value !== undefined && value !== null) return value
+    if (!context.pocketRisu) return undefined
+    return context.pocketRisu.variableDefaults[key] ?? 'null'
 }
 
 function blockKind(token: string): BlockKind | null {
@@ -401,8 +459,9 @@ function evaluateCbsExpression(
             body = body.replaceAll(`{{arg::${argumentName}}}`, args[index + 1] || '')
         return body
     }
-    if (name === 'getvar') return runtime.variables[args.join(separator)] ?? ''
-    if (name === 'getglobalvar') return context.globalVariables[args.join(separator)] ?? ''
+    if (name === 'getvar') return chatVariable(args.join(separator), context, runtime) ?? ''
+    if (name === 'getglobalvar')
+        return context.globalVariables[args.join(separator)] ?? (context.pocketRisu ? 'null' : '')
     if (name === 'tempvar' || name === 'gettempvar')
         return runtime.temporaryVariables[args.join(separator)] ?? ''
     if (name === 'settempvar') {
@@ -410,17 +469,27 @@ function evaluateCbsExpression(
         return ''
     }
     if (name === 'return') return args.join(separator)
+    if (name === 'setvar' || name === 'setdefaultvar' || name === 'addvar') {
+        const mode = context.pocketRisu?.variableMode ?? 'run'
+        if (mode === 'remove') return ''
+        if (mode === 'keep') return null
+    }
     if (name === 'setvar') {
         runtime.variables[arg(0)] = args.slice(1).join(separator)
         return ''
     }
     if (name === 'setdefaultvar') {
-        if (!runtime.variables[arg(0)] || runtime.variables[arg(0)] === 'null')
+        const current = chatVariable(arg(0), context, runtime)
+        if (!current || current === 'null')
             runtime.variables[arg(0)] = args.slice(1).join(separator)
         return ''
     }
     if (name === 'addvar') {
-        runtime.variables[arg(0)] = String(Number(runtime.variables[arg(0)] || 0) + Number(arg(1)))
+        // PocketRisu adds to getChatVar's result, so a missing variable reads as `null` (NaN).
+        const current = context.pocketRisu
+            ? Number(chatVariable(arg(0), context, runtime))
+            : Number(runtime.variables[arg(0)] || 0)
+        runtime.variables[arg(0)] = String(current + Number(arg(1)))
         return ''
     }
     if (name === 'toggle') {
@@ -537,6 +606,28 @@ function evaluateCbsExpression(
     if (name === 'lastmessage') return messages.at(-1)?.content ?? context.values.lastmessage ?? ''
     if (name === 'lastmessageid' || name === 'lastmessageindex') return String(messages.length - 1)
     if (name === 'previouschatlog') return messages[Number(arg(0))]?.content ?? 'Out of range'
+    const risu = context.pocketRisu
+    if (risu && (name === 'previouscharchat' || name === 'lastcharmessage')) {
+        const from = risu.chatId !== -1 ? risu.chatId - 1 : messages.length - 1
+        for (let pointer = from; pointer >= 0; pointer -= 1) {
+            if (messages[pointer]?.role === 'assistant') return messages[pointer]!.content
+        }
+        return risu.greeting
+    }
+    if (risu && (name === 'previoususerchat' || name === 'lastusermessage')) {
+        if (risu.chatId === -1) return ''
+        for (let pointer = risu.chatId - 1; pointer >= 0; pointer -= 1) {
+            if (messages[pointer]?.role === 'user') return messages[pointer]!.content
+        }
+        return risu.greeting
+    }
+    if (risu && name === 'role') {
+        if (risu.chatId !== -1) {
+            const role = messages[risu.chatId]?.role
+            if (role) return role === 'assistant' ? 'char' : role
+        }
+        return risu.role ?? 'null'
+    }
     if (name === 'previouscharchat' || name === 'lastcharmessage')
         return (
             [...messages].reverse().find((message) => message.role === 'assistant')?.content ??
@@ -681,6 +772,17 @@ function evaluateCbsExpression(
     }
 
     const direct = recordValue(context.values, name)
+    if (direct !== undefined && risu && reparsedValues.has(name)) {
+        const callStack = (risu.callStack ?? 0) + 1
+        if (callStack > 20) return 'ERROR: Call stack limit reached'
+        const nested = renderTemplate(direct, {
+            ...context,
+            variables: runtime.variables,
+            pocketRisu: { ...risu, callStack },
+        })
+        warnings.push(...nested.warnings)
+        return nested.text
+    }
     if (direct !== undefined) return direct
     if (name.startsWith('#') || name.startsWith('/') || name === 'else') return null
     warnings.push(`Unsupported template expression: ${expression}`)
@@ -1164,7 +1266,7 @@ function executeRpnCalculation(
 ): number {
     const resolved = text
         .replace(/\$([a-zA-Z0-9_]+)/g, (_full, key: string) => {
-            const parsed = Number.parseFloat(runtime.variables[key] ?? '')
+            const parsed = Number.parseFloat(chatVariable(key, context, runtime) ?? '')
             return Number.isNaN(parsed) ? '0' : String(parsed)
         })
         .replace(/@([a-zA-Z0-9_]+)/g, (_full, key: string) => {
@@ -1215,12 +1317,12 @@ function evaluateWhen(
         } else if (operator === 'is') statement.push(condition === left() ? '1' : '0')
         else if (operator === 'isnot') statement.push(condition !== left() ? '1' : '0')
         else if (operator === 'var')
-            statement.push(isRisuTruthy(runtime.variables[condition]) ? '1' : '0')
+            statement.push(isRisuTruthy(chatVariable(condition, context, runtime)) ? '1' : '0')
         else if (operator === 'toggle') statement.push(context.toggles[condition] ? '1' : '0')
         else if (operator === 'vis')
-            statement.push(runtime.variables[left()] === condition ? '1' : '0')
+            statement.push(chatVariable(left(), context, runtime) === condition ? '1' : '0')
         else if (operator === 'visnot')
-            statement.push(runtime.variables[left()] !== condition ? '1' : '0')
+            statement.push(chatVariable(left(), context, runtime) !== condition ? '1' : '0')
         else if (operator === 'tis')
             statement.push((context.toggleValues?.[left()] ?? '') === condition ? '1' : '0')
         else if (operator === 'tisnot')

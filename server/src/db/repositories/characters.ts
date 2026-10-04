@@ -21,6 +21,8 @@ export interface CharacterRecord extends Character {
     regexScripts: Character['regexScripts']
     moduleReferences: string[]
     luaRawTriggers: unknown[]
+    /** Each lore entry's card `extensions` (without Malang's own fields), keyed by entry id. */
+    loreExtensions?: Record<string, Record<string, unknown>>
 }
 
 export interface NewCharacterRecord {
@@ -334,31 +336,33 @@ export class CharacterRepository extends RepositoryBase {
         row: typeof characters.$inferSelect,
         includeLore: boolean,
     ): CharacterRecord {
-        const lorebook = includeLore
+        const loreRows = includeLore
             ? this.db
                   .select()
                   .from(characterLoreEntries)
                   .where(eq(characterLoreEntries.characterId, row.id))
                   .orderBy(asc(characterLoreEntries.insertionOrder))
                   .all()
-                  .map((entry) => {
-                      const extensions = entry.extensionsJson
-                      return {
-                          id: entry.id,
-                          keys: entry.keysJson,
-                          secondaryKeys: entry.secondaryKeysJson,
-                          content: entry.content,
-                          enabled: entry.enabled,
-                          constant: entry.constant,
-                          selective: entry.selective,
-                          caseSensitive: entry.caseSensitive,
-                          useRegex: entry.useRegex,
-                          insertionOrder: entry.insertionOrder,
-                          priority: entry.priority,
-                          name: entry.name,
-                          ...loreFieldsFromExtensions(extensions),
-                      }
-                  })
+            : undefined
+        const lorebook = loreRows
+            ? loreRows.map((entry) => {
+                  const extensions = entry.extensionsJson
+                  return {
+                      id: entry.id,
+                      keys: entry.keysJson,
+                      secondaryKeys: entry.secondaryKeysJson,
+                      content: entry.content,
+                      enabled: entry.enabled,
+                      constant: entry.constant,
+                      selective: entry.selective,
+                      caseSensitive: entry.caseSensitive,
+                      useRegex: entry.useRegex,
+                      insertionOrder: entry.insertionOrder,
+                      priority: entry.priority,
+                      name: entry.name,
+                      ...loreFieldsFromExtensions(extensions),
+                  }
+              })
             : undefined
         return {
             id: row.id,
@@ -380,6 +384,18 @@ export class CharacterRepository extends RepositoryBase {
             groupId: row.groupId,
             sortOrder: row.sortOrder,
             lorebook,
+            loreExtensions: loreRows
+                ? Object.fromEntries(
+                      loreRows.map((entry) => [
+                          entry.id,
+                          Object.fromEntries(
+                              Object.entries(entry.extensionsJson).filter(
+                                  ([key]) => !key.startsWith('malang_'),
+                              ),
+                          ),
+                      ]),
+                  )
+                : undefined,
             sourceExtensions: row.sourceExtensionsJson,
             sourceCard: row.sourceCardJson,
             loreSettings: row.loreSettingsJson,

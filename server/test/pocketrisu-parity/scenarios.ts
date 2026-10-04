@@ -430,4 +430,345 @@ export const promptScenarios: Record<string, PromptScenario> = {
         chat: shortChat,
         toggles: { extra: '1' },
     },
+
+    'variable-semantics': {
+        preset: preset({
+            templateDefaultVariables: 'mood=calm\nweather=sunny',
+            promptTemplate: [
+                main(
+                    [
+                        'keep={{setvar::ignored::1}}',
+                        'missing={{getvar::nothing}}',
+                        'preset default={{getvar::weather}}',
+                        'card default={{getvar::mood}}',
+                        'global missing={{getglobalvar::nothing}}',
+                        'counter={{getvar::counter}}',
+                    ].join('\n'),
+                ),
+                chat(),
+            ],
+        }),
+        character: card({ extensions: { risuai: { defaultVariables: 'mood=sleepy' } } }),
+        user,
+        chat: {
+            messages: [
+                { role: 'user', data: '{{addvar::counter::1}}{{setdefaultvar::mood::angry}}one' },
+                { role: 'char', data: '{{addvar::counter::1}}mood {{getvar::mood}}' },
+                { role: 'user', data: 'counter now {{getvar::counter}}' },
+            ],
+            variables: { counter: '1' },
+        },
+    },
+
+    'legacy-tags-and-nested-cbs': {
+        preset: preset({
+            promptTemplate: [
+                main('<char> greets <user>. Persona: {{persona}} / Desc: {{description}}'),
+                { type: 'description', innerFormat: '[<bot>]\n{{slot}}' },
+                chat(),
+                globalNote('Last user said: {{lastusermessage}} / last char: {{lastcharmessage}}'),
+            ],
+        }),
+        character: card({
+            description: '{{char}} serves {{user}}. {{#if 1}}Always kind.{{/if}}',
+            personality: 'Likes <user>.',
+        }),
+        user: { name: 'Kim', persona: '{{user}} loves {{char}}' },
+        chat: {
+            messages: [
+                { role: 'user', data: '<char>, hello from <user>' },
+                { role: 'char', data: 'Hi <user>!' },
+            ],
+        },
+    },
+
+    'regex-order-and-cbs-output': {
+        preset: preset({
+            regex: [
+                {
+                    comment: 'second',
+                    in: 'tea',
+                    out: 'coffee',
+                    type: 'editprocess',
+                    flag: 'g<order 1>',
+                    ableFlag: true,
+                },
+                {
+                    comment: 'first',
+                    in: 'water',
+                    out: 'tea',
+                    type: 'editprocess',
+                    flag: 'g<order 5>',
+                    ableFlag: true,
+                },
+                {
+                    comment: 'capture into cbs',
+                    in: 'name:(\\w+)',
+                    out: '{{upper::$1}} for {{user}}',
+                    type: 'editprocess',
+                    flag: 'g',
+                    ableFlag: true,
+                },
+                {
+                    comment: 'flag ignored without ableFlag',
+                    in: 'LOUD',
+                    out: 'quiet',
+                    type: 'editprocess',
+                    flag: 'i',
+                    ableFlag: false,
+                },
+                {
+                    comment: 'move to top',
+                    in: '\\[note\\]',
+                    out: '@@move_top [moved note]',
+                    type: 'editprocess',
+                    flag: 'g',
+                    ableFlag: true,
+                },
+                {
+                    comment: 'display only',
+                    in: 'coffee',
+                    out: 'NOT IN PROMPT',
+                    type: 'editdisplay',
+                },
+            ],
+        }),
+        character: card(),
+        user,
+        chat: {
+            messages: [
+                { role: 'user', data: 'water please, name:latte, loud LOUD' },
+                { role: 'char', data: 'Here you go.\n[note]' },
+            ],
+        },
+    },
+
+    'thoughts-and-inlays': {
+        preset: preset(),
+        character: card(),
+        user,
+        chat: {
+            messages: [
+                { role: 'user', data: 'Look {{inlay::abc-123}} at this' },
+                {
+                    role: 'char',
+                    data: '<Thoughts>\nI should be nice.\n</Thoughts>\nNice picture!{{inlayed::def-456}}',
+                },
+                { role: 'user', data: 'Thanks {{asset_prompt::icon}}' },
+            ],
+        },
+    },
+
+    'lorebook-search-rules': {
+        preset: preset({
+            promptTemplate: [
+                main('Main. Custom position: {{position::cafe}}'),
+                { type: 'description' },
+                { type: 'lorebook' },
+                chat(),
+            ],
+        }),
+        character: card({
+            character_book: characterBook([
+                {
+                    keys: ['latte'],
+                    secondary_keys: ['please'],
+                    selective: true,
+                    content: 'Selective: latte AND please.',
+                    comment: 'selective',
+                },
+                {
+                    keys: ['latte'],
+                    secondary_keys: ['decaf'],
+                    selective: true,
+                    content: 'Never: latte AND decaf.',
+                    comment: 'selective-miss',
+                },
+                {
+                    keys: ['latte'],
+                    content: '@@exclude_keys please\nExcluded by please.',
+                    comment: 'exclude',
+                },
+                {
+                    keys: ['/thank(s)?/i'],
+                    use_regex: true,
+                    content: 'Regex matched thanks.',
+                    comment: 'regex',
+                },
+                {
+                    keys: ['oat'],
+                    content: 'Recursive: triggered by another entry mentioning oat.',
+                    comment: 'recursive',
+                },
+                {
+                    keys: ['latte'],
+                    content: 'Oat milk is the default.',
+                    comment: 'oat-source',
+                    insertion_order: 10,
+                },
+                {
+                    constant: true,
+                    content: '@@position pt_cafe\nPositioned into the main prompt.',
+                    comment: 'pt',
+                },
+                {
+                    constant: true,
+                    content: '@@activate_only_after 10\nToo early.',
+                    comment: 'late',
+                },
+                {
+                    keys: ['latte'],
+                    content: 'Card depth extension.',
+                    comment: 'card-depth',
+                    extensions: { position: 4, depth: 2, role: 1 },
+                },
+            ]),
+        }),
+        user,
+        chat: {
+            messages: [
+                { role: 'user', data: 'One latte, please.' },
+                { role: 'char', data: 'Coming right up.' },
+                { role: 'user', data: 'Thanks!' },
+            ],
+        },
+    },
+
+    'lorebook-injection': {
+        preset: preset({
+            promptTemplate: [
+                main('Main.'),
+                { type: 'description', innerFormat: '<desc>{{slot}}</desc>' },
+                { type: 'lorebook' },
+                chat(),
+            ],
+        }),
+        character: card({
+            character_book: characterBook([
+                { constant: true, content: 'Target lore.', comment: 'target' },
+                {
+                    constant: true,
+                    content: '@@inject_lore target\nInjected into target.',
+                    comment: 'injector',
+                },
+                {
+                    constant: true,
+                    content: '@@inject_at description\nAppended to the description format.',
+                    comment: 'inject-at',
+                },
+                {
+                    constant: true,
+                    content: '@@depth 0\n@@role assistant\nAssistant post-everything lore.',
+                    comment: 'post-assistant',
+                },
+                {
+                    constant: true,
+                    content: '@@reverse_depth 1\nReverse depth lore.',
+                    comment: 'reverse',
+                },
+            ]),
+        }),
+        user,
+        chat: shortChat,
+    },
+
+    'card-regex-and-depth-prompt': {
+        preset: preset(),
+        character: card({
+            extensions: {
+                depth_prompt: { depth: 1, prompt: 'Depth prompt for {{char}}.' },
+                risuai: {
+                    customScripts: [
+                        {
+                            comment: 'card regex',
+                            in: 'please',
+                            out: 'kindly',
+                            type: 'editprocess',
+                            flag: 'g',
+                            ableFlag: true,
+                        },
+                    ],
+                },
+            },
+        }),
+        user,
+        chat: shortChat,
+    },
+
+    'system-chat-with-examples': {
+        preset: preset({
+            promptSettings: {
+                assistantPrefill: 'Sure,',
+                postEndInnerFormat: '',
+                sendChatAsSystem: true,
+                sendName: true,
+                utilOverride: false,
+            },
+            promptTemplate: [
+                main('Main.'),
+                chat(-1000, 'end'),
+                { type: 'authornote', innerFormat: 'AN: {{slot}}', defaultText: 'Default note.' },
+                { type: 'persona', innerFormat: 'P: {{slot}}', role2: 'user' },
+            ],
+        }),
+        character: card({
+            mes_example: '<START>\n{{user}}: Hi\n{{char}}: Hello there: friend',
+        }),
+        user: { name: 'Kim', persona: 'A regular.' },
+        chat: shortChat,
+    },
+
+    'greeting-only-and-cot': {
+        preset: preset({
+            promptTemplate: [
+                main('Main.'),
+                chat(),
+                { type: 'cot', type2: 'normal', text: 'Reason first.', role: 'system' },
+                { type: 'postEverything' },
+                globalNote('After post everything.'),
+            ],
+        }),
+        character: card(),
+        user,
+        chat: { messages: [] },
+        chainOfThought: true,
+    },
+
+    'no-greeting-korean': {
+        preset: preset(),
+        character: card({ first_mes: '', description: '{{char}}는 {{user}}에게 커피를 내린다.' }),
+        user: { name: '민수' },
+        chat: {
+            messages: [
+                { role: 'user', data: '안녕, {{char}}!' },
+                { role: 'char', data: '어서 와, {{user}}.' },
+            ],
+        },
+    },
+
+    'cbs-blocks': {
+        preset: preset({
+            promptTemplate: [
+                main(
+                    [
+                        '{{#each ["a","b","c"] as item}}- {{slot::item}}\n{{/each}}',
+                        '{{#if {{greater::3::2}}}}',
+                        '  greater',
+                        '{{:else}}',
+                        '  smaller',
+                        '{{/if}}',
+                        '{{#when::keep::1}}  kept  {{/when}}',
+                        '{{#pure}}{{user}}{{/pure}}',
+                        'tempvar={{settempvar::t::5}}{{tempvar::t}}',
+                        'calc={{calc::(1+2)*3}}',
+                        'round={{round::2.5}} floor={{floor::2.9}}',
+                    ].join('\n'),
+                ),
+                chat(),
+            ],
+        }),
+        character: card(),
+        user,
+        chat: shortChat,
+    },
 }

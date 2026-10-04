@@ -7,7 +7,7 @@ import {
 } from '../src/services/prompt/compiler'
 
 describe('generation parameter merging', () => {
-    test('treats RisuAI -1000 sentinels as unset', () => {
+    test('treats RisuAI -1000 sentinels as unset', async () => {
         const parameters = mergeGenerationParameters(
             {
                 temperature: 0.8,
@@ -35,7 +35,7 @@ describe('generation parameter merging', () => {
         })
     })
 
-    test('omits stale -1000 provider defaults', () => {
+    test('omits stale -1000 provider defaults', async () => {
         const parameters = mergeGenerationParameters({ topP: -1000, topK: -1000 }, {})
 
         expect(parameters).toEqual({
@@ -50,12 +50,12 @@ describe('prompt toggle values', () => {
     // RisuAI's own toggle checks (CBS `#when::toggle::key`, its `isTruthy`) only ever treat an
     // exact '1' or 'true' as on; everything else — including select-style non-zero indices or
     // free text — reads as off there, so this must match exactly for identical compiled output.
-    test('treats only an exact "1" or "true" as enabled', () => {
+    test('treats only an exact "1" or "true" as enabled', async () => {
         expect(isPromptToggleEnabled('1')).toBe(true)
         expect(isPromptToggleEnabled('true')).toBe(true)
     })
 
-    test('treats every other value as disabled', () => {
+    test('treats every other value as disabled', async () => {
         expect(isPromptToggleEnabled('2')).toBe(false)
         expect(isPromptToggleEnabled('custom instruction')).toBe(false)
         expect(isPromptToggleEnabled('0')).toBe(false)
@@ -68,7 +68,7 @@ describe('prompt toggle values', () => {
 })
 
 describe('server-side Risu CBS compilation', () => {
-    test('expands #each from the real message context before provider dispatch', () => {
+    test('expands #each from the real message context before provider dispatch', async () => {
         const input = {
             character: {
                 id: 'character',
@@ -134,7 +134,7 @@ describe('server-side Risu CBS compilation', () => {
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
         } as unknown as Parameters<typeof compilePrompt>[0]
 
-        const result = compilePrompt(input)
+        const result = await compilePrompt(input)
 
         expect(result.messages).toEqual([{ role: 'system', content: '[2]' }])
     })
@@ -216,15 +216,15 @@ describe('PocketRisu module custom toggles', () => {
         } as unknown as Parameters<typeof compilePrompt>[0]
     }
 
-    test('exposes active module values to toggle gates and getglobalvar', () => {
-        expect(compilePrompt(input('1')).messages).toContainEqual({
+    test('exposes active module values to toggle gates and getglobalvar', async () => {
+        expect((await compilePrompt(input('1'))).messages).toContainEqual({
             role: 'system',
             content: 'mode=2',
         })
     })
 
-    test('does not run a module prompt when its custom boolean is off', () => {
-        expect(compilePrompt(input('0')).messages).toEqual([])
+    test('does not run a module prompt when its custom boolean is off', async () => {
+        expect((await compilePrompt(input('0'))).messages).toEqual([])
     })
 })
 
@@ -283,24 +283,24 @@ describe('RisuAI-compatible jailbreak / chain-of-thought toggles', () => {
     // RisuAI gates every `jailbreak`/`cot` block behind its own global switch, independent of
     // the block's `enabled` flag — the bug this guards against is a jailbreak block staying
     // active no matter what a "disable it" toggle is set to.
-    test('drops jailbreak and cot blocks when their global switch is off', () => {
-        const result = compilePrompt(baseInput())
+    test('drops jailbreak and cot blocks when their global switch is off', async () => {
+        const result = await compilePrompt(baseInput())
         const contents = result.messages.map((message) => message.content)
         expect(contents).not.toContain('JAILBREAK-TEXT')
         expect(contents).not.toContain('COT-TEXT')
     })
 
-    test('includes jailbreak block once jailbreakToggle is on', () => {
+    test('includes jailbreak block once jailbreakToggle is on', async () => {
         const input = baseInput()
         input.settings.jailbreakToggle = true
-        const result = compilePrompt(input)
+        const result = await compilePrompt(input)
         expect(result.messages.map((message) => message.content)).toContain('JAILBREAK-TEXT')
     })
 
-    test('includes cot block once chainOfThought is on', () => {
+    test('includes cot block once chainOfThought is on', async () => {
         const input = baseInput()
         input.settings.chainOfThought = true
-        const result = compilePrompt(input)
+        const result = await compilePrompt(input)
         expect(result.messages.map((message) => message.content)).toContain('COT-TEXT')
     })
 })
@@ -345,9 +345,10 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
 
     // RisuAI only ever gives the persisted greeting the plain "Char: text" prefix; every later
     // turn (user or assistant) is wrapped in groupTemplate using the character's own name.
-    test('wraps history in groupTemplate but keeps the greeting as a plain prefix', () => {
-        const result = compilePrompt(baseInput())
+    test('wraps history in groupTemplate but keeps the greeting as a plain prefix', async () => {
+        const result = await compilePrompt(baseInput())
         expect(result.messages).toEqual([
+            { role: 'system', content: '[Start a new chat]' },
             { role: 'assistant', content: 'Aria: Hi there' },
             { role: 'user', content: "<Aria's Message>\nHello\n</Aria's Message>" },
         ])
@@ -355,43 +356,52 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
 
     // Non-greeting turns get sendName's wrap AND (when sendChatAsSystem is also on) the
     // "role: " prefix from systemizeChat — RisuAI applies both, back to back, on those turns.
-    test('stacks sendChatAsSystem on top of an already sendName-wrapped turn', () => {
+    test('stacks sendChatAsSystem on top of an already sendName-wrapped turn', async () => {
         const input = baseInput()
         input.preset.promptSettings.sendChatAsSystem = true
-        const result = compilePrompt(input)
+        const result = await compilePrompt(input)
         expect(result.messages).toEqual([
+            { role: 'system', content: '[Start a new chat]' },
             { role: 'system', content: 'Aria: Hi there' },
             { role: 'system', content: "user: <Aria's Message>\nHello\n</Aria's Message>" },
         ])
     })
 
-    test('chatAsOriginalOnSystem opts a chat block out of sendChatAsSystem', () => {
+    test('chatAsOriginalOnSystem opts a chat block out of sendChatAsSystem', async () => {
         const input = baseInput()
         input.preset.promptSettings.sendChatAsSystem = true
         ;(input.preset.blocks[0] as { chatAsOriginalOnSystem?: boolean }).chatAsOriginalOnSystem =
             true
-        const result = compilePrompt(input)
+        const result = await compilePrompt(input)
         expect(result.messages).toEqual([
+            { role: 'system', content: '[Start a new chat]' },
             { role: 'assistant', content: 'Aria: Hi there' },
             { role: 'user', content: "<Aria's Message>\nHello\n</Aria's Message>" },
         ])
     })
 
-    test('appends PocketRisu start-new-chat marker when requested', () => {
-        const input = baseInput()
-        input.includeStartNewChat = true
-        expect(compilePrompt(input).messages.at(-1)).toEqual({
+    // sendChat pushes the marker after the example dialogue, ahead of the greeting.
+    test('opens the chat history with the start-new-chat marker', async () => {
+        expect((await compilePrompt(baseInput())).messages[0]).toEqual({
             role: 'system',
             content: '[Start a new chat]',
         })
     })
 
-    test('trimStartNewChat suppresses the PocketRisu marker', () => {
+    test('omits the start-new-chat marker for NovelAI', async () => {
+        const input = baseInput()
+        input.includeStartNewChat = false
+        expect(
+            (await compilePrompt(input)).messages.map((message) => message.content),
+        ).not.toContain('[Start a new chat]')
+    })
+
+    test('trimStartNewChat suppresses the PocketRisu marker', async () => {
         const input = baseInput()
         input.includeStartNewChat = true
         input.preset.promptSettings.trimStartNewChat = true
-        expect(compilePrompt(input).messages.map((message) => message.content)).not.toContain(
-            '[Start a new chat]',
-        )
+        expect(
+            (await compilePrompt(input)).messages.map((message) => message.content),
+        ).not.toContain('[Start a new chat]')
     })
 })

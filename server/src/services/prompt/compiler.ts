@@ -5,6 +5,7 @@ import type {
     EffectivePersona,
     GenerationParameters,
     Message,
+    PromptBlock,
     PromptModule,
     PromptPreset,
     PromptPreview,
@@ -13,16 +14,21 @@ import type {
 import type { CharacterRecord } from '@/db'
 import { AppError } from '@/errors/app-error'
 
-import { estimateTokens, selectLoreEntries } from './lorebook'
-import { renderTemplate, type TemplateContext } from './template-engine'
+import { estimateTokens } from './lorebook'
+import { exampleMessage } from './pocketrisu/example-messages'
+import { loadLoreBookV3Prompt, toRisuLore } from './pocketrisu/lorebook'
+import { RisuParser, type ChatTurn } from './pocketrisu/parser'
+import { processScripts, RegexSandbox } from './pocketrisu/scripts'
+import type { RisuChat } from './pocketrisu/types'
+import { collectRegexScripts } from './regex-runtime'
+import type { TemplateContext } from './template-engine'
 
-interface WorkingMessage extends CompiledMessage {
-    sourceMessageId?: string
-    removable?: boolean
-    // Set once a message has already had its role/name baked into `content` (RisuAI's
-    // `nameAdded` chat attr). `sendChatAsSystem` skips its own "role: " prefix for these.
-    nameAdded?: boolean
-}
+/*
+ * Prompt assembly ported from PocketRisu's sendChat (process/index.svelte.ts),
+ * prompt-template path: the same stages, in the same order, with the same
+ * quirks. Comments name the PocketRisu step each block mirrors. Malang-only
+ * additions (module prompts, HypaV3 summaries) are marked as such.
+ */
 
 export class ContextTooLargeError extends AppError {
     constructor() {
@@ -60,7 +66,73 @@ export function isPromptToggleEnabled(value: string): boolean {
     return value === '1' || value === 'true'
 }
 
-export function compilePrompt(input: {
+type BlockRole = 'user' | 'bot' | 'system'
+type KnownBlock = Exclude<PromptBlock, { raw: Record<string, unknown> }>
+const convertPromptRole = { system: 'system', user: 'user', bot: 'assistant' } as const
+
+/** PocketRisu's chatML card syntax (parser/chatML.ts). */
+function parseChatML(data: string, parse: (text: string) => string): RisuChat[] | null {
+    const starter = '<|im_start|>'
+    const separator = '<|im_sep|>'
+    const ender = '<|im_end|>'
+    const trimmed = data.trim()
+    if (!trimmed.startsWith(starter)) return null
+    return trimmed
+        .split(starter)
+        .filter((part) => part !== '')
+        .map((part) => {
+            let role: RisuChat['role'] = 'user'
+            let value = part
+            if (value.startsWith(`user${separator}`)) {
+                value = value.substring(4 + separator.length)
+            } else if (value.startsWith(`system${separator}`)) {
+                role = 'system'
+                value = value.substring(6 + separator.length)
+            } else if (value.startsWith(`assistant${separator}`)) {
+                role = 'assistant'
+                value = value.substring(9 + separator.length)
+            } else if (value.startsWith('user ') || value.startsWith('user\n')) {
+                value = value.substring(5)
+            } else if (value.startsWith('system ') || value.startsWith('system\n')) {
+                role = 'system'
+                value = value.substring(7)
+            } else if (value.startsWith('assistant ') || value.startsWith('assistant\n')) {
+                role = 'assistant'
+                value = value.substring(10)
+            }
+            value = value.trim()
+            if (value.endsWith(ender)) value = value.substring(0, value.length - ender.length)
+            const thoughts: string[] = []
+            value = value.replace(/<Thoughts>(.+)<\/Thoughts>/gms, (_match, inner: string) => {
+                thoughts.push(inner)
+                return ''
+            })
+            return { role, content: parse(value), thoughts }
+        })
+}
+
+function systemizeChat(chats: RisuChat[]): RisuChat[] {
+    for (const chat of chats) {
+        if (chat.role === 'user' || chat.role === 'assistant') {
+            const attr = chat.attr ?? []
+            if (chat.name?.startsWith('example_')) chat.content = `${chat.name}: ${chat.content}`
+            else if (!attr.includes('nameAdded')) chat.content = `${chat.role}: ${chat.content}`
+            chat.role = 'system'
+            delete chat.memo
+            delete chat.name
+        }
+    }
+    return chats
+}
+
+const estimateChatTokens = (chat: RisuChat) => estimateTokens(chat.content) + 4
+
+/** A raw PocketRisu card Malang does not model, such as `memory`. */
+function rawCard(block: PromptBlock): Record<string, unknown> | null {
+    return 'raw' in block ? block.raw : null
+}
+
+export async function compilePrompt(input: {
     character: CharacterRecord
     conversation: Conversation
     messages: Message[]
@@ -72,7 +144,10 @@ export function compilePrompt(input: {
     persona?: EffectivePersona
     assets?: TemplateContext['assets']
     modelId?: string
+    /** PocketRisu adds `[Start a new chat]` for every model except NovelAI. */
     includeStartNewChat?: boolean
+    /** PocketRisu merges consecutive system turns only for GPT/Claude-family models. */
+    mergeSystemMessages?: boolean
     longTermMemory?: {
         enabled: boolean
         content: string
@@ -81,8 +156,8 @@ export function compilePrompt(input: {
         summaryCount: number
         warnings?: string[]
     }
-}): PromptPreview {
-    const { character, conversation, messages, preset, settings } = input
+}): Promise<PromptPreview> {
+    const { character, conversation, preset, settings } = input
     const persona: EffectivePersona = input.persona || {
         id: null,
         name: settings.userName,
@@ -91,11 +166,13 @@ export function compilePrompt(input: {
         source: 'default',
     }
     const modules = input.modules || []
+    const promptSettings = preset.promptSettings
     const warnings = [
         ...preset.warnings,
         ...modules.flatMap((module) => module.warnings),
         ...(input.longTermMemory?.warnings || []),
     ]
+
     // PocketRisu appends customModuleToggle declarations from every active module to the
     // preset declarations. Keep that ordering so a shared key resolves to the same global
     // toggle value while module-only keys work in CBS, templates, lore and prompt injections.
@@ -115,369 +192,619 @@ export function compilePrompt(input: {
             isPromptToggleEnabled(value),
         ]),
     )
-    const lore = selectLoreEntries(
-        [...(character.lorebook || []), ...modules.flatMap((module) => module.lorebook)],
-        messages,
-        character.loreSettings,
-    )
-    warnings.push(...lore.warnings)
-    const loreAt = (position: string) => lore.entries.filter((entry) => entry.position === position)
-    const normalLore = lore.entries.filter((entry) => !entry.position)
-    const description = [
-        character.description,
-        character.personality ? `Description of ${character.name}: ${character.personality}` : '',
-        character.scenario
-            ? `Circumstances and context of the dialogue: ${character.scenario}`
-            : '',
-    ]
-        .filter(Boolean)
-        .join('\n\n')
-    const values: Record<string, string> = {
-        user: persona.name,
-        char: character.name,
-        bot: character.name,
-        persona: persona.description,
-        personaname: persona.name,
-        description: character.description,
-        personality: character.personality,
-        scenario: character.scenario,
-        exampledialogue: character.exampleMessage,
-        examplemessage: character.exampleMessage,
-        firstmessage: character.firstMessage,
-        authornote: conversation.authorNote,
-        globalnote: character.postHistoryInstructions,
-        prefill_supported: 'false',
-        jbtoggled: settings.jailbreakToggle ? '1' : '0',
-        lastmessage: messages.at(-1)?.content || '',
-        lastusermessage:
-            [...messages].reverse().find((message) => message.role === 'user')?.content || '',
-        lastcharmessage:
-            [...messages].reverse().find((message) => message.role === 'assistant')?.content ||
-            character.firstMessage,
-        lastmessageid: String(messages.length - 1),
-        slot: '',
-    }
-    const context: TemplateContext = {
-        values,
-        variables: conversation.variables,
-        globalVariables: {
-            ...preset.defaultVariables,
-            ...settings.globalVariables,
-            ...Object.fromEntries(
-                Object.entries(effectiveToggleValues).map(([key, value]) => [
-                    `toggle_${key}`,
-                    value,
-                ]),
-            ),
-        },
-        toggles: effectiveToggles,
-        toggleValues: effectiveToggleValues,
-        messages: messages.map((message) => ({
-            role: message.role,
-            content: message.content,
-            createdAt: message.createdAt,
-        })),
-        modelId: input.modelId,
-        maxContextTokens: input.parameters.maxContextTokens,
-        moduleNamespaces: modules.map((module) => module.namespace).filter(Boolean),
-        assets: input.assets,
-    }
-    const working: WorkingMessage[] = []
 
-    const resolveNamedPositions = (source: string) => {
-        let result = source
-        for (let depth = 0; depth < 5; depth += 1) {
+    // chat.message excludes the greeting, which PocketRisu derives from fmIndex.
+    const stored = input.messages.filter((message) => message.status !== 'failed')
+    const greeting = stored[0]?.role === 'assistant' ? stored[0] : null
+    const chatMessages = greeting ? stored.slice(1) : stored
+    const firstMessage = greeting?.content ?? ''
+    const selectedGreeting =
+        conversation.greetingIndex >= 0
+            ? (character.alternateGreetings[conversation.greetingIndex] ?? '')
+            : character.firstMessage
+
+    const parser = new RisuParser(
+        {
+            values: {
+                user: persona.name,
+                char: character.name,
+                bot: character.name,
+                persona: persona.description,
+                personaname: persona.name,
+                description: character.description,
+                personality: character.personality,
+                scenario: character.scenario,
+                exampledialogue: character.exampleMessage,
+                examplemessage: character.exampleMessage,
+                firstmessage: character.firstMessage,
+                authornote: conversation.authorNote,
+                globalnote: character.postHistoryInstructions,
+                prefill_supported: 'false',
+                jbtoggled: settings.jailbreakToggle ? '1' : '0',
+                slot: '',
+            },
+            globalVariables: {
+                ...settings.globalVariables,
+                ...Object.fromEntries(
+                    Object.entries(effectiveToggleValues).map(([key, value]) => [
+                        `toggle_${key}`,
+                        value,
+                    ]),
+                ),
+            },
+            toggles: effectiveToggles,
+            toggleValues: effectiveToggleValues,
+            modelId: input.modelId,
+            maxContextTokens: input.parameters.maxContextTokens,
+            moduleNamespaces: modules.map((module) => module.namespace).filter(Boolean),
+            assets: input.assets,
+        },
+        conversation.variables,
+        // getChatVar: character defaults first, then the preset's template defaults.
+        { ...preset.defaultVariables, ...character.defaultVariables },
+        chatMessages.map((message): ChatTurn => ({
+            id: message.id,
+            role: message.role === 'user' ? 'user' : 'char',
+            data: message.content,
+        })),
+        selectedGreeting,
+        warnings,
+    )
+    const parse = (text: string, role?: string) => parser.parse(text, { role })
+
+    // runCurrentChatFunction: every stored message runs its variable commands once, in order.
+    for (const [index, turn] of parser.chat.entries()) {
+        parser.setData(index, parser.parse(turn.data, { runVar: true }))
+    }
+
+    const regexScripts = collectRegexScripts(preset, character, modules)
+    const sandbox = new RegexSandbox()
+    try {
+        const unformated = {
+            chats: [] as RisuChat[],
+            lorebook: [] as RisuChat[],
+            authorNote: [] as RisuChat[],
+            description: [] as RisuChat[],
+            postEverything: [] as RisuChat[],
+            personaPrompt: [] as RisuChat[],
+        }
+
+        const template: PromptBlock[] = preset.blocks.filter(
+            (block) => block.enabled || rawCard(block)?.type === 'memory',
+        )
+        if (!template.some((block) => block.type === 'postEverything')) {
+            template.push({ id: 'postEverything', enabled: true, type: 'postEverything' })
+        }
+        const authorNoteCard = preset.blocks.find((block) => block.type === 'authornote')
+        const authorNoteDefault =
+            authorNoteCard && 'defaultText' in authorNoteCard
+                ? (authorNoteCard.defaultText ?? '')
+                : ''
+
+        if (conversation.authorNote) {
+            unformated.authorNote.push({ role: 'system', content: parse(conversation.authorNote) })
+        } else if (authorNoteDefault !== '') {
+            unformated.authorNote.push({ role: 'system', content: parse(authorNoteDefault) })
+        }
+
+        if (settings.chainOfThought) {
+            unformated.postEverything.push({
+                role: 'system',
+                content: `<instruction> - before respond everything, Think step by step as a ai assistant how would you respond inside <Thoughts> xml tag. this must be less than 5 paragraphs.</instruction>`,
+            })
+        }
+
+        let description = parse(character.description)
+        if (character.personality) {
+            description += parse(`\n\nDescription of {{char}}: ${character.personality}`)
+        }
+        if (character.scenario) {
+            description += parse(
+                `\n\nCircumstances and context of the dialogue: ${character.scenario}`,
+            )
+        }
+        const baseDescriptionPrompt: RisuChat = { role: 'system', content: description }
+        unformated.description.push(baseDescriptionPrompt)
+
+        const lore = [
+            ...(character.lorebook || [])
+                .filter((entry) => entry.enabled)
+                .map((entry) => ({
+                    ...toRisuLore(entry, character.loreExtensions?.[entry.id]),
+                    // convertCharbook does not carry card entry ids into the loreBook.
+                    id: undefined,
+                })),
+            ...modules.flatMap((module) =>
+                module.lorebook.filter((entry) => entry.enabled).map((entry) => toRisuLore(entry)),
+            ),
+        ]
+        const lorepmt = loadLoreBookV3Prompt({
+            lore,
+            messages: parser.chat.map((turn) => ({ role: turn.role, data: turn.data })),
+            userName: persona.name,
+            charName: character.name,
+            fmIndex: conversation.greetingIndex,
+            settings: character.loreSettings,
+            getChatVar: (key) => parser.getChatVar(key),
+            setChatVar: (key, value) => parser.setChatVar(key, value),
+            parse: (text) => parse(text),
+        })
+
+        const positionRegex = /{{position::(.+?)}}/g
+        const replacePosition = (text: string) => {
             let replaced = false
-            result = result.replace(/\{\{position::(.+?)}}/g, (_full, name: string) => {
+            const result = text.replace(positionRegex, (_match, name: string) => {
                 replaced = true
-                return loreAt(`pt_${name}`)
-                    .map((entry) => entry.content)
+                return lorepmt.actives
+                    .filter((active) => active.pos === `pt_${name}`)
+                    .map((active) => active.prompt)
                     .join('\n')
             })
-            if (!replaced) break
+            return { text: result, replaced }
         }
-        return result.replace(/\{\{position::(.+?)}}/g, '')
-    }
-    const render = (text: string, slot = '') => {
-        const result = renderTemplate(resolveNamedPositions(text.replaceAll('{{slot}}', slot)), {
-            ...context,
-            values: { ...values, slot },
-        })
-        warnings.push(...result.warnings)
-        return result.text
-    }
-    const role = (value: 'user' | 'bot' | 'system' | undefined): CompiledMessage['role'] =>
-        value === 'bot' ? 'assistant' : value || 'system'
-    const push = (message: WorkingMessage) => {
-        if (message.content.trim()) working.push(message)
-    }
-
-    // The persisted greeting (messages[0]) is RisuAI's synthesized first message, which only
-    // ever gets the plain "Char: text" prefix. Every later turn instead gets wrapped in
-    // groupTemplate (default `<{{char}}'s Message>\n{{slot}}\n</{{char}}'s Message>`, using the
-    // character's name for both user and assistant turns).
-    const greetingId = messages[0]?.id
-    const groupTemplate =
-        preset.promptSettings.groupTemplate ||
-        `<{{char}}'s Message>\n{{slot}}\n</{{char}}'s Message>`
-    const summarizedMessageIds = new Set(input.longTermMemory?.summarizedMessageIds || [])
-    const history: WorkingMessage[] = buildHistory(
-        character,
-        messages.filter((message) => !summarizedMessageIds.has(message.id)),
-    ).map((message) => {
-        const isGreeting = message.role === 'assistant' && message.sourceMessageId === greetingId
-        if (!preset.promptSettings.sendName) return message
-        return {
-            ...message,
-            content: isGreeting
-                ? `${character.name}: ${message.content}`
-                : render(groupTemplate, message.content),
-            nameAdded: isGreeting,
+        const resolvePosition = (text: string, maxDepth = 5) => {
+            let result = text
+            for (let index = 0; index < maxDepth; index += 1) {
+                const next = replacePosition(result)
+                result = next.text
+                if (!next.replaced) break
+            }
+            return result.replace(positionRegex, '')
         }
-    })
-    // sendChatAsSystem is applied per `chat` block (RisuAI's `chatAsOriginalOnSystem` flag can
-    // opt a specific block out), so it happens where `chat` blocks are rendered, not here.
 
-    const addModulePrompts = (position: PromptModule['prompts'][number]['position']) => {
-        for (const module of modules) {
-            for (const prompt of module.prompts) {
-                if (prompt.toggleKey && !Object.hasOwn(effectiveToggles, prompt.toggleKey)) {
-                    warnings.push(
-                        `Module ${module.name} references undeclared prompt toggle ${prompt.toggleKey}`,
-                    )
+        for (const active of lorepmt.actives.filter((lore) => lore.pos === '' && !lore.inject)) {
+            unformated.lorebook.push({
+                role: active.role,
+                content: parse(resolvePosition(active.prompt)),
+            })
+        }
+
+        const beforeDescriptionPrompts: RisuChat[] = []
+        const afterDescriptionPrompts: RisuChat[] = []
+        for (const active of lorepmt.actives.filter((lore) =>
+            ['after_desc', 'before_desc', 'personality', 'scenario'].includes(lore.pos),
+        )) {
+            const chat: RisuChat = {
+                role: active.role,
+                content: parse(resolvePosition(active.prompt)),
+            }
+            if (active.pos === 'before_desc') {
+                beforeDescriptionPrompts.unshift(chat)
+                unformated.description.unshift(chat)
+            } else {
+                afterDescriptionPrompts.push(chat)
+                unformated.description.push(chat)
+            }
+        }
+
+        if (persona.description) {
+            unformated.personaPrompt.push({ role: 'system', content: parse(persona.description) })
+        }
+
+        for (const active of lorepmt.actives.filter(
+            (lore) => lore.pos === 'depth' && lore.depth === 0 && lore.role !== 'assistant',
+        )) {
+            unformated.postEverything.push({
+                role: active.role,
+                content: parse(resolvePosition(active.prompt)),
+            })
+        }
+        const injectionLorebooks = lorepmt.actives.filter(
+            (lore) => lore.inject && !lore.inject.lore,
+        )
+        const injectionLorePosSet = new Set(
+            injectionLorebooks.map((lore) => lore.inject?.location ?? ''),
+        )
+        // Assistant lore goes last so it can act as a prefill.
+        for (const active of lorepmt.actives.filter(
+            (lore) => lore.pos === 'depth' && lore.depth === 0 && lore.role === 'assistant',
+        )) {
+            unformated.postEverything.push({
+                role: active.role,
+                content: parse(resolvePosition(active.prompt)),
+            })
+        }
+
+        const positionParser = (text: string, location: string) => {
+            if (injectionLorePosSet.has(location)) {
+                for (const lore of injectionLorebooks.filter(
+                    (active) => active.inject?.location === location,
+                )) {
+                    if (lore.inject?.operation === 'append') text += ` ${lore.prompt}`
+                    else if (lore.inject?.operation === 'prepend') text = `${lore.prompt} ${text}`
+                    else if (lore.inject) text = text.replace(lore.inject.param, lore.prompt)
                 }
-                if (
-                    !prompt.enabled ||
-                    prompt.position !== position ||
-                    (prompt.toggleKey && !effectiveToggles[prompt.toggleKey])
-                ) {
+            }
+            return resolvePosition(text)
+        }
+
+        const applyPromptBlockRole = (chats: RisuChat[], role?: BlockRole) => {
+            if (!role) return
+            for (const chat of chats) chat.role = convertPromptRole[role]
+        }
+        const getDescriptionPrompts = (role?: BlockRole) => {
+            const prompts = [
+                ...structuredClone(beforeDescriptionPrompts),
+                structuredClone(baseDescriptionPrompt),
+                ...structuredClone(afterDescriptionPrompts),
+            ]
+            applyPromptBlockRole([prompts[beforeDescriptionPrompts.length]!], role)
+            return prompts
+        }
+
+        let supaMemoryCardUsed = template.some((block) => rawCard(block)?.type === 'memory')
+
+        // Fixed prompt cost, for the history budget below (PocketRisu's first template pass).
+        const reservedOutputTokens = input.parameters.maxOutputTokens || 512
+        const maxContextTokens = input.parameters.maxContextTokens || 8192
+        let currentTokens = reservedOutputTokens + 50
+        for (const block of template) {
+            if (block.type === 'plain' || block.type === 'jailbreak' || block.type === 'cot') {
+                if ('text' in block) currentTokens += estimateTokens(block.text) + 4
+            }
+        }
+        for (const section of [
+            unformated.description,
+            unformated.personaPrompt,
+            unformated.authorNote,
+            unformated.lorebook,
+            unformated.postEverything,
+        ]) {
+            for (const chat of section) currentTokens += estimateChatTokens(chat)
+        }
+
+        const examples = exampleMessage(character.exampleMessage, character.name, parse)
+        let chats: RisuChat[] = examples
+        if (input.includeStartNewChat !== false && !promptSettings.trimStartNewChat) {
+            chats.push({ role: 'system', content: '[Start a new chat]', memo: 'NewChat' })
+        }
+
+        const summarized = new Set(input.longTermMemory?.summarizedMessageIds || [])
+        if (greeting && !summarized.has(greeting.id)) {
+            const chat: RisuChat = {
+                role: 'assistant',
+                content: await processScripts({
+                    scripts: regexScripts,
+                    data: parse(firstMessage),
+                    mode: 'editprocess',
+                    chatId: -1,
+                    parse: (text) => parse(text),
+                    sandbox,
+                    warnings,
+                }),
+                sourceMessageId: greeting.id,
+            }
+            if (promptSettings.sendName) {
+                chat.content = `${character.name}: ${chat.content}`
+                chat.attr = ['nameAdded']
+            }
+            chats.push(chat)
+        }
+
+        for (const [index, turn] of parser.chat.entries()) {
+            if (summarized.has(turn.id)) continue
+            let formatedChat = await processScripts({
+                scripts: regexScripts,
+                data: parse(turn.data, turn.role),
+                mode: 'editprocess',
+                chatId: index,
+                parse: (text) => parser.parse(text, { chatId: index }),
+                sandbox,
+                warnings,
+            })
+            // Inlay tags become multimodal attachments; their text is always dropped.
+            formatedChat = formatedChat.replace(/{{(inlay|inlayed|inlayeddata)::(.+?)}}/g, '')
+            if (promptSettings.sendName) {
+                const form =
+                    promptSettings.groupTemplate ||
+                    `<{{char}}'s Message>\n{{slot}}\n</{{char}}'s Message>`
+                formatedChat = parse(form).replace('{{slot}}', formatedChat)
+            }
+            const thoughts: string[] = []
+            formatedChat = formatedChat.replace(
+                /<Thoughts>(.+)<\/Thoughts>/gms,
+                (_match, inner: string) => {
+                    thoughts.push(inner)
+                    return ''
+                },
+            )
+            // asset_prompt images are attachments; the tag itself never reaches the text.
+            formatedChat = formatedChat.replace(/\{\{asset_?prompt::(.+?)\}\}/gimsu, '')
+            chats.push({
+                role: turn.role === 'user' ? 'user' : 'assistant',
+                content: formatedChat,
+                memo: turn.id,
+                attr: [],
+                thoughts,
+                sourceMessageId: turn.id,
+            })
+        }
+
+        const depthPrompts = lorepmt.actives.filter(
+            (lore) => (lore.pos === 'depth' && lore.depth > 0) || lore.pos === 'reverse_depth',
+        )
+        for (const depthPrompt of depthPrompts) {
+            currentTokens += estimateTokens(parse(resolvePosition(depthPrompt.prompt))) + 4
+        }
+
+        // Malang: HypaV3 summaries take the place of PocketRisu's supaMemory turn.
+        if (input.longTermMemory?.content.trim()) {
+            chats = [
+                { role: 'system', content: input.longTermMemory.content, memo: 'supaMemory' },
+                ...chats,
+            ]
+        }
+
+        for (const chat of chats) currentTokens += estimateChatTokens(chat)
+        const trimmedMessageIds: string[] = []
+        while (currentTokens > maxContextTokens) {
+            if (chats.length <= 1) throw new ContextTooLargeError()
+            const removed = chats.shift()!
+            currentTokens -= estimateChatTokens(removed)
+            if (removed.sourceMessageId) trimmedMessageIds.push(removed.sourceMessageId)
+        }
+
+        const memories: RisuChat[] = []
+        unformated.chats = chats
+            .map((chat): RisuChat => {
+                if (chat.memo !== 'supaMemory' && chat.memo !== 'hypaMemory') {
+                    chat.removable = true
+                } else if (supaMemoryCardUsed) {
+                    memories.push(chat)
+                    return { role: 'system', content: '' }
+                } else {
+                    chat.content = `<Previous Conversation>${chat.content}</Previous Conversation>`
+                }
+                return chat
+            })
+            .filter((chat) => chat.content.trim() !== '')
+
+        for (const depthPrompt of depthPrompts) {
+            const chat: RisuChat = {
+                role: depthPrompt.role,
+                content: parse(resolvePosition(depthPrompt.prompt)),
+            }
+            const depth =
+                depthPrompt.pos === 'depth'
+                    ? depthPrompt.depth
+                    : unformated.chats.length - depthPrompt.depth
+            unformated.chats.splice(depth, 0, chat)
+        }
+
+        let formated: RisuChat[] = []
+        const pushPrompts = (chats: RisuChat[]) => {
+            for (const chat of chats) {
+                if (!chat.content.trim()) continue
+                if (!input.mergeSystemMessages) {
+                    formated.push(chat)
                     continue
                 }
-                push({ role: role(prompt.role), content: render(prompt.content) })
+                const end = formated.at(-1)
+                if (
+                    chat.role === 'system' &&
+                    end?.role === 'system' &&
+                    end.memo === chat.memo &&
+                    end.name === chat.name
+                ) {
+                    end.content += `\n\n${chat.content}`
+                } else {
+                    formated.push(chat)
+                }
             }
         }
-    }
 
-    // RisuAI gates every `jailbreak`/`cot` block behind one global switch each
-    // (db.jailbreakToggle / db.chainOfThought), independent of the block's own `enabled` flag.
-    const blockRuns = (block: { type: string }) =>
-        (block.type !== 'jailbreak' || settings.jailbreakToggle) &&
-        (block.type !== 'cot' || settings.chainOfThought)
-    const hasMain = preset.blocks.some(
-        (block) =>
-            block.enabled &&
-            !('raw' in block) &&
-            (block.type === 'plain' || block.type === 'jailbreak' || block.type === 'cot') &&
-            block.type2 === 'main' &&
-            blockRuns(block),
-    )
-    const hasChat = preset.blocks.some(
-        (block) => block.enabled && !('raw' in block) && block.type === 'chat',
-    )
-    let afterMainAdded = false
-    let beforeChatAdded = false
-    let afterChatAdded = false
-    let longTermMemoryAdded = false
-    const addLongTermMemory = () => {
-        if (longTermMemoryAdded || !input.longTermMemory?.content.trim()) return
-        push({ role: 'system', content: input.longTermMemory.content, removable: false })
-        longTermMemoryAdded = true
-    }
-    addModulePrompts('beforeMain')
-    if (!hasMain) {
-        addModulePrompts('afterMain')
-        afterMainAdded = true
-    }
+        // Malang: module prompts at their declared positions around main and chat.
+        const pushModulePrompts = (position: PromptModule['prompts'][number]['position']) => {
+            for (const module of modules) {
+                for (const prompt of module.prompts) {
+                    if (prompt.toggleKey && !Object.hasOwn(effectiveToggles, prompt.toggleKey)) {
+                        warnings.push(
+                            `Module ${module.name} references undeclared prompt toggle ${prompt.toggleKey}`,
+                        )
+                    }
+                    if (
+                        !prompt.enabled ||
+                        prompt.position !== position ||
+                        (prompt.toggleKey && !effectiveToggles[prompt.toggleKey])
+                    ) {
+                        continue
+                    }
+                    pushPrompts([
+                        {
+                            role: convertPromptRole[prompt.role ?? 'system'],
+                            content: parse(prompt.content),
+                        },
+                    ])
+                }
+            }
+        }
+        const modulePositions = new Set<string>()
+        const pushModulePromptsOnce = (position: PromptModule['prompts'][number]['position']) => {
+            if (modulePositions.has(position)) return
+            modulePositions.add(position)
+            pushModulePrompts(position)
+        }
 
-    for (const block of preset.blocks) {
-        if (!block.enabled || 'raw' in block) continue
-        if (block.type === 'plain' || block.type === 'jailbreak' || block.type === 'cot') {
-            if (!blockRuns(block)) continue
-            let text = block.text
-            if (block.type2 === 'main' && character.systemPrompt) {
-                text = character.systemPrompt.includes('{{original}}')
-                    ? character.systemPrompt.replaceAll('{{original}}', text)
-                    : character.systemPrompt
-            }
-            if (block.type2 === 'globalNote' && character.postHistoryInstructions) {
-                text = character.postHistoryInstructions.includes('{{original}}')
-                    ? character.postHistoryInstructions.replaceAll('{{original}}', text)
-                    : character.postHistoryInstructions
-            }
-            push({ role: role(block.role), content: render(text) })
-            if (block.type2 === 'main' && !afterMainAdded) {
-                addModulePrompts('afterMain')
-                afterMainAdded = true
-            }
-            continue
+        pushModulePromptsOnce('beforeMain')
+        if (
+            !template.some(
+                (block) => block.type === 'plain' && 'type2' in block && block.type2 === 'main',
+            )
+        ) {
+            pushModulePromptsOnce('afterMain')
         }
-        if (block.type === 'description') {
-            const before = loreAt('before_desc')
-                .map((entry) => entry.content)
-                .join('\n')
-            const after = loreAt('after_desc')
-                .concat(loreAt('personality'), loreAt('scenario'))
-                .map((entry) => entry.content)
-                .join('\n')
-            push({
-                role: role(block.role2),
-                content: render(
-                    block.innerFormat || '{{slot}}',
-                    [before, description, after].filter(Boolean).join('\n\n'),
-                ),
-            })
-            continue
-        }
-        if (block.type === 'persona') {
-            push({
-                role: role(block.role2),
-                content: render(block.innerFormat || '{{slot}}', persona.description),
-            })
-            continue
-        }
-        if (block.type === 'lorebook') {
-            for (const entry of normalLore)
-                push({
-                    role: block.role2 ? role(block.role2) : entry.role,
-                    content: render(block.innerFormat || '{{slot}}', entry.content),
-                })
-            continue
-        }
-        if (block.type === 'authornote') {
-            const note = conversation.authorNote || block.defaultText || ''
-            push({
-                role: role(block.role2),
-                content: render(block.innerFormat || '{{slot}}', note),
-            })
-            continue
-        }
-        if (block.type === 'chat') {
-            if (!beforeChatAdded) {
-                addModulePrompts('beforeChat')
-                addLongTermMemory()
-                beforeChatAdded = true
-            }
-            const end =
-                block.rangeEnd === 'end'
-                    ? history.length
-                    : normalizeIndex(block.rangeEnd, history.length)
-            const start = normalizeIndex(block.rangeStart, history.length)
-            const systemize =
-                preset.promptSettings.sendChatAsSystem && !block.chatAsOriginalOnSystem
-            for (const message of history.slice(start, end)) {
-                push(
-                    systemize
-                        ? {
-                              ...message,
-                              role: 'system',
-                              content: message.nameAdded
-                                  ? message.content
-                                  : `${message.role}: ${message.content}`,
-                          }
-                        : { ...message },
-                )
-            }
-            if (!afterChatAdded) {
-                addModulePrompts('afterChat')
-                afterChatAdded = true
-            }
-            continue
-        }
-        if (block.type === 'chatML') {
-            for (const message of parseChatMl(render(block.text))) push(message)
-            continue
-        }
-        if (block.type === 'postEverything') {
-            for (const entry of [...loreAt('depth'), ...loreAt('reverse_depth')].filter(
-                (entry) => entry.depth === 0,
-            )) {
-                push({ role: entry.role, content: render(entry.content) })
-            }
-            continue
-        }
-    }
 
-    if (!afterMainAdded) addModulePrompts('afterMain')
-    if (!hasChat || !beforeChatAdded) {
-        addModulePrompts('beforeChat')
-        addLongTermMemory()
-    }
-    if (!hasChat || !afterChatAdded) addModulePrompts('afterChat')
+        for (const card of template) {
+            const raw = rawCard(card)
+            if (raw) {
+                if (raw.type === 'memory') {
+                    const prompts = structuredClone(memories)
+                    applyPromptBlockRole(prompts, raw.role2 as BlockRole | undefined)
+                    const innerFormat = typeof raw.innerFormat === 'string' ? raw.innerFormat : ''
+                    if (innerFormat) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(innerFormat).replace('{{slot}}', prompt.content)
+                        }
+                    }
+                    pushPrompts(prompts)
+                }
+                continue
+            }
+            const block = card as KnownBlock
+            switch (block.type) {
+                case 'persona': {
+                    const prompts = structuredClone(unformated.personaPrompt)
+                    applyPromptBlockRole(prompts, block.role2)
+                    if (block.innerFormat && prompts.length > 0) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(
+                                positionParser(block.innerFormat, block.type),
+                            ).replace('{{slot}}', prompt.content)
+                        }
+                    }
+                    pushPrompts(prompts)
+                    break
+                }
+                case 'description': {
+                    const prompts = getDescriptionPrompts(block.role2)
+                    if (block.innerFormat && prompts.length > 0) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(
+                                positionParser(block.innerFormat, block.type),
+                            ).replace('{{slot}}', prompt.content)
+                        }
+                    }
+                    pushPrompts(prompts)
+                    break
+                }
+                case 'authornote': {
+                    const prompts = structuredClone(unformated.authorNote)
+                    applyPromptBlockRole(prompts, block.role2)
+                    if (block.innerFormat && prompts.length > 0) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(
+                                positionParser(block.innerFormat, block.type),
+                            ).replace('{{slot}}', prompt.content || block.defaultText || '')
+                        }
+                    }
+                    pushPrompts(prompts)
+                    break
+                }
+                case 'lorebook':
+                    pushPrompts(unformated.lorebook)
+                    break
+                case 'postEverything':
+                    pushPrompts(unformated.postEverything)
+                    if (promptSettings.postEndInnerFormat) {
+                        pushPrompts([
+                            { role: 'system', content: promptSettings.postEndInnerFormat },
+                        ])
+                    }
+                    break
+                case 'plain':
+                case 'jailbreak':
+                case 'cot': {
+                    if (!settings.jailbreakToggle && block.type === 'jailbreak') continue
+                    if (!settings.chainOfThought && block.type === 'cot') continue
+                    const posType = block.type === 'plain' ? block.type2 : block.type
+                    let content = positionParser(block.text, posType)
+                    if (block.type2 === 'globalNote' && character.postHistoryInstructions) {
+                        content = positionParser(
+                            character.postHistoryInstructions,
+                            posType,
+                        ).replaceAll('{{original}}', content)
+                    }
+                    pushPrompts([
+                        {
+                            role: convertPromptRole[block.role],
+                            content: parse(content, block.role),
+                        },
+                    ])
+                    if (block.type2 === 'main') pushModulePromptsOnce('afterMain')
+                    break
+                }
+                case 'chatML':
+                    pushPrompts(parseChatML(block.text, (text) => parse(text)) ?? [])
+                    break
+                case 'chat': {
+                    pushModulePromptsOnce('beforeChat')
+                    let start = block.rangeStart
+                    let end = block.rangeEnd === 'end' ? unformated.chats.length : block.rangeEnd
+                    if (start === -1000) {
+                        start = 0
+                        end = unformated.chats.length
+                    }
+                    if (start < 0) start = Math.max(0, unformated.chats.length + start)
+                    if (end < 0) end = Math.max(0, unformated.chats.length + end)
+                    if (start < end) {
+                        let chats = unformated.chats.slice(start, end)
+                        if (promptSettings.sendChatAsSystem && !block.chatAsOriginalOnSystem) {
+                            chats = systemizeChat(chats)
+                        }
+                        pushPrompts(chats)
+                    }
+                    pushModulePromptsOnce('afterChat')
+                    break
+                }
+            }
+        }
+        pushModulePromptsOnce('afterMain')
+        pushModulePromptsOnce('beforeChat')
+        pushModulePromptsOnce('afterChat')
 
-    // PocketRisu appends this synthetic turn on its chat path. The caller gates
-    // it to Gemini here so providers with different classic semantics do not
-    // change as a side effect of the Gemini compatibility work.
-    if (input.includeStartNewChat && !preset.promptSettings.trimStartNewChat) {
-        push({ role: 'system', content: '[Start a new chat]', removable: false })
-    }
-
-    if (preset.promptSettings.assistantPrefill.trim()) {
-        push({
-            role: 'assistant',
-            content: render(preset.promptSettings.assistantPrefill),
-            removable: false,
+        formated = formated.map((chat) => {
+            chat.content = chat.content.trim()
+            return chat
         })
-    }
 
-    for (const entry of lore.entries.filter(
-        (item) =>
-            (item.position === 'depth' || item.position === 'reverse_depth') && item.depth > 0,
-    )) {
-        const fromEnd = entry.position === 'depth'
-        const index = fromEnd
-            ? Math.max(0, working.length - entry.depth)
-            : Math.min(working.length, entry.depth)
-        working.splice(index, 0, { role: entry.role, content: render(entry.content) })
-    }
-
-    const parameters = input.parameters
-    const maxContext = parameters.maxContextTokens || 8192
-    const reservedOutputTokens = parameters.maxOutputTokens || 512
-    const available = maxContext - reservedOutputTokens
-    const trimmedMessageIds: string[] = []
-    let total = working.reduce((sum, message) => sum + estimateMessageTokens(message), 0)
-    if (total > available) {
-        for (let index = 0; index < working.length && total > available; index += 1) {
-            const message = working[index]
-            if (!message) continue
-            if (!message.removable) continue
-            total -= estimateMessageTokens(message)
-            if (message.sourceMessageId) trimmedMessageIds.push(message.sourceMessageId)
-            working.splice(index, 1)
-            index -= 1
+        // Token recheck: blank out removable turns from the front until the prompt fits.
+        let inputTokens = formated.reduce((sum, chat) => sum + estimateChatTokens(chat), 0)
+        const budget = maxContextTokens - reservedOutputTokens
+        if (inputTokens > budget) {
+            let pointer = 0
+            while (inputTokens > budget) {
+                if (pointer >= formated.length) throw new ContextTooLargeError()
+                const chat = formated[pointer]!
+                if (chat.removable) {
+                    inputTokens -= estimateChatTokens(chat)
+                    chat.content = ''
+                    if (chat.sourceMessageId) trimmedMessageIds.push(chat.sourceMessageId)
+                }
+                pointer += 1
+            }
+            formated = formated.filter((chat) => chat.content !== '')
         }
-    }
-    if (total > available) throw new ContextTooLargeError()
-    return {
-        messages: mergeAdjacentSystemMessages(working).map(({ role: itemRole, content }) => ({
-            role: itemRole,
-            content,
-        })),
-        estimatedInputTokens: total,
-        reservedOutputTokens,
-        activatedLoreIds: lore.entries.map((entry) => entry.id),
-        activeModuleIds: modules.map((module) => module.id),
-        activeModules: modules.map((module) => ({
-            id: module.id,
-            source: input.moduleActivationSources?.[module.id] || ('default' as const),
-        })),
-        effectiveToggles: effectiveToggleValues,
-        activeRegexScriptIds: {
-            editinput: activeRegexIds(preset, character, modules, 'editinput'),
-            editprocess: activeRegexIds(preset, character, modules, 'editprocess'),
-            editoutput: activeRegexIds(preset, character, modules, 'editoutput'),
-            editdisplay: activeRegexIds(preset, character, modules, 'editdisplay'),
-        },
-        trimmedMessageIds,
-        warnings: [...new Set(warnings)],
-        persona,
-        longTermMemory: input.longTermMemory
-            ? {
-                  enabled: input.longTermMemory.enabled,
-                  summaryCount: input.longTermMemory.summaryCount,
-                  selectedSummaryIds: input.longTermMemory.selectedSummaryIds,
-              }
-            : undefined,
+
+        return {
+            messages: formated.map(({ role, content }): CompiledMessage => ({ role, content })),
+            estimatedInputTokens: inputTokens,
+            reservedOutputTokens,
+            activatedLoreIds: [...new Set(lorepmt.actives.map((active) => active.sourceId))],
+            activeModuleIds: modules.map((module) => module.id),
+            activeModules: modules.map((module) => ({
+                id: module.id,
+                source: input.moduleActivationSources?.[module.id] || ('default' as const),
+            })),
+            effectiveToggles: effectiveToggleValues,
+            activeRegexScriptIds: {
+                editinput: activeRegexIds(preset, character, modules, 'editinput'),
+                editprocess: activeRegexIds(preset, character, modules, 'editprocess'),
+                editoutput: activeRegexIds(preset, character, modules, 'editoutput'),
+                editdisplay: activeRegexIds(preset, character, modules, 'editdisplay'),
+            },
+            trimmedMessageIds,
+            warnings: [...new Set(warnings)],
+            persona,
+            longTermMemory: input.longTermMemory
+                ? {
+                      enabled: input.longTermMemory.enabled,
+                      summaryCount: input.longTermMemory.summaryCount,
+                      selectedSummaryIds: input.longTermMemory.selectedSummaryIds,
+                  }
+                : undefined,
+        }
+    } finally {
+        sandbox.close()
     }
 }
 
@@ -496,86 +823,3 @@ function activeRegexIds(
         .map((script) => script.id)
 }
 
-function buildHistory(character: CharacterRecord, messages: Message[]): WorkingMessage[] {
-    const examples = parseExamples(character.exampleMessage, character.name)
-    return [
-        ...examples,
-        ...messages
-            .filter((message) => message.status !== 'failed')
-            .map((message, index) => ({
-                role: message.role,
-                content: message.content,
-                sourceMessageId: message.id,
-                removable: index > 0 && index < messages.length - 1,
-            })),
-    ]
-}
-
-function parseExamples(source: string, characterName: string): WorkingMessage[] {
-    if (!source.trim()) return []
-    const result: WorkingMessage[] = []
-    let current: WorkingMessage | null = null
-    for (const line of source.replaceAll('<START>', '').split(/\r?\n/)) {
-        const match = line.match(/^\s*(\{\{user}}|\{\{char}}|[^:]{1,100}):\s*(.*)$/i)
-        if (match) {
-            if (current) result.push(current)
-            const speaker = (match[1] || '').toLocaleLowerCase()
-            current = {
-                role: speaker === '{{user}}' ? 'user' : 'assistant',
-                content: match[2] || '',
-                removable: false,
-            }
-        } else if (current) {
-            current.content += `\n${line}`
-        }
-    }
-    if (current) result.push(current)
-    if (!result.length)
-        result.push({
-            role: 'system',
-            content: `Example dialogue with ${characterName}:\n${source}`,
-            removable: false,
-        })
-    return result
-}
-
-function parseChatMl(source: string): WorkingMessage[] {
-    const result: WorkingMessage[] = []
-    const regex =
-        /@@(system|user|assistant|bot)\s*\n([\s\S]*?)(?=@@(?:system|user|assistant|bot)\s*\n|$)/gi
-    for (const match of source.matchAll(regex)) {
-        const parsedRole = (match[1] || 'system').toLowerCase()
-        result.push({
-            role: parsedRole === 'bot' ? 'assistant' : (parsedRole as CompiledMessage['role']),
-            content: (match[2] || '').trim(),
-        })
-    }
-    return result
-}
-
-function normalizeIndex(index: number, length: number): number {
-    if (index < 0) return Math.max(0, length + index)
-    return Math.min(length, index)
-}
-
-function estimateMessageTokens(message: CompiledMessage): number {
-    return estimateTokens(message.content) + 4
-}
-
-function mergeAdjacentSystemMessages(messages: WorkingMessage[]): WorkingMessage[] {
-    const result: WorkingMessage[] = []
-    for (const message of messages) {
-        const previous = result.at(-1)
-        if (
-            message.role === 'system' &&
-            previous?.role === 'system' &&
-            !message.sourceMessageId &&
-            !previous.sourceMessageId
-        ) {
-            previous.content += `\n\n${message.content}`
-        } else {
-            result.push({ ...message })
-        }
-    }
-    return result
-}
