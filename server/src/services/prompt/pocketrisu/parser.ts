@@ -55,18 +55,27 @@ export class RisuParser {
 
     parse(
         text: string,
-        options: { runVar?: boolean; role?: string; chatId?: number } = {},
+        options: {
+            runVar?: boolean
+            /** Drop variable commands instead of leaving them as text (chat display). */
+            rmVar?: boolean
+            /** Chat display rendering of {{comment}} and {{file}}. */
+            visualize?: boolean
+            role?: string
+            chatId?: number
+        } = {},
     ): string {
         const result = renderTemplate(text.replaceAll('{{slot}}', SLOT), {
             ...this.base,
             variables: this.variables,
             messages: this.engineMessages,
             pocketRisu: {
-                variableMode: options.runVar ? 'run' : 'keep',
+                variableMode: options.runVar ? 'run' : options.rmVar ? 'remove' : 'keep',
                 variableDefaults: this.variableDefaults,
                 chatId: options.chatId ?? -1,
                 role: options.role,
                 greeting: this.greeting,
+                displaying: options.visualize,
             },
         })
         this.warnings.push(...result.warnings)

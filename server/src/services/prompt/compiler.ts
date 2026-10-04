@@ -15,9 +15,9 @@ import type { CharacterRecord } from '@/db'
 import { AppError } from '@/errors/app-error'
 
 import { estimateTokens } from './lorebook'
+import { loadRisuChat } from './pocketrisu/chat'
 import { exampleMessage } from './pocketrisu/example-messages'
 import { loadLoreBookV3Prompt, toRisuLore } from './pocketrisu/lorebook'
-import { RisuParser, type ChatTurn } from './pocketrisu/parser'
 import { processScripts, RegexSandbox } from './pocketrisu/scripts'
 import type { RisuChat } from './pocketrisu/types'
 import { collectRegexScripts } from './regex-runtime'
@@ -57,14 +57,7 @@ export function mergeGenerationParameters(
     }
 }
 
-// RisuAI's own toggle checks (the CBS `#when::toggle::key` operator, `parser.svelte.ts`'s
-// `isTruthy`) require the stored value to be exactly '1' or 'true' — anything else, including
-// '0', '', or arbitrary text, is off. Match that exactly rather than guessing at a blocklist, or
-// toggles that read as "on" in RisuAI (e.g. a stray non-'1' value) would read as "off" here, or
-// vice versa.
-export function isPromptToggleEnabled(value: string): boolean {
-    return value === '1' || value === 'true'
-}
+export { isPromptToggleEnabled } from './pocketrisu/chat'
 
 type BlockRole = 'user' | 'bot' | 'system'
 type KnownBlock = Exclude<PromptBlock, { raw: Record<string, unknown> }>
@@ -173,83 +166,20 @@ export async function compilePrompt(input: {
         ...(input.longTermMemory?.warnings || []),
     ]
 
-    // PocketRisu appends customModuleToggle declarations from every active module to the
-    // preset declarations. Keep that ordering so a shared key resolves to the same global
-    // toggle value while module-only keys work in CBS, templates, lore and prompt injections.
-    const declaredToggles = [
-        ...preset.toggles,
-        ...modules.flatMap((module) => module.toggles),
-    ].filter((toggle) => ['boolean', 'select', 'text', 'textarea'].includes(toggle.type))
-    const effectiveToggleValues = Object.fromEntries(
-        declaredToggles.map((toggle) => [
-            toggle.key,
-            settings.promptToggleValues[toggle.key] ?? toggle.defaultValue,
-        ]),
-    )
-    const effectiveToggles = Object.fromEntries(
-        Object.entries(effectiveToggleValues).map(([key, value]) => [
-            key,
-            isPromptToggleEnabled(value),
-        ]),
-    )
-
-    // chat.message excludes the greeting, which PocketRisu derives from fmIndex.
-    const stored = input.messages.filter((message) => message.status !== 'failed')
-    const greeting = stored[0]?.role === 'assistant' ? stored[0] : null
-    const chatMessages = greeting ? stored.slice(1) : stored
-    const firstMessage = greeting?.content ?? ''
-    const selectedGreeting =
-        conversation.greetingIndex >= 0
-            ? (character.alternateGreetings[conversation.greetingIndex] ?? '')
-            : character.firstMessage
-
-    const parser = new RisuParser(
-        {
-            values: {
-                user: persona.name,
-                char: character.name,
-                bot: character.name,
-                persona: persona.description,
-                personaname: persona.name,
-                description: character.description,
-                personality: character.personality,
-                scenario: character.scenario,
-                exampledialogue: character.exampleMessage,
-                examplemessage: character.exampleMessage,
-                firstmessage: character.firstMessage,
-                authornote: conversation.authorNote,
-                globalnote: character.postHistoryInstructions,
-                prefill_supported: 'false',
-                jbtoggled: settings.jailbreakToggle ? '1' : '0',
-                slot: '',
-            },
-            globalVariables: {
-                ...settings.globalVariables,
-                ...Object.fromEntries(
-                    Object.entries(effectiveToggleValues).map(([key, value]) => [
-                        `toggle_${key}`,
-                        value,
-                    ]),
-                ),
-            },
-            toggles: effectiveToggles,
-            toggleValues: effectiveToggleValues,
+    const { parser, greeting, firstMessage, effectiveToggles, effectiveToggleValues } =
+        loadRisuChat({
+            character,
+            conversation,
+            messages: input.messages,
+            preset,
+            settings,
+            persona,
+            modules,
+            assets: input.assets,
             modelId: input.modelId,
             maxContextTokens: input.parameters.maxContextTokens,
-            moduleNamespaces: modules.map((module) => module.namespace).filter(Boolean),
-            assets: input.assets,
-        },
-        conversation.variables,
-        // getChatVar: character defaults first, then the preset's template defaults.
-        { ...preset.defaultVariables, ...character.defaultVariables },
-        chatMessages.map((message): ChatTurn => ({
-            id: message.id,
-            role: message.role === 'user' ? 'user' : 'char',
-            data: message.content,
-        })),
-        selectedGreeting,
-        warnings,
-    )
+            warnings,
+        })
     const parse = (text: string, role?: string) => parser.parse(text, { role })
 
     // runCurrentChatFunction: every stored message runs its variable commands once, in order.
@@ -822,4 +752,3 @@ function activeRegexIds(
         .filter((script) => script.enabled && script.phase === phase)
         .map((script) => script.id)
 }
-

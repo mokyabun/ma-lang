@@ -45,6 +45,8 @@ export interface PocketRisuParserOptions {
     greeting: string
     /** Nesting of value re-parses; risuChatParser stops at 20. */
     callStack?: number
+    /** risuChatParser's `visualize`: chat display renders {{comment}} and {{file}} as markup. */
+    displaying?: boolean
 }
 
 /** CBS values PocketRisu runs through risuChatParser again when they are read. */
@@ -546,6 +548,7 @@ function evaluateCbsExpression(
             .filter((value) => !Number.isNaN(Number(value)) || value === '.')
             .join('')
     if (name === 'file') {
+        if (context.pocketRisu?.displaying) return `<br><div class="risu-file">${arg(0)}</div><br>`
         try {
             return Buffer.from(arg(1), 'base64').toString('utf8')
         } catch {
@@ -693,6 +696,8 @@ function evaluateCbsExpression(
             'source',
         ].includes(name)
     ) {
+        // PocketRisu registers inlays as doc-only CBS: the display renderer resolves them.
+        if (context.pocketRisu && name.startsWith('inlay')) return null
         const asset = (context.assets || []).find(
             (item) => normalizeName(item.name) === normalizeName(arg(0)),
         )
@@ -736,6 +741,8 @@ function evaluateCbsExpression(
     if (name === 'br') return '\n'
     if (name === 'cbr') return '\\n'
 
+    if (name === 'comment' && context.pocketRisu?.displaying)
+        return `<div class="risu-comment">${arg(0)}</div>`
     if (
         name === 'blank' ||
         name === 'none' ||

@@ -1,19 +1,35 @@
 import type { RegexScript } from '@malang/shared'
 
-import { processRegexText } from './regex-runtime'
-import { renderTemplate, type TemplateContext } from './template-engine'
+import type { RisuParser } from './pocketrisu/parser'
+import { processScripts, type RegexSandbox } from './pocketrisu/scripts'
 
-/** Display text for one message after Lua editDisplay: editdisplay regex, then CBS. */
-export async function renderDisplayText(
-    text: string,
-    scripts: RegexScript[],
-    templateContext: TemplateContext,
-): Promise<string> {
-    const regex = await processRegexText({
-        text,
-        phase: 'editdisplay',
-        scripts,
-        templateContext,
+/**
+ * The text PocketRisu hands to its markdown renderer for one stored message:
+ * Chat.svelte's displaya() parses it with rmVar/visualize, then ParseMarkdown's
+ * processScriptFull runs the Lua editDisplay trigger and the editdisplay regex
+ * stage, which parses again before and after every script.
+ */
+export async function renderDisplayText(input: {
+    parser: RisuParser
+    content: string
+    /** PocketRisu's chatID: the index in chat.message, or -1 for the greeting. */
+    chatId: number
+    scripts: RegexScript[]
+    sandbox: RegexSandbox
+    warnings: string[]
+    /** Lua editDisplay, which PocketRisu runs between the two parses. */
+    editDisplay?: (text: string) => Promise<string>
+}): Promise<string> {
+    const { parser, chatId } = input
+    let data = parser.parse(input.content, { chatId, rmVar: true, visualize: true })
+    if (input.editDisplay) data = await input.editDisplay(data)
+    return processScripts({
+        scripts: input.scripts,
+        data,
+        mode: 'editdisplay',
+        chatId,
+        parse: (text) => parser.parse(text, { chatId }),
+        sandbox: input.sandbox,
+        warnings: input.warnings,
     })
-    return renderTemplate(regex.text, { ...templateContext, assetRenderMode: 'display' }).text
 }
