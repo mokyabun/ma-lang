@@ -5,7 +5,7 @@ import type { DatabaseHandle } from '../db'
 import { appSettings } from '../schema'
 import { normalizeToggleValues, RepositoryBase, requireValue } from './base'
 
-// app_settings is a singleton row; every repository that reads or writes its columns seeds it first.
+// app_settings is a singleton row; seed it before reading or writing.
 export function ensureAppSettingsRow(db: DatabaseHandle['db']): void {
     if (db.select().from(appSettings).where(eq(appSettings.id, 1)).get()) return
     db.insert(appSettings)

@@ -27,12 +27,8 @@ const SESSION_IDLE_MS = 60 * 60 * 1000
 const MAX_SESSIONS = 8
 
 /**
- * Spools import uploads to DATA_DIR/tmp/uploads so large archives are never held in memory as a
- * whole. Files left behind by a crash are removed on startup.
- *
- * Uploads arrive either as one request body (`receive`) or as a chunked session (`create`,
- * `writeChunk`, `take`). Chunks keep every request under reverse-proxy body limits, may arrive
- * in any order or in parallel, and can be retried because each is written at its own offset.
+ * Spools uploads to DATA_DIR/tmp/uploads (cleared on startup). Each chunk is written at its own
+ * offset, so chunks may arrive out of order, in parallel or retried.
  */
 export class UploadStore {
     private readonly directory: string

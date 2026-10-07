@@ -20,8 +20,7 @@ import { decodeRPack, encodeRPack } from './rpack'
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder('utf-8', { fatal: true })
-// RisuAI's addLorebookFolder() stamps a folder entry's `key` with this sentinel prefix; children
-// reference the folder via their own `folder` field set to that exact string.
+// RisuAI folder entries' `key` prefix; children reference it via `folder`.
 const RISU_FOLDER_KEY_PREFIX = 'folder:'
 export class ModuleFormatError extends ValidationError {
     constructor(message: string) {
@@ -151,8 +150,7 @@ function preservedRisuModuleFields(source: Record<string, unknown>): Record<stri
     return result
 }
 
-// Parses the .risum container by offset so asset payloads are read (and RPack-decoded) only
-// when each asset is persisted.
+// Reads by offset so assets are decoded only when persisted.
 export async function readRisum(
     input: Uint8Array | ByteSource,
     limits: RisumLimits,
@@ -317,9 +315,7 @@ function indicatorPrompt(name: string, indicator: string, content: string): Modu
 function normalizeLore(lore: RisuLore, groupKeyFor: (id: string) => string): LoreEntry {
     const extensions = isRecord(lore.extentions) ? lore.extentions : {}
     const isGroup = lore.mode === 'folder'
-    // RisuAI repurposes `key` as a folder's identity (e.g. 'folder:<uuid>'); children point back
-    // to it via their own `folder` field set to that exact string. See character-card.ts for the
-    // matching CharX-side conversion and a fuller explanation.
+    // RisuAI folders use `key` as their id; see character-card.ts.
     const ownKey = stringValue(lore.key)
     const folderId = stringValue(lore.folder)
     const group = isGroup

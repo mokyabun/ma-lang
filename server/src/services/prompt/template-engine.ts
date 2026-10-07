@@ -3,9 +3,7 @@ export interface TemplateContext {
     variables: Record<string, string>
     globalVariables: Record<string, string>
     toggles: Record<string, boolean>
-    // Raw (pre-boolean) toggle values, keyed the same as `toggles`. `#when::tis`/`tisnot`
-    // compare against this directly (RisuAI does the same against the raw `toggle_<key>` chat
-    // var), since a select/text toggle's value isn't reducible to on/off.
+    // Raw toggle values for `#when::tis`/`tisnot`; select/text toggles aren't on/off.
     toggleValues?: Record<string, string>
     messages?: Array<{
         role: string
@@ -30,10 +28,7 @@ export interface TemplateContext {
 }
 
 export interface PocketRisuParserOptions {
-    /**
-     * How setvar/addvar/setdefaultvar behave: `run` executes them (risuChatParser's runVar),
-     * `remove` drops them (rmVar), `keep` leaves the tag as literal text (neither flag).
-     */
+    /** setvar/addvar/setdefaultvar: `run` executes, `remove` drops, `keep` leaves them as text. */
     variableMode: 'run' | 'remove' | 'keep'
     /** Character, then preset default variables, consulted by getvar before `null`. */
     variableDefaults: Record<string, string>
@@ -211,8 +206,7 @@ export function renderTemplate(
 
     const blocked = renderRange(source, 0)
     let expanded = expandVariables(blocked, context, warnings, {}, runtime)
-        // Risu/CBS exports can include redundant stack markers after the outer
-        // block has already closed. They are control syntax, never prompt text.
+        // Drop stray close markers left by Risu/CBS exports.
         .replace(/\{\{\/(?!\/)[^{}]*}}/g, '')
     if (!context.pocketRisu) expanded = expanded.replaceAll('{{:else}}', '')
     const text = unescapeRisuLiteral(expanded)
@@ -1100,13 +1094,7 @@ function metadataValue(key: string, context: TemplateContext): string {
     return `Error: ${key} is not a valid metadata key.`
 }
 
-// Faithful port of PocketRisu's `{{? ...}}` / `{{calc::...}}` engine
-// (src/ts/process/infunctions.ts: calcString/toRPN/calculateRPN/executeRPNCalculation). It is
-// NOT a conventional expression parser: '=' and '>' are separate single-char tokens with no
-// combined '>=' handling unless the source spells it as literal ">=" (normalized below to '≥')
-// — a bare "a=>b" silently parses as two chained comparisons through a shunting-yard/RPN
-// evaluator, not "greater-or-equal". Reproduced exactly, quirks included, so a preset ported
-// from Risu evaluates identically here.
+// Port of PocketRisu's calcString RPN engine, quirks included (`a=>b` is two comparisons, not >=).
 function calculateExpression(
     source: string,
     runtime: TemplateRuntimeState,
@@ -1148,9 +1136,7 @@ const rpnOperators: Record<string, { precedence: number; rightAssociative: boole
     '!': { precedence: 5, rightAssociative: true },
 }
 
-// Mirrors the reference's `parseFloat(token) || token === '0'`: a token only counts as a
-// number if it parses to a nonzero finite value, or is exactly the literal string '0' (needed
-// because parseFloat('0') / parseFloat('-0') are themselves falsy in JS).
+// Mirrors `parseFloat(token) || token === '0'`.
 function isRpnNumberToken(token: string): boolean {
     const parsed = Number.parseFloat(token)
     return (!Number.isNaN(parsed) && parsed !== 0) || token === '0'

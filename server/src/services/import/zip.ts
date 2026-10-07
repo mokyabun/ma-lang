@@ -2,9 +2,7 @@ import { Inflate } from 'fflate'
 
 import type { ByteSource } from './source'
 
-// Random-access ZIP reader. Unlike streaming unzip, it reads the central directory first, so
-// callers can inspect card.json (which RisuAI writes last) before touching any asset, and
-// then extract entries one at a time without holding the whole archive in memory.
+// Random-access ZIP reader: reads the central directory first, then extracts entries one at a time.
 
 export class ZipFormatError extends Error {
     constructor(message: string) {
@@ -152,8 +150,7 @@ export async function readZipEntry(source: ByteSource, entry: ZipEntry): Promise
     throw new ZipFormatError(`Unsupported ZIP compression method ${entry.method}: ${entry.name}`)
 }
 
-// Inflates into a buffer of the declared size and aborts as soon as the stream exceeds it, so a
-// lying central directory cannot turn one entry into a decompression bomb.
+// Aborts past the declared size, so a lying central directory cannot become a zip bomb.
 function inflateBounded(data: Uint8Array, size: number, name: string): Uint8Array {
     const output = new Uint8Array(size)
     let written = 0

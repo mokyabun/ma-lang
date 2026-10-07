@@ -25,9 +25,7 @@ export function iso(value: Date | null): string | null {
     return value?.toISOString() ?? null
 }
 
-// SQLite caps bound parameters per statement (999 in older builds; Bun's build fails past 65535),
-// so large multi-row inserts (asset links of big CHARX imports, long lorebooks) are batched under
-// the portable minimum.
+// Batch multi-row inserts under SQLite's portable bound-parameter limit (999).
 const MAX_BOUND_PARAMETERS = 999
 
 export function insertBatches<T extends object>(rows: T[]): T[][] {

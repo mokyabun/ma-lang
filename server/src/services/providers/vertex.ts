@@ -73,8 +73,6 @@ export class VertexAdapter implements ProviderAdapter {
     }
 }
 
-// Kept for callers/tests that used the old name. The behavior now follows
-// PocketRisu's current Model Preset google-gemini adapter.
 export const toGeminiContents = toPocketRisuGeminiPrompt
 
 async function vertexRequest(

@@ -88,7 +88,8 @@ export const appSettings = sqliteTable('app_settings', {
     providerJson: text('provider_json', { mode: 'json' }).$type<ProviderConfig>(),
     autoBackupEnabled: integer('auto_backup_enabled', { mode: 'boolean' }).notNull().default(true),
     secretSalt: text('secret_salt'),
-    /** Encrypted envelope owned by SecretVault; intentionally opaque to Drizzle's JSON mapper. */
+
+    /** Opaque SecretVault envelope. */
     providerSecretJson: text('provider_secret_json'),
     updatedAt: updatedAt(),
 })

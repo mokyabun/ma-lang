@@ -20,12 +20,8 @@ export interface LuaApiCallRow {
     error_json: string | null
 }
 
-/**
- * Journal of Lua event runs, their per-script invocations and the external API calls those make.
- * Rows are keyed so a retried event replays completed work instead of running it again.
- */
+/** Journal of Lua runs, script invocations and API calls; a retried event replays completed work. */
 export class LuaRunRepository extends RepositoryBase {
-    /** Marks work left running by a previous process as failed or indeterminate. */
     recoverInterrupted(): void {
         const now = Date.now()
         this.sqlite

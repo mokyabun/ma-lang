@@ -36,10 +36,9 @@ export const EnvConfigSchema = z
         MAX_IMPORT_BYTES: EnvPositiveIntegerSchema.default(1024 * 1024 * 1024),
         MAX_CARD_JSON_BYTES: EnvPositiveIntegerSchema.default(8 * 1024 * 1024),
         MAX_ASSET_BYTES: EnvPositiveIntegerSchema.optional(),
-        // RisuAI writes two entries per asset (the file and its x_meta/*.json).
+        // RisuAI writes each asset plus its x_meta/*.json.
         MAX_ARCHIVE_ENTRIES: EnvPositiveIntegerSchema.default(65536),
-        // Imports are uploaded in chunks of this size so they pass proxies with small body limits
-        // (nginx defaults to 1 MiB).
+        // Chunked so uploads pass proxy body limits (nginx default: 1 MiB).
         UPLOAD_CHUNK_BYTES: EnvPositiveIntegerSchema.default(512 * 1024),
     })
     .transform((raw) => {

@@ -9,12 +9,7 @@ import type { AppEnv } from '@/utils'
 
 const encoder = new TextEncoder()
 
-/**
- * Runs an import from a completed chunked upload (`x-upload-id`) or from the request body, which
- * is spooled to a temp file. Clients that accept
- * `text/event-stream` receive progress events (asset X/Y) followed by the result; others get a
- * plain JSON response as before.
- */
+/** Imports a chunked upload (`x-upload-id`) or the spooled body; SSE clients get progress events. */
 export async function respondToImport<T>(
     c: Context<AppEnv>,
     context: AppContext,
@@ -45,7 +40,7 @@ export async function respondToImport<T>(
                 try {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
                 } catch {
-                    // The client went away; keep importing so the result is still saved.
+                    // Client went away; keep importing so the result is saved.
                     open = false
                 }
             }
@@ -78,7 +73,7 @@ export async function respondToImport<T>(
         headers: {
             'content-type': 'text/event-stream; charset=utf-8',
             'cache-control': 'no-cache, no-transform',
-            // Ask nginx not to buffer, so progress events reach the client as they happen.
+            // Disable nginx buffering so progress events stream.
             'x-accel-buffering': 'no',
             'x-request-id': requestId,
         },

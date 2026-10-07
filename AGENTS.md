@@ -1,5 +1,14 @@
 # AGENTS.md
 
+## Code style
+
+- Write code that reads on its own: clear names and small functions instead of explanations.
+- Comment only what the code cannot say: the non-obvious *why*, an external constraint (a
+  protocol, a RisuAI/PocketRisu quirk being matched, a platform limit) or a trap for the next
+  editor. Keep it to one short line where possible.
+- No comments that restate the code, narrate steps, repeat a name or signature, or record history
+  ("used to", "now", "kept for old callers"). Delete stale comments when changing the code.
+
 ## Database (server)
 
 `server/src/db/schema.ts` (Drizzle) is the single source of truth for the database structure.

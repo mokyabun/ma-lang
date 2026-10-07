@@ -20,7 +20,7 @@ export interface CharacterRecord extends Character {
     regexScripts: Character['regexScripts']
     moduleReferences: string[]
     luaRawTriggers: unknown[]
-    /** Each lore entry's card `extensions` (without Malang's own fields), keyed by entry id. */
+    /** Card `extensions` per lore entry id, without Malang's own fields. */
     loreExtensions?: Record<string, Record<string, unknown>>
 }
 

@@ -677,11 +677,7 @@ export class GenerationService {
     }
 }
 
-/**
- * PocketRisu's model-dependent prompt rules: every model but NovelAI gets the
- * `[Start a new chat]` turn, and only GPT/Claude-family models (plus OpenRouter)
- * have consecutive system turns merged.
- */
+/** PocketRisu: `[Start a new chat]` except for NovelAI; merge system turns only for GPT/Claude/OpenRouter. */
 function providerPromptOptions(config: { provider: string } | null | undefined) {
     return {
         includeStartNewChat: config?.provider !== 'novelai',
@@ -709,9 +705,7 @@ function generationParameters(
     promptPreset: GenerationParameters,
 ) {
     const merged = mergeGenerationParameters(provider?.defaults || {}, promptPreset)
-    // PocketRisu reserves output context from the bound Model Preset. Prompt
-    // preset sampling can be opt-in there, but its output cap never replaces
-    // the model preset's maxOutputTokens.
+    // The output cap always comes from the model preset, as in PocketRisu.
     if (
         isGeminiProvider(provider) &&
         readPocketRisuProfileBinding(provider?.providerOptions) &&

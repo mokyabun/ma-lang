@@ -36,12 +36,7 @@ interface RisuModule {
     lowLevelAccess?: unknown
 }
 
-/**
- * RisuAI's CHARX export writes the character's lorebook (plus regex/trigger scripts) into a
- * separate `module.risum` entry rather than `card.json`'s `character_book` field. That file uses
- * the same obfuscated container format as standalone .risum module imports, so we reuse the
- * existing decoder rather than re-parsing the format here.
- */
+// RisuAI CHARX stores the lorebook and scripts in `module.risum` (the .risum module format).
 async function readRisuModule(bytes: Uint8Array, config: AppConfig): Promise<RisuModule | null> {
     try {
         const { source } = await readRisum(bytes, config.limits)
@@ -68,15 +63,8 @@ function splitRisuKeys(value: unknown): string[] {
 }
 
 /**
- * Converts RisuAI's proprietary lorebook entries (from module.risum) into CCv3 character_book
- * entries. RisuAI's "folder" is a purely organizational grouping (not SillyTavern's mutually
- * exclusive activation groups), so folder membership round-trips via extensions only.
- *
- * RisuAI repurposes the `key` field as a folder's identity: `addLorebookFolder()` sets
- * `key: 'folder:' + uuid` on the folder entry, and child entries point back to it via
- * their own `folder` field set to that exact string (see RisuAI's LoreBookList.svelte, which
- * matches children with `item.folder === book.key`). A folder entry's `key` is therefore never
- * real search keywords and must not be surfaced as one.
+ * RisuAI lore entries → CCv3 character_book entries. Folders are organizational only, so
+ * membership round-trips via extensions; a folder's `key` ('folder:<uuid>') is its id, not a keyword.
  */
 function risuLorebookToCharacterBookEntries(lorebook: unknown[]) {
     const groupKeys = new Map<string, string>()
@@ -251,8 +239,7 @@ function readPng(bytes: Uint8Array, config: AppConfig): ImportedCard {
     }
 }
 
-// Reads the archive through its central directory: card.json and module.risum (which RisuAI
-// writes last) are parsed first, and each referenced asset is extracted only when persisted.
+// card.json and module.risum are parsed first; assets are extracted only when persisted.
 async function readCharx(source: ByteSource, config: AppConfig): Promise<ImportedCard> {
     let directory: ZipEntry[]
     try {
@@ -300,10 +287,8 @@ async function readCharx(source: ByteSource, config: AppConfig): Promise<Importe
         parseJson(await readEntry('card.json'), config.limits.jsonBytes),
     )
 
-    // RisuAI-exported CHARX files store the actual lorebook (and regex/trigger scripts) in a
-    // sibling `module.risum` entry, not in card.json's `character_book`. When present, it takes
-    // precedence over `character_book.entries` (matching RisuAI's own import behavior), while
-    // scan_depth/token_budget/recursive_scanning still come from `character_book` if present.
+    // module.risum's lorebook overrides `character_book.entries` (as RisuAI does); scan settings
+    // still come from `character_book`.
     if (entries.has('module.risum')) {
         const risuModule = await readRisuModule(await readEntry('module.risum'), config)
         const lorebook = Array.isArray(risuModule?.lorebook) ? risuModule.lorebook : []
@@ -334,8 +319,7 @@ async function readCharx(source: ByteSource, config: AppConfig): Promise<Importe
 
     const importedAssets: LazyAsset[] = []
     let avatar: LazyAsset | undefined
-    // Maps every "/"-delimited path suffix to the first entry ending with it, so descriptors whose
-    // URI omits leading directories resolve without scanning all entries per asset.
+    // Index every path suffix so asset URIs without leading directories resolve directly.
     const pathsBySuffix = new Map<string, string>()
     for (const path of entries.keys()) {
         for (let index = path.indexOf('/'); index !== -1; index = path.indexOf('/', index + 1)) {

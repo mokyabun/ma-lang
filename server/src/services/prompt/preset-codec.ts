@@ -112,10 +112,7 @@ function normalizeBlocks(value: unknown, warnings: string[]): PromptBlock[] {
 }
 
 function normalizedParameters(source: Record<string, unknown>): GenerationParameters {
-    // RisuAI (and this module's own exportPromptPreset) uses -1000 as a sentinel meaning
-    // "unset / use provider default" for temperature/top_p/top_k/repetition_penalty. It must
-    // be treated as undefined here, not as a literal value, or it will be sent to LLM
-    // providers verbatim (e.g. top_p: -1000) once merged with generation parameters.
+    // RisuAI's -1000 means "provider default"; never send it to providers.
     const numeric = (key: string, divisor = 1) => {
         const value = source[key]
         if (typeof value !== 'number' || !Number.isFinite(value) || value === -1000) {
@@ -224,8 +221,7 @@ export async function importPromptPreset(
             toggles: parsePromptToggles(source.customPromptTemplateToggle),
             regexScripts: normalizeRegexScripts(source.regex),
             moduleIntegrations: parseModuleIntegrations(source.moduleIntergration),
-            // RisuAI stores groupTemplate at the top level of the preset, as a sibling of
-            // promptSettings, not nested inside it.
+            // RisuAI stores groupTemplate at the preset's top level.
             promptSettings: normalizePromptSettings({
                 ...record(source.promptSettings),
                 groupTemplate: source.groupTemplate,

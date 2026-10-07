@@ -342,8 +342,7 @@ describe('Hono API and SQLite persistence', () => {
             messages: Array<{ content: string }>
             activatedLoreIds: string[]
         }
-        // Like PocketRisu's prompt-template path, the card system prompt never replaces the
-        // preset main prompt; post-history instructions do wrap the global note.
+        // As in PocketRisu, the card system prompt never replaces the preset main prompt.
         expect(body.messages[0]!.content).not.toContain('Character wrapper:')
         expect(
             body.messages.some((message: { content: string }) =>
@@ -2040,7 +2039,6 @@ describe('Hono API and SQLite persistence', () => {
             })
         }
 
-        // Fetching the character back reflects the extension fields (no migration needed — extensionsJson blob).
         const refetched = await app.request(`/api/v1/characters/${character.id}`, {
             headers: { cookie },
         })
@@ -2049,7 +2047,6 @@ describe('Hono API and SQLite persistence', () => {
         }
         expectExtendedFields(refetchedBody.lorebook[0]!)
 
-        // Export as CCv3 JSON, re-import as a new character, and confirm the same fields survive.
         const exported = await app.request(
             `/api/v1/characters/${character.id}/export?spec=v3&format=json`,
             { headers: { cookie } },

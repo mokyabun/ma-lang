@@ -1,11 +1,7 @@
 import type { PromptScenario } from '../../../scripts/pocketrisu-oracle/protocol'
 
-/*
- * Prompt parity scenarios, written in PocketRisu's own export formats so both
- * apps load them through their real importers. Each scenario should exercise
- * one feature on top of a small shared baseline; keep them deterministic
- * (no {{random}}, dates or token-budget trimming).
- */
+// Scenarios in PocketRisu export formats: one feature each, deterministic (no {{random}}, dates
+// or token-budget trimming).
 
 type CardData = Record<string, unknown>
 type Block = Record<string, unknown>

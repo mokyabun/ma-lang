@@ -11,20 +11,12 @@ import type {
 import type { TemplateContext } from '../template-engine'
 import { RisuParser, type ChatTurn } from './parser'
 
-// RisuAI's own toggle checks (the CBS `#when::toggle::key` operator, `parser.svelte.ts`'s
-// `isTruthy`) require the stored value to be exactly '1' or 'true' — anything else, including
-// '0', '', or arbitrary text, is off. Match that exactly rather than guessing at a blocklist, or
-// toggles that read as "on" in RisuAI (e.g. a stray non-'1' value) would read as "off" here, or
-// vice versa.
+// RisuAI treats a toggle as on only when it is exactly '1' or 'true'.
 export function isPromptToggleEnabled(value: string): boolean {
     return value === '1' || value === 'true'
 }
 
-/**
- * The chat state sendChat parses against: effective toggles (preset declarations, then
- * every active module's), the greeting split off chat.message, and risuChatParser bound
- * to the chat. Prompt assembly and chat display both start from it.
- */
+/** Chat state sendChat parses against: effective toggles, greeting split off, bound risuChatParser. */
 export function loadRisuChat(input: {
     character: Character
     conversation: Conversation
@@ -41,9 +33,7 @@ export function loadRisuChat(input: {
     warnings: string[]
 }) {
     const { character, conversation, preset, settings, persona, modules, warnings } = input
-    // PocketRisu appends customModuleToggle declarations from every active module to the
-    // preset declarations. Keep that ordering so a shared key resolves to the same global
-    // toggle value while module-only keys work in CBS, templates, lore and prompt injections.
+    // Module toggle declarations follow the preset's, as in PocketRisu.
     const declaredToggles = [
         ...preset.toggles,
         ...modules.flatMap((module) => module.toggles),

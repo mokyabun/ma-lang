@@ -146,8 +146,7 @@ describe('character card codec', () => {
             lorebook: [
                 {
                     id: 'folder-1',
-                    // RisuAI's addLorebookFolder() repurposes `key` as the folder's identity,
-                    // prefixed with a private-use-area sentinel character.
+                    // RisuAI folders use `key` as their id.
                     key: 'folder:folder-1',
                     secondkey: '',
                     insertorder: 0,

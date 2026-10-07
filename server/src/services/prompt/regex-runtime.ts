@@ -198,8 +198,7 @@ function prepareScripts(
             const pattern = parsed.actions.includes('cbs')
                 ? renderTemplate(script.pattern, context).text
                 : script.pattern
-            // PocketRisu substitutes regex captures before evaluating CBS in editdisplay.
-            // Deferring this phase keeps expressions such as {{img::$1}} resolvable.
+            // Substitute captures before CBS so {{img::$1}} resolves (PocketRisu order).
             const rendered =
                 phase === 'editdisplay'
                     ? { text: script.replacement, warnings: [] }

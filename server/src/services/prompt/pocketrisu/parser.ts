@@ -7,15 +7,10 @@ export interface ChatTurn {
     data: string
 }
 
-// PocketRisu leaves {{slot}} for the caller to fill after parsing (its callback is
-// doc-only), while Malang's engine resolves it; shield it through the render.
+// PocketRisu leaves {{slot}} for the caller; shield it from Malang's engine.
 const SLOT = 'slot'
 
-/**
- * risuChatParser bound to one chat: chat variables are shared, mutable state
- * (runVar renders write back like setChatVar), and message CBS read the live
- * chat, including messages already rewritten by runCurrentChatFunction.
- */
+/** risuChatParser bound to one chat; chat variables are shared mutable state. */
 export class RisuParser {
     readonly variables: Record<string, string>
     private readonly engineMessages: NonNullable<TemplateContext['messages']>

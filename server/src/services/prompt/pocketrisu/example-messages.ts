@@ -1,10 +1,6 @@
 import type { RisuChat } from './types'
 
-/**
- * Port of PocketRisu's exampleMessage (process/exampleMessages.ts), including its
- * quirks: `<START>` emits a `[Start a new chat]` turn, and a speaker line keeps
- * only the text between the first and second colon.
- */
+/** PocketRisu's exampleMessage: `<START>` adds `[Start a new chat]`; a speaker line keeps the text between colons 1 and 2. */
 export function exampleMessage(
     exampleText: string,
     charName: string,

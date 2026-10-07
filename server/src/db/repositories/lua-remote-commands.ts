@@ -73,7 +73,7 @@ export class LuaRemoteCommandRepository extends RepositoryBase {
             )
     }
 
-    /** Settles a pending command; a command that already settled is left as is. */
+    /** No-op when the command already settled. */
     settle(id: string, status: 'complete' | 'failed', result: unknown): void {
         this.sqlite
             .query(

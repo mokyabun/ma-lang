@@ -48,10 +48,6 @@ export type { LuaRemoteCommandRow } from './repositories/lua-remote-commands'
 export type { PromptModuleAssetRecord } from './repositories/prompt-module-assets'
 export type { MemorySummaryRecord, SparseVector } from './repositories/memory-summaries'
 
-/**
- * The application's repositories over one database connection. Connection lifecycle (backup,
- * restore, close) belongs to the `DatabaseHandle` owner, not to the repositories' callers.
- */
 export class Store {
     readonly admin: AdminRepository
     readonly session: SessionRepository
@@ -127,10 +123,7 @@ export class Store {
         this.luaRemoteCommand = new LuaRemoteCommandRepository(handle)
     }
 
-    /**
-     * Runs `fn` atomically. Repositories share one connection, so every repository call inside
-     * `fn` joins the transaction; nested transactions become savepoints.
-     */
+    /** Runs `fn` atomically; nested calls become savepoints. */
     transaction<T>(fn: () => T): T {
         return this.handle.sqlite.transaction(fn)()
     }

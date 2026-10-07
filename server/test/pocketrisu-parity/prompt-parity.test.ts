@@ -12,17 +12,8 @@ import { runPocketRisuRequestOracle } from '../../../scripts/pocketrisu-oracle/r
 import { compileWithMalang } from './malang'
 import { promptScenarios } from './scenarios'
 
-/*
- * Differential test: for the same imported data, Malang must produce exactly
- * the prompt PocketRisu's own sendChat assembles, both as the message list
- * handed to the request layer and as the Gemini body's systemInstruction and
- * contents.
- *
- * By default the PocketRisu side comes from the recorded golden file, so the
- * suite needs no PocketRisu checkout. POCKETRISU_ORACLE switches modes:
- *   live   – run PocketRisu (extra/PocketRisu or POCKETRISU_ROOT) instead
- *   record – run PocketRisu and rewrite the golden file
- */
+// Malang must produce exactly PocketRisu's sendChat prompt and Gemini body.
+// POCKETRISU_ORACLE: unset = golden file, `live` = run PocketRisu, `record` = rewrite the golden file.
 
 interface GoldenCase {
     scenarioHash: string

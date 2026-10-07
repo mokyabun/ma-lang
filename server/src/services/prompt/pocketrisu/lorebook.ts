@@ -4,11 +4,7 @@ import { CCardLib } from '@risuai/ccardlib'
 import { estimateTokens } from '../lorebook'
 import type { RisuLore } from './types'
 
-/*
- * Port of PocketRisu's lorebook pipeline: characterCards.ts `convertCharbook`
- * (card entry → internal loreBook) and process/lorebook.svelte.ts
- * `loadLoreBookV3Prompt` (activation, budget and ordering).
- */
+// Port of PocketRisu's convertCharbook and loadLoreBookV3Prompt.
 
 export interface ActiveLore {
     depth: number
@@ -33,10 +29,7 @@ export interface LoreChatMessage {
     data: string
 }
 
-/**
- * Decorators for lore fields edited through Malang's structured form. They
- * precede the stored content, so decorators written in the content still win.
- */
+/** Decorators for structured-form fields; prepended, so decorators in the content win. */
 function structuredDecorators(entry: LoreEntry): string[] {
     const lines: string[] = []
     if (entry.position === 'depth' || entry.position === 'reverse_depth') {

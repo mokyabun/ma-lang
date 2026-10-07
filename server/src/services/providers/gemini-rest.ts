@@ -18,8 +18,7 @@ export function toPocketRisuGeminiPrompt(messages: CompiledMessage[]): {
     const systems: string[] = []
     const contents: GeminiContent[] = []
     for (const message of messages) {
-        // PocketRisu trims every formatted chat item immediately before the
-        // Model Preset adapter receives it (process/index.svelte.ts).
+        // PocketRisu trims every chat item before the adapter.
         const content = message.content.trim()
         if (message.role === 'system') systems.push(content)
         else
@@ -61,13 +60,11 @@ export function buildPocketRisuGeminiBody(
         }
     }
 
-    // Same priority as PocketRisu's shared request builder: profile values,
-    // then the preset's custom body, then its free-form additional parameters.
+    // Priority: profile, preset custom body, additional parameters.
     Object.assign(body, record(config.providerOptions?.customBody))
     applyAdditionalParamsText(body, undefined, config.providerOptions?.additionalParamsText)
 
-    // PocketRisu wire invariants: the model belongs in the URL and the adapter
-    // exclusively owns prompt structure, overriding profile collisions.
+    // The adapter owns the model URL and prompt structure, overriding the profile.
     delete body.model
     delete body.contents
     delete body.systemInstruction

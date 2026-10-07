@@ -66,7 +66,7 @@ export async function renderDisplayMessages(
                         mode: 'editDisplay',
                         data,
                         meta: { index },
-                        // A display GET has no initiating UI command target. editDisplay cannot use alerts.
+                        // Display GETs have no UI command target, so editDisplay cannot use alerts.
                         clientInstanceId: '00000000-0000-4000-8000-000000000000',
                     })
                     return String(luaDisplay.data ?? '')

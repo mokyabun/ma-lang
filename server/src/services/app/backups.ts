@@ -116,8 +116,7 @@ export class BackupService {
         try {
             mkdirSync(staging, { mode: 0o700 })
             temporary = join(staging, 'snapshot.sqlite')
-            // VACUUM INTO takes a consistent snapshot including committed WAL contents.
-            // The private staging directory protects secrets before permissions are set.
+            // VACUUM INTO includes committed WAL; the private staging dir protects secrets until chmod.
             this.database.sqlite.query('VACUUM INTO ?').run(temporary)
             chmodSync(temporary, 0o600)
             renameSync(temporary, destination)
@@ -129,7 +128,7 @@ export class BackupService {
             try {
                 rmdirSync(staging)
             } catch {
-                /* Preserve the original failure. */
+                /* Keep the original error. */
             }
             throw error
         }

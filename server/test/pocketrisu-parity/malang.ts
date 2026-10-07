@@ -43,12 +43,7 @@ function testConfig(directory: string): AppConfig {
 
 const json = (value: unknown) => encoder.encode(JSON.stringify(value))
 
-/**
- * Loads a scenario the way a user would bring PocketRisu data into Malang
- * (preset, card and module importers on a fresh database) and returns the
- * messages of Malang's prompt preview, plus those messages as the Gemini
- * provider puts them into the request body.
- */
+/** Imports a scenario into a fresh database; returns the prompt preview and its Gemini body. */
 export async function compileWithMalang(
     scenario: PromptScenario,
 ): Promise<{ messages: PromptMessage[]; geminiPrompt: GeminiPrompt }> {

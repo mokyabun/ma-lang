@@ -504,7 +504,7 @@ function parseProviderSecret(value: string) {
         const decoded = ProviderSecretSchema.safeParse(JSON.parse(value))
         if (decoded.success) return decoded.data
     } catch {
-        // Existing installations stored the API key as a raw encrypted string.
+        // Legacy rows store the API key as a raw encrypted string.
     }
     return { version: 1 as const, type: 'apiKey' as const, apiKey: value }
 }

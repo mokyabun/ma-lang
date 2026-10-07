@@ -23,12 +23,8 @@ import type { RisuChat } from './pocketrisu/types'
 import { collectRegexScripts } from './regex-runtime'
 import type { TemplateContext } from './template-engine'
 
-/*
- * Prompt assembly ported from PocketRisu's sendChat (process/index.svelte.ts),
- * prompt-template path: the same stages, in the same order, with the same
- * quirks. Comments name the PocketRisu step each block mirrors. Malang-only
- * additions (module prompts, HypaV3 summaries) are marked as such.
- */
+// Port of PocketRisu's sendChat prompt-template path, quirks included. Comments name the
+// mirrored step; Malang-only additions are marked.
 
 export class ContextTooLargeError extends AppError {
     constructor() {

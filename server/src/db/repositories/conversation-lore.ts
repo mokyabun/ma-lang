@@ -1,6 +1,6 @@
 import { RepositoryBase } from './base'
 
-/** Lorebook entries Lua scripts add to a single conversation, keyed by entry name. */
+/** Lore entries added by Lua scripts to one conversation, keyed by name. */
 export class ConversationLoreRepository extends RepositoryBase {
     list(conversationId: string): unknown[] {
         return this.sqlite

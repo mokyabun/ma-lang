@@ -2,12 +2,8 @@ import { Worker } from 'node:worker_threads'
 
 import type { RegexScript } from '@malang/shared'
 
-/*
- * Port of the regex half of PocketRisu's processScriptFull (process/scripts.ts).
- * PocketRisu runs every script on the main thread; Malang evaluates user regexes
- * in a worker so a catastrophic pattern cannot stall the server, and runs CBS
- * on the main thread between scripts exactly where PocketRisu does.
- */
+// Port of processScriptFull's regex stage. Regexes run in a worker so a catastrophic pattern
+// cannot stall the server.
 
 export type ScriptMode = 'editinput' | 'editoutput' | 'editprocess' | 'editdisplay'
 
@@ -194,11 +190,7 @@ export class RegexSandbox {
     }
 }
 
-/**
- * processScriptFull's regex stage: `parse` is risuChatParser bound to the
- * caller's chat state. PocketRisu parses the input first and re-parses the whole
- * text after every script that rewrote it.
- */
+/** Parses the input, then re-parses after every script that changed it (PocketRisu order). */
 export async function processScripts(input: {
     scripts: RegexScript[]
     data: string

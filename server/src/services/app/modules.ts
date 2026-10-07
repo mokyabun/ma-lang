@@ -20,11 +20,7 @@ export class PromptModuleConflictError extends ConflictError {}
 
 export type ModuleActivationSource = 'conversation' | 'preset' | 'character' | 'default'
 
-/**
- * Resolves which modules a conversation runs with: an explicit per-conversation override wins,
- * otherwise a module is on when the effective preset or the character references it, or when it
- * is enabled by default.
- */
+/** Conversation override wins; otherwise on when the preset or character references it, or by default. */
 export function conversationModuleStates(store: Store, conversationId: string) {
     const conversation = store.conversation.get(conversationId)
     if (!conversation) return []

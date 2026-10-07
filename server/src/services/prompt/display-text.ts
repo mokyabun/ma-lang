@@ -3,12 +3,7 @@ import type { RegexScript } from '@malang/shared'
 import type { RisuParser } from './pocketrisu/parser'
 import { processScripts, type RegexSandbox } from './pocketrisu/scripts'
 
-/**
- * The text PocketRisu hands to its markdown renderer for one stored message:
- * Chat.svelte's displaya() parses it with rmVar/visualize, then ParseMarkdown's
- * processScriptFull runs the Lua editDisplay trigger and the editdisplay regex
- * stage, which parses again before and after every script.
- */
+/** PocketRisu's displaya(): rmVar/visualize parse, then processScriptFull (Lua editDisplay + editdisplay regex). */
 export async function renderDisplayText(input: {
     parser: RisuParser
     content: string

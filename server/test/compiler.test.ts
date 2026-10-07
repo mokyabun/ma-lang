@@ -47,9 +47,7 @@ describe('generation parameter merging', () => {
 })
 
 describe('prompt toggle values', () => {
-    // RisuAI's own toggle checks (CBS `#when::toggle::key`, its `isTruthy`) only ever treat an
-    // exact '1' or 'true' as on; everything else — including select-style non-zero indices or
-    // free text — reads as off there, so this must match exactly for identical compiled output.
+    // RisuAI treats only exactly '1' or 'true' as on.
     test('treats only an exact "1" or "true" as enabled', async () => {
         expect(isPromptToggleEnabled('1')).toBe(true)
         expect(isPromptToggleEnabled('true')).toBe(true)
@@ -280,9 +278,7 @@ describe('RisuAI-compatible jailbreak / chain-of-thought toggles', () => {
         } as unknown as Parameters<typeof compilePrompt>[0]
     }
 
-    // RisuAI gates every `jailbreak`/`cot` block behind its own global switch, independent of
-    // the block's `enabled` flag — the bug this guards against is a jailbreak block staying
-    // active no matter what a "disable it" toggle is set to.
+    // jailbreak/cot blocks follow the global switch regardless of `enabled`.
     test('drops jailbreak and cot blocks when their global switch is off', async () => {
         const result = await compilePrompt(baseInput())
         const contents = result.messages.map((message) => message.content)
@@ -343,8 +339,7 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
         } as unknown as Parameters<typeof compilePrompt>[0]
     }
 
-    // RisuAI only ever gives the persisted greeting the plain "Char: text" prefix; every later
-    // turn (user or assistant) is wrapped in groupTemplate using the character's own name.
+    // Only the greeting gets the plain prefix; later turns use groupTemplate.
     test('wraps history in groupTemplate but keeps the greeting as a plain prefix', async () => {
         const result = await compilePrompt(baseInput())
         expect(result.messages).toEqual([
@@ -354,8 +349,7 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
         ])
     })
 
-    // Non-greeting turns get sendName's wrap AND (when sendChatAsSystem is also on) the
-    // "role: " prefix from systemizeChat — RisuAI applies both, back to back, on those turns.
+    // Non-greeting turns get both the sendName wrap and the systemizeChat prefix.
     test('stacks sendChatAsSystem on top of an already sendName-wrapped turn', async () => {
         const input = baseInput()
         input.preset.promptSettings.sendChatAsSystem = true

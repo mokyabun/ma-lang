@@ -5,17 +5,8 @@ import type { CompiledMessage } from '@malang/shared'
 import { buildPocketRisuGeminiBody } from '../src/services/providers/gemini-rest'
 import type { RuntimeProviderConfig } from '../src/services/providers/types'
 
-/*
- * Independent compatibility oracle copied from PocketRisu's current pipeline:
- *
- * - preset/registry/snapshot.ts
- * - preset/adapter/buildRequest.ts
- * - process/index.svelte.ts (formatted message trim)
- * - preset/adapter/googleGemini.ts (collectSystemAndChat / wire invariants)
- *
- * Keep this deliberately separate from Malang's implementation. If production
- * behavior drifts, this test must fail instead of sharing the same helper.
- */
+// Independent PocketRisu oracle (snapshot, buildRequest, googleGemini). Keep it separate from
+// Malang's code so drift fails this test.
 function pocketRisuReferenceBody(
     config: RuntimeProviderConfig,
     messages: CompiledMessage[],
