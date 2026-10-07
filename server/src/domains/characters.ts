@@ -26,7 +26,7 @@ export function createCharacterDomain(context: AppContext) {
             c.json(context.characters.create(c.req.valid('json')), 201),
         )
         .post('/groups', jsonValidator(GroupCreateSchema), (c) =>
-            c.json(context.store.characterGroup.create(c.req.valid('json').name), 201),
+            c.json(context.characters.createGroup(c.req.valid('json').name), 201),
         )
         .patch('/groups/:groupId', jsonValidator(GroupUpdateSchema), (c) => {
             const name = c.req.valid('json').name

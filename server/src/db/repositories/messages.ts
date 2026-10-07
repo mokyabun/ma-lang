@@ -143,6 +143,26 @@ export class MessageRepository extends RepositoryBase {
         if (current) this.bumpDisplayEpoch(current.conversationId)
     }
 
+    hasUserMessage(conversationId: string): boolean {
+        return !!this.db
+            .select({ id: messages.id })
+            .from(messages)
+            .where(and(eq(messages.conversationId, conversationId), eq(messages.role, 'user')))
+            .limit(1)
+            .get()
+    }
+
+    firstAssistant(conversationId: string): Message | null {
+        const row = this.db
+            .select()
+            .from(messages)
+            .where(and(eq(messages.conversationId, conversationId), eq(messages.role, 'assistant')))
+            .orderBy(asc(messages.position))
+            .limit(1)
+            .get()
+        return row ? mapMessage(row) : null
+    }
+
     lastAssistant(conversationId: string): Message | null {
         const row = this.db
             .select()

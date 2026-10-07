@@ -2,7 +2,6 @@ import type { Character, CharacterUpdate, LoreEntry, LuaScriptInput } from '@mal
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import { asc, desc, eq, isNull } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
 import { characterAssets, characterLoreEntries, characters, conversations } from '../schema'
 import {
     insertBatches,
@@ -13,7 +12,6 @@ import {
     requireValue,
     updateLuaColumns,
 } from './base'
-import { CharacterOrganizationRepository } from './character-organization'
 
 export interface CharacterRecord extends Character {
     sourceExtensions: Record<string, unknown>
@@ -64,84 +62,12 @@ export interface CharacterAssetRecord {
 }
 
 export class CharacterRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly organization: CharacterOrganizationRepository,
-    ) {
-        super(handle)
-    }
-
-    ensureGeneralChat(): CharacterRecord {
-        const existing = this.get(GENERAL_CHAT_CHARACTER_ID)
-        if (existing) {
-            if (existing.archivedAt) {
-                this.db
-                    .update(characters)
-                    .set({ archivedAt: null })
-                    .where(eq(characters.id, GENERAL_CHAT_CHARACTER_ID))
-                    .run()
-                return requireValue(
-                    this.get(GENERAL_CHAT_CHARACTER_ID),
-                    'Failed to restore the built-in Chat character',
-                )
-            }
-            return existing
-        }
-
-        const systemPrompt =
-            'You are Chat, a helpful general-purpose AI assistant. Respond directly and clearly to the user. Do not role-play a fictional character unless the user asks you to.'
-        return this.create(
-            {
-                id: GENERAL_CHAT_CHARACTER_ID,
-                name: 'Chat',
-                description: 'A helpful general-purpose AI assistant for everyday questions.',
-                personality: 'Helpful, clear, practical, and adaptable.',
-                scenario: '',
-                firstMessage: '',
-                alternateGreetings: [],
-                exampleMessage: '',
-                systemPrompt,
-                postHistoryInstructions: '',
-                creator: 'Malang',
-                characterVersion: '1.0',
-                tags: ['built-in', 'general'],
-                avatarAssetId: null,
-                sourceSpec: 'v3',
-                sourceExtensions: { malang: { builtIn: 'general-chat' } },
-                sourceCard: {
-                    spec: 'chara_card_v3',
-                    spec_version: '3.0',
-                    data: {
-                        name: 'Chat',
-                        description:
-                            'A helpful general-purpose AI assistant for everyday questions.',
-                        personality: 'Helpful, clear, practical, and adaptable.',
-                        scenario: '',
-                        first_mes: '',
-                        alternate_greetings: [],
-                        mes_example: '',
-                        system_prompt: systemPrompt,
-                        post_history_instructions: '',
-                        creator: 'Malang',
-                        character_version: '1.0',
-                        tags: ['built-in', 'general'],
-                        creator_notes: '',
-                        group_only_greetings: [],
-                        extensions: { malang: { builtIn: 'general-chat' } },
-                    },
-                },
-                loreSettings: {},
-                regexScripts: [],
-                moduleReferences: [],
-                lorebook: [],
-            },
-            [],
-        )
-    }
-
-    create(input: NewCharacterRecord, linkedAssets: CharacterAssetRecord[]): CharacterRecord {
+    create(
+        input: NewCharacterRecord,
+        linkedAssets: CharacterAssetRecord[],
+        sortOrder: number,
+    ): CharacterRecord {
         const now = new Date()
-        const sortOrder = this.organization.nextRootOrder()
         this.db.transaction((tx) => {
             tx.insert(characters)
                 .values({

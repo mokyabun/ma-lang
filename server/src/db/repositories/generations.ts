@@ -1,19 +1,10 @@
-import type { GenerationParameters, Message } from '@malang/shared'
+import type { GenerationParameters } from '@malang/shared'
 import { and, asc, eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
 import { generationRuns } from '../schema'
 import { iso, RepositoryBase } from './base'
-import { MessageRepository } from './messages'
 
 export class GenerationRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly message: MessageRepository,
-    ) {
-        super(handle)
-    }
-
     recoverInterrupted(): void {
         const now = Date.now()
         this.sqlite.transaction(() => {
@@ -34,6 +25,15 @@ export class GenerationRepository extends RepositoryBase {
           `)
                 .run(now)
         })()
+    }
+
+    hasAnyRunning(): boolean {
+        return !!this.db
+            .select({ id: generationRuns.id })
+            .from(generationRuns)
+            .where(eq(generationRuns.status, 'running'))
+            .limit(1)
+            .get()
     }
 
     findRunning(conversationId: string) {
@@ -210,7 +210,7 @@ export class GenerationRepository extends RepositoryBase {
             .map(mapGenerationRun)
     }
 
-    selectOutput(messageId: string, generationId: string): Message | null {
+    completedOutput(messageId: string, generationId: string): string | null {
         const run = this.db
             .select()
             .from(generationRuns)
@@ -219,10 +219,7 @@ export class GenerationRepository extends RepositoryBase {
             )
             .get()
         if (!run || run.status !== 'complete') return null
-        return this.message.update(messageId, {
-            content: run.processedOutputText || run.outputText,
-            status: 'complete',
-        })
+        return run.processedOutputText || run.outputText
     }
 }
 

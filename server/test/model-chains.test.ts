@@ -46,7 +46,7 @@ describe('server-side model chains', () => {
         const analyst = createEcho('Analyst', 'PRE NOTE')
         const editor = createEcho('Editor', 'POST BODY')
 
-        const single = context.store.conversation.create({
+        const single = context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             greetingIndex: -1,
@@ -73,7 +73,7 @@ describe('server-side model chains', () => {
                 },
             ],
         })
-        const chained = context.store.conversation.create({
+        const chained = context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             modelChainPresetId: chain.id,
@@ -152,7 +152,7 @@ describe('server-side model chains', () => {
                 },
             ],
         })
-        const conversation = context.store.conversation.create({
+        const conversation = context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             modelChainPresetId: chain.id,
@@ -227,7 +227,7 @@ describe('server-side model chains', () => {
         })
         const chain = context.store.modelChain.create(input)
         expect(context.store.modelChain.get(chain.id)?.graph).toEqual(input.graph)
-        const conversation = context.store.conversation.create({
+        const conversation = context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: mainModel.id,
             modelChainPresetId: chain.id,
@@ -309,7 +309,7 @@ describe('server-side model chains', () => {
                 },
             ],
         })
-        const conversation = context.store.conversation.create({
+        const conversation = context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             modelChainPresetId: chain.id,

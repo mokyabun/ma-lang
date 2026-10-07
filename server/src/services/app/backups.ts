@@ -13,7 +13,7 @@ import { basename, join } from 'node:path'
 import type { Logger } from 'pino'
 
 import type { AppConfig } from '@/config'
-import type { Store } from '@/db'
+import type { DatabaseHandle, Store } from '@/db'
 import { ConflictError, NotFoundError, ValidationError } from '@/errors'
 
 export const BACKUP_INTERVAL_MS = 5 * 60 * 1000
@@ -39,6 +39,7 @@ export class BackupService {
 
     constructor(
         private readonly config: AppConfig,
+        private readonly database: DatabaseHandle,
         private readonly store: Store,
         private readonly logger: Logger,
         private readonly afterRestore: () => void = () => undefined,
@@ -64,8 +65,8 @@ export class BackupService {
                 return
             // total_changes sees this connection's writes; data_version sees other connections.
             const revision = JSON.stringify([
-                this.store.sqlite.query('SELECT total_changes()').get(),
-                this.store.sqlite.query('PRAGMA data_version').get(),
+                this.database.sqlite.query('SELECT total_changes()').get(),
+                this.database.sqlite.query('PRAGMA data_version').get(),
             ])
             if (revision === this.revision) return
             const snapshot = this.create('automatic')
@@ -117,7 +118,7 @@ export class BackupService {
             temporary = join(staging, 'snapshot.sqlite')
             // VACUUM INTO takes a consistent snapshot including committed WAL contents.
             // The private staging directory protects secrets before permissions are set.
-            this.store.sqlite.query('VACUUM INTO ?').run(temporary)
+            this.database.sqlite.query('VACUUM INTO ?').run(temporary)
             chmodSync(temporary, 0o600)
             renameSync(temporary, destination)
             temporary = undefined
@@ -148,10 +149,7 @@ export class BackupService {
     restore(id: string): { restored: BackupSnapshot; safetySnapshot: BackupSnapshot } {
         const source = this.path(id)
         if (!source) throw new NotFoundError('Snapshot does not exist')
-        const running = this.store.sqlite
-            .query("SELECT COUNT(*) AS count FROM generation_runs WHERE status = 'running'")
-            .get() as { count: number }
-        if (running.count > 0) {
+        if (this.store.generation.hasAnyRunning()) {
             throw new ConflictError('A response is being generated; wait for it to finish first')
         }
         validateSnapshot(source)
@@ -159,7 +157,7 @@ export class BackupService {
         const safetySnapshot = this.create('beforeRestore')
         this.close()
         try {
-            this.store.replaceWith(source, join(this.directory, safetySnapshot.id))
+            this.database.replaceWith(source, join(this.directory, safetySnapshot.id))
             this.store.generation.recoverInterrupted()
             this.revision = ''
             this.afterRestore()

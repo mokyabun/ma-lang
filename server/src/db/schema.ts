@@ -142,90 +142,108 @@ export const characterGroups = sqliteTable('character_groups', {
     ...timestampColumns,
 })
 
-export const characters = sqliteTable('characters', {
-    id: text('id').primaryKey(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
-    personality: text('personality').notNull(),
-    scenario: text('scenario').notNull(),
-    firstMessage: text('first_message').notNull(),
-    alternateGreetingsJson: text('alternate_greetings_json', { mode: 'json' })
-        .$type<string[]>()
-        .notNull(),
-    exampleMessage: text('example_message').notNull(),
-    systemPrompt: text('system_prompt').notNull(),
-    postHistoryInstructions: text('post_history_instructions').notNull(),
-    creator: text('creator').notNull(),
-    characterVersion: text('character_version').notNull(),
-    tagsJson: text('tags_json', { mode: 'json' }).$type<string[]>().notNull(),
-    avatarAssetId: text('avatar_asset_id').references(() => assets.id, { onDelete: 'set null' }),
-    sourceSpec: text('source_spec', { enum: ['v2', 'v3'] }).notNull(),
-    sourceExtensionsJson: text('source_extensions_json', { mode: 'json' })
-        .$type<JsonObject>()
-        .notNull(),
-    sourceCardJson: text('source_card_json', { mode: 'json' }).$type<JsonObject>().notNull(),
-    loreSettingsJson: text('lore_settings_json', { mode: 'json' }).$type<LoreSettings>().notNull(),
-    regexScriptsJson: text('regex_scripts_json', { mode: 'json' })
-        .$type<RegexScript[]>()
-        .notNull()
-        .default([]),
-    moduleReferencesJson: text('module_references_json', { mode: 'json' })
-        .$type<string[]>()
-        .notNull()
-        .default([]),
-    defaultVariablesJson: text('default_variables_json', { mode: 'json' })
-        .$type<StringMap>()
-        .notNull()
-        .default({}),
-    luaCode: text('lua_code'),
-    luaEnabled: integer('lua_enabled', { mode: 'boolean' }).notNull().default(false),
-    luaLowLevelAccess: integer('lua_low_level_access', { mode: 'boolean' })
-        .notNull()
-        .default(false),
-    luaRevision: integer('lua_revision').notNull().default(0),
-    luaCodeSha256: text('lua_code_sha256').notNull().default(''),
-    luaRawTriggerJson: text('lua_raw_trigger_json', { mode: 'json' })
-        .$type<unknown[]>()
-        .notNull()
-        .default([]),
-    groupId: text('group_id').references(() => characterGroups.id, { onDelete: 'set null' }),
-    sortOrder: integer('sort_order').notNull().default(0),
-    archivedAt: timestampMs('archived_at'),
-    ...timestampColumns,
-})
+export const characters = sqliteTable(
+    'characters',
+    {
+        id: text('id').primaryKey(),
+        name: text('name').notNull(),
+        description: text('description').notNull(),
+        personality: text('personality').notNull(),
+        scenario: text('scenario').notNull(),
+        firstMessage: text('first_message').notNull(),
+        alternateGreetingsJson: text('alternate_greetings_json', { mode: 'json' })
+            .$type<string[]>()
+            .notNull(),
+        exampleMessage: text('example_message').notNull(),
+        systemPrompt: text('system_prompt').notNull(),
+        postHistoryInstructions: text('post_history_instructions').notNull(),
+        creator: text('creator').notNull(),
+        characterVersion: text('character_version').notNull(),
+        tagsJson: text('tags_json', { mode: 'json' }).$type<string[]>().notNull(),
+        avatarAssetId: text('avatar_asset_id').references(() => assets.id, {
+            onDelete: 'set null',
+        }),
+        sourceSpec: text('source_spec', { enum: ['v2', 'v3'] }).notNull(),
+        sourceExtensionsJson: text('source_extensions_json', { mode: 'json' })
+            .$type<JsonObject>()
+            .notNull(),
+        sourceCardJson: text('source_card_json', { mode: 'json' }).$type<JsonObject>().notNull(),
+        loreSettingsJson: text('lore_settings_json', { mode: 'json' })
+            .$type<LoreSettings>()
+            .notNull(),
+        regexScriptsJson: text('regex_scripts_json', { mode: 'json' })
+            .$type<RegexScript[]>()
+            .notNull()
+            .default([]),
+        moduleReferencesJson: text('module_references_json', { mode: 'json' })
+            .$type<string[]>()
+            .notNull()
+            .default([]),
+        defaultVariablesJson: text('default_variables_json', { mode: 'json' })
+            .$type<StringMap>()
+            .notNull()
+            .default({}),
+        luaCode: text('lua_code'),
+        luaEnabled: integer('lua_enabled', { mode: 'boolean' }).notNull().default(false),
+        luaLowLevelAccess: integer('lua_low_level_access', { mode: 'boolean' })
+            .notNull()
+            .default(false),
+        luaRevision: integer('lua_revision').notNull().default(0),
+        luaCodeSha256: text('lua_code_sha256').notNull().default(''),
+        luaRawTriggerJson: text('lua_raw_trigger_json', { mode: 'json' })
+            .$type<unknown[]>()
+            .notNull()
+            .default([]),
+        groupId: text('group_id').references(() => characterGroups.id, { onDelete: 'set null' }),
+        sortOrder: integer('sort_order').notNull().default(0),
+        archivedAt: timestampMs('archived_at'),
+        ...timestampColumns,
+    },
+    (table) => [index('characters_group_order_idx').on(table.groupId, table.sortOrder)],
+)
 
-export const characterLoreEntries = sqliteTable('character_lore_entries', {
-    id: text('id').primaryKey(),
-    characterId: text('character_id')
-        .notNull()
-        .references(() => characters.id, { onDelete: 'cascade' }),
-    keysJson: text('keys_json', { mode: 'json' }).$type<string[]>().notNull(),
-    secondaryKeysJson: text('secondary_keys_json', { mode: 'json' }).$type<string[]>().notNull(),
-    content: text('content').notNull(),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull(),
-    constant: integer('constant', { mode: 'boolean' }).notNull(),
-    selective: integer('selective', { mode: 'boolean' }).notNull(),
-    caseSensitive: integer('case_sensitive', { mode: 'boolean' }).notNull(),
-    useRegex: integer('use_regex', { mode: 'boolean' }).notNull(),
-    insertionOrder: integer('insertion_order').notNull(),
-    priority: integer('priority').notNull(),
-    name: text('name').notNull(),
-    extensionsJson: text('extensions_json', { mode: 'json' }).$type<JsonObject>().notNull(),
-})
+export const characterLoreEntries = sqliteTable(
+    'character_lore_entries',
+    {
+        id: text('id').primaryKey(),
+        characterId: text('character_id')
+            .notNull()
+            .references(() => characters.id, { onDelete: 'cascade' }),
+        keysJson: text('keys_json', { mode: 'json' }).$type<string[]>().notNull(),
+        secondaryKeysJson: text('secondary_keys_json', { mode: 'json' })
+            .$type<string[]>()
+            .notNull(),
+        content: text('content').notNull(),
+        enabled: integer('enabled', { mode: 'boolean' }).notNull(),
+        constant: integer('constant', { mode: 'boolean' }).notNull(),
+        selective: integer('selective', { mode: 'boolean' }).notNull(),
+        caseSensitive: integer('case_sensitive', { mode: 'boolean' }).notNull(),
+        useRegex: integer('use_regex', { mode: 'boolean' }).notNull(),
+        insertionOrder: integer('insertion_order').notNull(),
+        priority: integer('priority').notNull(),
+        name: text('name').notNull(),
+        extensionsJson: text('extensions_json', { mode: 'json' }).$type<JsonObject>().notNull(),
+    },
+    (table) => [index('character_lore_character_idx').on(table.characterId)],
+)
 
-export const characterAssets = sqliteTable('character_assets', {
-    id: text('id').primaryKey(),
-    characterId: text('character_id')
-        .notNull()
-        .references(() => characters.id, { onDelete: 'cascade' }),
-    assetId: text('asset_id')
-        .notNull()
-        .references(() => assets.id, { onDelete: 'restrict' }),
-    type: text('type').notNull(),
-    name: text('name').notNull(),
-    extension: text('extension').notNull(),
-    sourceUri: text('source_uri').notNull(),
-})
+export const characterAssets = sqliteTable(
+    'character_assets',
+    {
+        id: text('id').primaryKey(),
+        characterId: text('character_id')
+            .notNull()
+            .references(() => characters.id, { onDelete: 'cascade' }),
+        assetId: text('asset_id')
+            .notNull()
+            .references(() => assets.id, { onDelete: 'restrict' }),
+        type: text('type').notNull(),
+        name: text('name').notNull(),
+        extension: text('extension').notNull(),
+        sourceUri: text('source_uri').notNull(),
+    },
+    (table) => [index('character_assets_character_idx').on(table.characterId)],
+)
 
 export const personas = sqliteTable('personas', {
     id: text('id').primaryKey(),
@@ -312,63 +330,88 @@ export const promptModules = sqliteTable(
         sourceJson: text('source_json', { mode: 'json' }).$type<JsonObject>().notNull(),
         ...timestampColumns,
     },
-    () => [],
+    (table) => [
+        // Modules without a namespace may coexist; named namespaces must be unique.
+        uniqueIndex('prompt_modules_namespace_idx')
+            .on(table.namespace)
+            .where(sql`${table.namespace} <> ''`),
+    ],
 )
 
-export const promptModuleAssets = sqliteTable('prompt_module_assets', {
-    id: text('id').primaryKey(),
-    moduleId: text('module_id')
-        .notNull()
-        .references(() => promptModules.id, { onDelete: 'cascade' }),
-    assetId: text('asset_id')
-        .notNull()
-        .references(() => assets.id, { onDelete: 'restrict' }),
-    type: text('type').notNull(),
-    name: text('name').notNull(),
-    extension: text('extension').notNull(),
-    sourceUri: text('source_uri').notNull(),
-})
+export const promptModuleAssets = sqliteTable(
+    'prompt_module_assets',
+    {
+        id: text('id').primaryKey(),
+        moduleId: text('module_id')
+            .notNull()
+            .references(() => promptModules.id, { onDelete: 'cascade' }),
+        assetId: text('asset_id')
+            .notNull()
+            .references(() => assets.id, { onDelete: 'restrict' }),
+        type: text('type').notNull(),
+        name: text('name').notNull(),
+        extension: text('extension').notNull(),
+        sourceUri: text('source_uri').notNull(),
+    },
+    (table) => [index('prompt_module_assets_module_idx').on(table.moduleId)],
+)
 
-export const conversationGroups = sqliteTable('conversation_groups', {
-    id: text('id').primaryKey(),
-    characterId: text('character_id')
-        .notNull()
-        .references(() => characters.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    sortOrder: integer('sort_order').notNull(),
-    ...timestampColumns,
-})
+export const conversationGroups = sqliteTable(
+    'conversation_groups',
+    {
+        id: text('id').primaryKey(),
+        characterId: text('character_id')
+            .notNull()
+            .references(() => characters.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        sortOrder: integer('sort_order').notNull(),
+        ...timestampColumns,
+    },
+    (table) => [
+        index('conversation_groups_character_order_idx').on(table.characterId, table.sortOrder),
+    ],
+)
 
-export const conversations = sqliteTable('conversations', {
-    id: text('id').primaryKey(),
-    characterId: text('character_id')
-        .notNull()
-        .references(() => characters.id, { onDelete: 'restrict' }),
-    promptPresetId: text('prompt_preset_id')
-        .notNull()
-        .references(() => promptPresets.id, { onDelete: 'restrict' }),
-    promptPresetLocked: integer('prompt_preset_locked', { mode: 'boolean' })
-        .notNull()
-        .default(false),
-    modelPresetId: text('model_preset_id'),
-    auxiliaryModelPresetId: text('auxiliary_model_preset_id'),
-    modelChainPresetId: text('model_chain_preset_id').references(() => modelChainPresets.id, {
-        onDelete: 'restrict',
-    }),
-    title: text('title').notNull(),
-    greetingIndex: integer('greeting_index').notNull(),
-    variablesJson: text('variables_json', { mode: 'json' }).$type<StringMap>().notNull(),
-    authorNote: text('author_note').notNull().default(''),
-    boundPersonaId: text('bound_persona_id').references(() => personas.id, {
-        onDelete: 'set null',
-    }),
-    personaLocked: integer('persona_locked', { mode: 'boolean' }).notNull().default(false),
-    groupId: text('group_id').references(() => conversationGroups.id, { onDelete: 'set null' }),
-    sortOrder: integer('sort_order').notNull().default(0),
-    archivedAt: timestampMs('archived_at'),
-    displayEpoch: integer('display_epoch').notNull().default(0),
-    ...timestampColumns,
-})
+export const conversations = sqliteTable(
+    'conversations',
+    {
+        id: text('id').primaryKey(),
+        characterId: text('character_id')
+            .notNull()
+            .references(() => characters.id, { onDelete: 'restrict' }),
+        promptPresetId: text('prompt_preset_id')
+            .notNull()
+            .references(() => promptPresets.id, { onDelete: 'restrict' }),
+        promptPresetLocked: integer('prompt_preset_locked', { mode: 'boolean' })
+            .notNull()
+            .default(false),
+        modelPresetId: text('model_preset_id'),
+        auxiliaryModelPresetId: text('auxiliary_model_preset_id'),
+        modelChainPresetId: text('model_chain_preset_id').references(() => modelChainPresets.id, {
+            onDelete: 'restrict',
+        }),
+        title: text('title').notNull(),
+        greetingIndex: integer('greeting_index').notNull(),
+        variablesJson: text('variables_json', { mode: 'json' }).$type<StringMap>().notNull(),
+        authorNote: text('author_note').notNull().default(''),
+        boundPersonaId: text('bound_persona_id').references(() => personas.id, {
+            onDelete: 'set null',
+        }),
+        personaLocked: integer('persona_locked', { mode: 'boolean' }).notNull().default(false),
+        groupId: text('group_id').references(() => conversationGroups.id, { onDelete: 'set null' }),
+        sortOrder: integer('sort_order').notNull().default(0),
+        archivedAt: timestampMs('archived_at'),
+        displayEpoch: integer('display_epoch').notNull().default(0),
+        ...timestampColumns,
+    },
+    (table) => [
+        index('conversations_group_order_idx').on(
+            table.characterId,
+            table.groupId,
+            table.sortOrder,
+        ),
+    ],
+)
 
 export const conversationModules = sqliteTable(
     'conversation_modules',
@@ -486,22 +529,26 @@ export const generationRuns = sqliteTable(
     ],
 )
 
-export const requestDebugRecords = sqliteTable('request_debug_records', {
-    id: text('id').primaryKey(),
-    generationId: text('generation_id')
-        .notNull()
-        .references(() => generationRuns.id, { onDelete: 'cascade' }),
-    conversationId: text('conversation_id')
-        .notNull()
-        .references(() => conversations.id, { onDelete: 'cascade' }),
-    provider: text('provider').notNull(),
-    modelId: text('model_id').notNull(),
-    parametersJson: text('parameters_json', { mode: 'json' })
-        .$type<GenerationParameters>()
-        .notNull(),
-    requestJson: text('request_json', { mode: 'json' }).$type<RequestDebugSnapshot>().notNull(),
-    createdAt: createdAt(),
-})
+export const requestDebugRecords = sqliteTable(
+    'request_debug_records',
+    {
+        id: text('id').primaryKey(),
+        generationId: text('generation_id')
+            .notNull()
+            .references(() => generationRuns.id, { onDelete: 'cascade' }),
+        conversationId: text('conversation_id')
+            .notNull()
+            .references(() => conversations.id, { onDelete: 'cascade' }),
+        provider: text('provider').notNull(),
+        modelId: text('model_id').notNull(),
+        parametersJson: text('parameters_json', { mode: 'json' })
+            .$type<GenerationParameters>()
+            .notNull(),
+        requestJson: text('request_json', { mode: 'json' }).$type<RequestDebugSnapshot>().notNull(),
+        createdAt: createdAt(),
+    },
+    (table) => [index('request_debug_records_created_at_idx').on(sql`${table.createdAt} desc`)],
+)
 
 export const luaStates = sqliteTable(
     'lua_states',
@@ -624,6 +671,11 @@ export const luaRemoteCommands = sqliteTable(
     },
     (table) => [
         uniqueIndex('lua_remote_commands_unique_idx').on(table.invocationId, table.callIndex),
+        index('lua_remote_commands_client_idx').on(
+            table.clientInstanceId,
+            table.status,
+            table.createdAt,
+        ),
     ],
 )
 

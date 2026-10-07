@@ -15,24 +15,26 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { loadConfig } from '../src/config'
-import { openDatabase, Store } from '../src/db'
+import { type DatabaseHandle, openDatabase, Store } from '../src/db'
 import { createLogger } from '../src/logger'
 import { BACKUP_MAX_BYTES, BackupService } from '../src/services/app/backups'
 
 describe('automatic database backups', () => {
     let directory: string
+    let database: DatabaseHandle
     let store: Store
     let backup: BackupService
     beforeEach(() => {
         directory = mkdtempSync(join(tmpdir(), 'malang-backup-'))
-        store = new Store(openDatabase(join(directory, 'data.sqlite')))
+        database = openDatabase(join(directory, 'data.sqlite'))
+        store = new Store(database)
         store.settings.ensure()
         const config = loadConfig({ NODE_ENV: 'test', DATA_DIR: directory })
-        backup = new BackupService(config, store, createLogger(config))
+        backup = new BackupService(config, database, store, createLogger(config))
     })
     afterEach(() => {
         backup.close()
-        store.close()
+        database.close()
         rmSync(directory, { recursive: true, force: true })
     })
     const snapshots = () =>
@@ -69,9 +71,9 @@ describe('automatic database backups', () => {
         store.settings.update({ autoBackupEnabled: false })
         backup.run()
         expect(snapshots()).toHaveLength(1)
-        const reopened = new Store(openDatabase(join(directory, 'data.sqlite')))
+        const reopened = openDatabase(join(directory, 'data.sqlite'))
         try {
-            expect(reopened.settings.get().autoBackupEnabled).toBe(false)
+            expect(new Store(reopened).settings.get().autoBackupEnabled).toBe(false)
         } finally {
             reopened.close()
         }
@@ -113,7 +115,7 @@ describe('automatic database backups', () => {
             DATA_DIR: directory,
             AUTO_BACKUP_ENABLED: 'false',
         })
-        const disabled = new BackupService(config, store, createLogger(config))
+        const disabled = new BackupService(config, database, store, createLogger(config))
         disabled.start()
         disabled.run()
         disabled.close()

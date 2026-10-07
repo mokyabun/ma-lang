@@ -1,19 +1,10 @@
 import type { ModelPreset, ModelPresetInput } from '@malang/shared'
 import { asc, eq, max } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
-import { conversations, modelChainPresets, modelPresets } from '../schema'
+import { appSettings, conversations, modelChainPresets, modelPresets } from '../schema'
 import { iso, RepositoryBase, requireValue } from './base'
-import { SettingsRepository } from './settings'
 
 export class ModelPresetRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly settings: SettingsRepository,
-    ) {
-        super(handle)
-    }
-
     list(): ModelPreset[] {
         return this.db
             .select()
@@ -66,10 +57,17 @@ export class ModelPresetRepository extends RepositoryBase {
 
     delete(id: string): 'deleted' | 'in_use' | 'not_found' {
         if (!this.get(id)) return 'not_found'
-        const settings = this.settings.get()
+        const settings = this.db
+            .select({
+                model: appSettings.defaultModelPresetId,
+                auxiliary: appSettings.defaultAuxiliaryModelPresetId,
+            })
+            .from(appSettings)
+            .where(eq(appSettings.id, 1))
+            .get()
         if (
-            settings.defaultModelPresetId === id ||
-            settings.defaultAuxiliaryModelPresetId === id ||
+            settings?.model === id ||
+            settings?.auxiliary === id ||
             this.db
                 .select({ id: conversations.id })
                 .from(conversations)

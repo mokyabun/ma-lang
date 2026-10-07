@@ -1,6 +1,8 @@
 import type { Store } from '@/db'
 import type { TemplateContext } from '@/services/prompt/template-engine'
 
+import { effectivePromptPresetId } from '../conversations'
+import { conversationModuleStates } from '../modules'
 import type { PersonaService } from '../personas'
 
 export function loadGenerationContext(
@@ -13,11 +15,11 @@ export function loadGenerationContext(
     const character = store.character.get(conversation.characterId)
     if (!character) throw new Error('Character not found')
     const settings = store.settings.get()
-    const preset = store.promptPreset.get(store.conversation.effectivePromptPresetId(conversation))
+    const preset = store.promptPreset.get(effectivePromptPresetId(conversation, settings))
     if (!preset) throw new Error('Prompt preset not found')
-    const moduleStates = store.conversationModule
-        .list(conversationId)
-        .filter((state) => state.enabled)
+    const moduleStates = conversationModuleStates(store, conversationId).filter(
+        (state) => state.enabled,
+    )
     const characterAssets = store.characterAsset.list(character.id).map((link) => ({
         name: link.name,
         type: link.type,

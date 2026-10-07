@@ -1,27 +1,32 @@
 import type { AppSettings } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
+import type { DatabaseHandle } from '../db'
 import { appSettings } from '../schema'
 import { normalizeToggleValues, RepositoryBase, requireValue } from './base'
 
+// app_settings is a singleton row; every repository that reads or writes its columns seeds it first.
+export function ensureAppSettingsRow(db: DatabaseHandle['db']): void {
+    if (db.select().from(appSettings).where(eq(appSettings.id, 1)).get()) return
+    db.insert(appSettings)
+        .values({
+            id: 1,
+            userName: 'User',
+            globalVariablesJson: {},
+            promptToggleValuesJson: {},
+            defaultPromptPresetId: null,
+            defaultModelPresetId: null,
+            defaultAuxiliaryModelPresetId: null,
+            selectedPersonaId: null,
+            providerJson: null,
+            updatedAt: new Date(),
+        })
+        .run()
+}
+
 export class SettingsRepository extends RepositoryBase {
     ensure(): void {
-        if (this.db.select().from(appSettings).where(eq(appSettings.id, 1)).get()) return
-        this.db
-            .insert(appSettings)
-            .values({
-                id: 1,
-                userName: 'User',
-                globalVariablesJson: {},
-                promptToggleValuesJson: {},
-                defaultPromptPresetId: null,
-                defaultModelPresetId: null,
-                defaultAuxiliaryModelPresetId: null,
-                selectedPersonaId: null,
-                providerJson: null,
-                updatedAt: new Date(),
-            })
-            .run()
+        ensureAppSettingsRow(this.db)
     }
 
     get(): AppSettings {

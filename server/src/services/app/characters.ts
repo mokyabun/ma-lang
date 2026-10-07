@@ -1,8 +1,14 @@
 import type { CharacterCreate, CharacterUpdate } from '@malang/shared'
+import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import type { CharacterCardV3 } from '@risuai/ccardlib'
 
 import type { AppConfig } from '@/config'
-import { loreFieldsFromExtensions, type Store } from '@/db'
+import {
+    type CharacterAssetRecord,
+    loreFieldsFromExtensions,
+    type NewCharacterRecord,
+    type Store,
+} from '@/db'
 import { ValidationError } from '@/errors/app-error'
 import {
     type ByteSource,
@@ -34,13 +40,32 @@ import {
     exportPocketRisuCharacterPackage,
     importPocketRisuCharacterPackage,
 } from './character-package'
+import type { ConversationService } from './conversations'
 
 export class CharacterService {
     constructor(
         private readonly config: AppConfig,
         private readonly store: Store,
         private readonly assetStore: AssetStore,
+        private readonly conversations: ConversationService,
     ) {}
+
+    /** Seeds the built-in general-purpose Chat character, restoring it if it was archived. */
+    ensureGeneralChat() {
+        const existing = this.store.character.get(GENERAL_CHAT_CHARACTER_ID)
+        if (!existing) return this.createRecord(generalChatRecord(), [])
+        if (existing.archivedAt) this.store.character.restore(existing.id)
+        return this.store.character.get(existing.id) ?? existing
+    }
+
+    createGroup(name: string) {
+        return this.store.transaction(() =>
+            this.store.characterGroup.create(
+                name,
+                this.store.characterOrganization.nextRootOrder(),
+            ),
+        )
+    }
 
     list(includeArchived = false) {
         return this.store.character.list(includeArchived)
@@ -73,7 +98,7 @@ export class CharacterService {
                 extensions: {},
             },
         }
-        return this.store.character.create(
+        return this.createRecord(
             {
                 id,
                 ...input,
@@ -224,7 +249,7 @@ export class CharacterService {
 
             const groupIds = new Map<string, string>()
             const conversationGroups = importedPackage.chatGroups.flatMap((imported) => {
-                const group = this.store.conversationGroup.create(character.id, imported.name)
+                const group = this.conversations.createGroup(character.id, imported.name)
                 if (!group) return []
                 groupIds.set(imported.originalId, group.id)
                 return [group]
@@ -236,7 +261,7 @@ export class CharacterService {
                     character.alternateGreetings[chat.greetingIndex] === undefined
                         ? -1
                         : chat.greetingIndex
-                const conversation = this.store.conversation.create({
+                const conversation = this.conversations.create({
                     characterId: character.id,
                     title: chat.title,
                     greetingIndex,
@@ -296,6 +321,16 @@ export class CharacterService {
         }
     }
 
+    private createRecord(input: NewCharacterRecord, linkedAssets: CharacterAssetRecord[]) {
+        return this.store.transaction(() =>
+            this.store.character.create(
+                input,
+                linkedAssets,
+                this.store.characterOrganization.nextRootOrder(),
+            ),
+        )
+    }
+
     private async persistImportedCard(
         imported: ImportedCard,
         onProgress: ImportProgress = () => {},
@@ -329,7 +364,7 @@ export class CharacterService {
         const risu = record(data.extensions?.risuai)
         const lua = normalizeLuaTriggers(risu.triggerscript, risu.lowLevelAccess)
         const book = data.character_book
-        const character = this.store.character.create(
+        const character = this.createRecord(
             {
                 id,
                 name: data.name || 'Unnamed',
@@ -634,4 +669,52 @@ function extensionForMime(mimeType: string): string {
             } as Record<string, string>
         )[mimeType] || 'bin'
     )
+}
+
+function generalChatRecord(): NewCharacterRecord {
+    const systemPrompt =
+        'You are Chat, a helpful general-purpose AI assistant. Respond directly and clearly to the user. Do not role-play a fictional character unless the user asks you to.'
+    return {
+        id: GENERAL_CHAT_CHARACTER_ID,
+        name: 'Chat',
+        description: 'A helpful general-purpose AI assistant for everyday questions.',
+        personality: 'Helpful, clear, practical, and adaptable.',
+        scenario: '',
+        firstMessage: '',
+        alternateGreetings: [],
+        exampleMessage: '',
+        systemPrompt,
+        postHistoryInstructions: '',
+        creator: 'Malang',
+        characterVersion: '1.0',
+        tags: ['built-in', 'general'],
+        avatarAssetId: null,
+        sourceSpec: 'v3',
+        sourceExtensions: { malang: { builtIn: 'general-chat' } },
+        sourceCard: {
+            spec: 'chara_card_v3',
+            spec_version: '3.0',
+            data: {
+                name: 'Chat',
+                description: 'A helpful general-purpose AI assistant for everyday questions.',
+                personality: 'Helpful, clear, practical, and adaptable.',
+                scenario: '',
+                first_mes: '',
+                alternate_greetings: [],
+                mes_example: '',
+                system_prompt: systemPrompt,
+                post_history_instructions: '',
+                creator: 'Malang',
+                character_version: '1.0',
+                tags: ['built-in', 'general'],
+                creator_notes: '',
+                group_only_greetings: [],
+                extensions: { malang: { builtIn: 'general-chat' } },
+            },
+        },
+        loreSettings: {},
+        regexScripts: [],
+        moduleReferences: [],
+        lorebook: [],
+    }
 }

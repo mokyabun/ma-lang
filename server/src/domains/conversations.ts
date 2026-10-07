@@ -80,11 +80,11 @@ export function createConversationDomain(context: AppContext) {
             ) {
                 throw new NotFoundError('Model chain preset not found')
             }
-            return c.json(context.store.conversation.create(input), 201)
+            return c.json(context.conversations.create(input), 201)
         })
         .post('/groups', jsonValidator(ConversationGroupCreateBody), (c) => {
             const input = c.req.valid('json')
-            const group = context.store.conversationGroup.create(input.characterId, input.name)
+            const group = context.conversations.createGroup(input.characterId, input.name)
             if (!group) throw new NotFoundError('Character not found')
             return c.json(group, 201)
         })
@@ -248,7 +248,7 @@ export function createConversationDomain(context: AppContext) {
             if (!message || message.conversationId !== c.req.param('id')) {
                 throw new NotFoundError('Message not found')
             }
-            const updated = context.store.generation.selectOutput(
+            const updated = context.generations.selectOutput(
                 message.id,
                 c.req.valid('json').generationId,
             )
@@ -290,7 +290,7 @@ export function createConversationDomain(context: AppContext) {
                 if (greeting === undefined) {
                     throw new ValidationError('Greeting does not exist')
                 }
-                const updated = context.store.conversation.updateGreeting(
+                const updated = context.conversations.updateGreeting(
                     conversation.id,
                     body.greetingIndex,
                     greeting,

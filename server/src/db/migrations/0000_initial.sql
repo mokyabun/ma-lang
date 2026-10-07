@@ -6,9 +6,9 @@ CREATE TABLE `admin_users` (
 );
 --> statement-breakpoint
 CREATE TABLE `app_settings` (
-	`id` integer PRIMARY KEY NOT NULL CHECK (`id` = 1),
+	`id` integer PRIMARY KEY NOT NULL,
 	`user_name` text NOT NULL,
-	`global_variables_json` text NOT NULL,
+	`global_variables_json` text DEFAULT '{}' NOT NULL,
 	`prompt_toggle_values_json` text DEFAULT '{}' NOT NULL,
 	`default_prompt_preset_id` text,
 	`default_model_preset_id` text,
@@ -47,6 +47,7 @@ CREATE TABLE `character_assets` (
 	FOREIGN KEY (`asset_id`) REFERENCES `assets`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
+CREATE INDEX `character_assets_character_idx` ON `character_assets` (`character_id`);--> statement-breakpoint
 CREATE TABLE `character_groups` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -73,6 +74,7 @@ CREATE TABLE `character_lore_entries` (
 	FOREIGN KEY (`character_id`) REFERENCES `characters`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `character_lore_character_idx` ON `character_lore_entries` (`character_id`);--> statement-breakpoint
 CREATE TABLE `characters` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -88,7 +90,7 @@ CREATE TABLE `characters` (
 	`character_version` text NOT NULL,
 	`tags_json` text NOT NULL,
 	`avatar_asset_id` text,
-	`source_spec` text NOT NULL CHECK (`source_spec` IN ('v2', 'v3')),
+	`source_spec` text NOT NULL,
 	`source_extensions_json` text NOT NULL,
 	`source_card_json` text NOT NULL,
 	`lore_settings_json` text NOT NULL,
@@ -110,6 +112,7 @@ CREATE TABLE `characters` (
 	FOREIGN KEY (`group_id`) REFERENCES `character_groups`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
+CREATE INDEX `characters_group_order_idx` ON `characters` (`group_id`,`sort_order`);--> statement-breakpoint
 CREATE TABLE `conversation_groups` (
 	`id` text PRIMARY KEY NOT NULL,
 	`character_id` text NOT NULL,
@@ -120,6 +123,7 @@ CREATE TABLE `conversation_groups` (
 	FOREIGN KEY (`character_id`) REFERENCES `characters`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `conversation_groups_character_order_idx` ON `conversation_groups` (`character_id`,`sort_order`);--> statement-breakpoint
 CREATE TABLE `conversation_lore_entries` (
 	`id` text PRIMARY KEY NOT NULL,
 	`conversation_id` text NOT NULL,
@@ -133,7 +137,7 @@ CREATE UNIQUE INDEX `conversation_lore_entries_name_idx` ON `conversation_lore_e
 CREATE TABLE `conversation_memory_settings` (
 	`conversation_id` text PRIMARY KEY NOT NULL,
 	`settings_json` text NOT NULL,
-	`metrics_json` text DEFAULT '{}' NOT NULL,
+	`metrics_json` text DEFAULT '{"importantSummaryIds":[],"recentSummaryIds":[],"similarSummaryIds":[],"randomSummaryIds":[]}' NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
 	FOREIGN KEY (`conversation_id`) REFERENCES `conversations`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -187,12 +191,13 @@ CREATE TABLE `conversations` (
 	FOREIGN KEY (`group_id`) REFERENCES `conversation_groups`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
+CREATE INDEX `conversations_group_order_idx` ON `conversations` (`character_id`,`group_id`,`sort_order`);--> statement-breakpoint
 CREATE TABLE `generation_runs` (
 	`id` text PRIMARY KEY NOT NULL,
 	`conversation_id` text NOT NULL,
 	`message_id` text,
 	`idempotency_key` text NOT NULL,
-	`status` text NOT NULL CHECK (`status` IN ('running', 'complete', 'cancelled', 'failed')),
+	`status` text NOT NULL,
 	`provider` text NOT NULL,
 	`model_id` text NOT NULL,
 	`parameters_json` text NOT NULL,
@@ -214,7 +219,7 @@ CREATE TABLE `lua_api_calls` (
 	`invocation_id` text NOT NULL,
 	`call_index` integer NOT NULL,
 	`operation` text NOT NULL,
-	`status` text NOT NULL CHECK (`status` IN ('running', 'complete', 'failed', 'indeterminate')),
+	`status` text NOT NULL,
 	`request_json` text DEFAULT '{}' NOT NULL,
 	`result_json` text,
 	`error_json` text,
@@ -228,7 +233,7 @@ CREATE TABLE `lua_display_batches` (
 	`conversation_id` text NOT NULL,
 	`display_epoch` integer NOT NULL,
 	`script_set_hash` text NOT NULL,
-	`status` text NOT NULL CHECK (`status` IN ('running', 'complete', 'failed')),
+	`status` text NOT NULL,
 	`result_json` text,
 	`error_json` text,
 	`created_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
@@ -243,7 +248,7 @@ CREATE TABLE `lua_event_runs` (
 	`event_key` text NOT NULL,
 	`phase` text NOT NULL,
 	`client_instance_id` text,
-	`status` text NOT NULL CHECK (`status` IN ('running', 'complete', 'failed')),
+	`status` text NOT NULL,
 	`input_json` text DEFAULT '{}' NOT NULL,
 	`result_json` text,
 	`error_json` text,
@@ -256,11 +261,11 @@ CREATE UNIQUE INDEX `lua_event_runs_unique_idx` ON `lua_event_runs` (`conversati
 CREATE TABLE `lua_invocations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`event_run_id` text NOT NULL,
-	`owner_type` text NOT NULL CHECK (`owner_type` IN ('character', 'module')),
+	`owner_type` text NOT NULL,
 	`owner_id` text NOT NULL,
 	`script_revision` integer NOT NULL,
 	`sequence` integer NOT NULL,
-	`status` text NOT NULL CHECK (`status` IN ('running', 'complete', 'failed')),
+	`status` text NOT NULL,
 	`result_json` text,
 	`warnings_json` text DEFAULT '[]' NOT NULL,
 	`error_json` text,
@@ -278,7 +283,7 @@ CREATE TABLE `lua_remote_commands` (
 	`kind` text NOT NULL,
 	`payload_json` text NOT NULL,
 	`result_json` text,
-	`status` text NOT NULL CHECK (`status` IN ('pending', 'complete', 'failed', 'expired')),
+	`status` text NOT NULL,
 	`blocking` integer DEFAULT false NOT NULL,
 	`expires_at` integer NOT NULL,
 	`created_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
@@ -287,9 +292,10 @@ CREATE TABLE `lua_remote_commands` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `lua_remote_commands_unique_idx` ON `lua_remote_commands` (`invocation_id`,`call_index`);--> statement-breakpoint
+CREATE INDEX `lua_remote_commands_client_idx` ON `lua_remote_commands` (`client_instance_id`,`status`,`created_at`);--> statement-breakpoint
 CREATE TABLE `lua_states` (
 	`conversation_id` text NOT NULL,
-	`owner_type` text NOT NULL CHECK (`owner_type` IN ('character', 'module')),
+	`owner_type` text NOT NULL,
 	`owner_id` text NOT NULL,
 	`state_key` text NOT NULL,
 	`value_json` text NOT NULL,
@@ -302,10 +308,10 @@ CREATE TABLE `lua_states` (
 CREATE TABLE `messages` (
 	`id` text PRIMARY KEY NOT NULL,
 	`conversation_id` text NOT NULL,
-	`role` text NOT NULL CHECK (`role` IN ('user', 'assistant', 'system')),
+	`role` text NOT NULL,
 	`content` text NOT NULL,
 	`position` integer NOT NULL,
-	`status` text NOT NULL CHECK (`status` IN ('complete', 'streaming', 'cancelled', 'failed')),
+	`status` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
 	FOREIGN KEY (`conversation_id`) REFERENCES `conversations`(`id`) ON UPDATE no action ON DELETE cascade
@@ -316,7 +322,7 @@ CREATE TABLE `model_api_keys` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`provider` text NOT NULL,
-	`credential_type` text NOT NULL CHECK (`credential_type` IN ('apiKey', 'serviceAccount', 'aws')),
+	`credential_type` text NOT NULL,
 	`hint` text DEFAULT '' NOT NULL,
 	`created_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL
@@ -375,6 +381,7 @@ CREATE TABLE `prompt_module_assets` (
 	FOREIGN KEY (`asset_id`) REFERENCES `assets`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
+CREATE INDEX `prompt_module_assets_module_idx` ON `prompt_module_assets` (`module_id`);--> statement-breakpoint
 CREATE TABLE `prompt_modules` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -400,6 +407,7 @@ CREATE TABLE `prompt_modules` (
 	`updated_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `prompt_modules_namespace_idx` ON `prompt_modules` (`namespace`) WHERE "prompt_modules"."namespace" <> '';--> statement-breakpoint
 CREATE TABLE `prompt_presets` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -409,7 +417,7 @@ CREATE TABLE `prompt_presets` (
 	`toggles_json` text DEFAULT '[]' NOT NULL,
 	`regex_scripts_json` text DEFAULT '[]' NOT NULL,
 	`module_integrations_json` text DEFAULT '[]' NOT NULL,
-	`prompt_settings_json` text DEFAULT '{}' NOT NULL,
+	`prompt_settings_json` text DEFAULT '{"assistantPrefill":"","postEndInnerFormat":"","sendChatAsSystem":false,"sendName":false,"trimStartNewChat":false,"groupTemplate":""}' NOT NULL,
 	`warnings_json` text NOT NULL,
 	`source_json` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
@@ -429,6 +437,7 @@ CREATE TABLE `request_debug_records` (
 	FOREIGN KEY (`conversation_id`) REFERENCES `conversations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `request_debug_records_created_at_idx` ON `request_debug_records` ("created_at" desc);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`admin_id` text NOT NULL,
@@ -439,21 +448,3 @@ CREATE TABLE `sessions` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `sessions_token_hash_idx` ON `sessions` (`token_hash`);
---> statement-breakpoint
-CREATE INDEX `character_assets_character_idx` ON `character_assets` (`character_id`);
---> statement-breakpoint
-CREATE INDEX `character_lore_character_idx` ON `character_lore_entries` (`character_id`);
---> statement-breakpoint
-CREATE INDEX `characters_group_order_idx` ON `characters` (`group_id`, `sort_order`);
---> statement-breakpoint
-CREATE INDEX `conversation_groups_character_order_idx` ON `conversation_groups` (`character_id`, `sort_order`);
---> statement-breakpoint
-CREATE INDEX `conversations_group_order_idx` ON `conversations` (`character_id`, `group_id`, `sort_order`);
---> statement-breakpoint
-CREATE INDEX `lua_remote_commands_client_idx` ON `lua_remote_commands` (`client_instance_id`, `status`, `created_at`);
---> statement-breakpoint
-CREATE INDEX `prompt_module_assets_module_idx` ON `prompt_module_assets` (`module_id`);
---> statement-breakpoint
-CREATE UNIQUE INDEX `prompt_modules_namespace_idx` ON `prompt_modules` (`namespace`) WHERE `namespace` <> '';
---> statement-breakpoint
-CREATE INDEX `request_debug_records_created_at_idx` ON `request_debug_records` (`created_at` DESC);

@@ -7,11 +7,16 @@ import { CharacterLoreRepository } from './repositories/character-lore'
 import { CharacterOrganizationRepository } from './repositories/character-organization'
 import { CharacterRepository } from './repositories/characters'
 import { ConversationGroupRepository } from './repositories/conversation-groups'
+import { ConversationLoreRepository } from './repositories/conversation-lore'
 import { ConversationModuleRepository } from './repositories/conversation-modules'
 import { ConversationOrganizationRepository } from './repositories/conversation-organization'
 import { ConversationRepository } from './repositories/conversations'
 import { CredentialRotationRepository } from './repositories/credential-rotation'
 import { GenerationRepository } from './repositories/generations'
+import { LuaDisplayBatchRepository } from './repositories/lua-display-batches'
+import { LuaRemoteCommandRepository } from './repositories/lua-remote-commands'
+import { LuaRunRepository } from './repositories/lua-runs'
+import { LuaStateRepository } from './repositories/lua-states'
 import { MemoryMetricsRepository } from './repositories/memory-metrics'
 import { MemorySettingsRepository } from './repositories/memory-settings'
 import { MemorySummaryRepository } from './repositories/memory-summaries'
@@ -37,10 +42,16 @@ export {
     loreFieldsFromExtensions,
     type NewCharacterRecord,
 } from './repositories/characters'
+export type { NewConversationRecord } from './repositories/conversations'
 export type { AssetRecord } from './repositories/assets'
+export type { LuaRemoteCommandRow } from './repositories/lua-remote-commands'
 export type { PromptModuleAssetRecord } from './repositories/prompt-module-assets'
 export type { MemorySummaryRecord, SparseVector } from './repositories/memory-summaries'
 
+/**
+ * The application's repositories over one database connection. Connection lifecycle (backup,
+ * restore, close) belongs to the `DatabaseHandle` owner, not to the repositories' callers.
+ */
 export class Store {
     readonly admin: AdminRepository
     readonly session: SessionRepository
@@ -62,6 +73,7 @@ export class Store {
     readonly characterOrganization: CharacterOrganizationRepository
     readonly conversation: ConversationRepository
     readonly conversationGroup: ConversationGroupRepository
+    readonly conversationLore: ConversationLoreRepository
     readonly conversationModule: ConversationModuleRepository
     readonly conversationOrganization: ConversationOrganizationRepository
     readonly message: MessageRepository
@@ -72,6 +84,10 @@ export class Store {
     readonly memorySummary: MemorySummaryRepository
     readonly modelChain: ModelChainRepository
     readonly modelChainMemory: ModelChainMemoryRepository
+    readonly luaRun: LuaRunRepository
+    readonly luaState: LuaStateRepository
+    readonly luaDisplayBatch: LuaDisplayBatchRepository
+    readonly luaRemoteCommand: LuaRemoteCommandRepository
 
     constructor(private readonly handle: DatabaseHandle) {
         this.admin = new AdminRepository(handle)
@@ -79,64 +95,43 @@ export class Store {
         this.credentialRotation = new CredentialRotationRepository(handle)
         this.settings = new SettingsRepository(handle)
         this.persona = new PersonaRepository(handle)
-        this.provider = new ProviderRepository(handle, this.settings)
-        this.modelPreset = new ModelPresetRepository(handle, this.settings)
+        this.provider = new ProviderRepository(handle)
+        this.modelPreset = new ModelPresetRepository(handle)
         this.modelApiKey = new ModelApiKeyRepository(handle)
-        this.secretStorage = new SecretStorageRepository(handle, this.settings)
-        this.promptPreset = new PromptPresetRepository(handle, this.settings)
+        this.secretStorage = new SecretStorageRepository(handle)
+        this.promptPreset = new PromptPresetRepository(handle)
         this.promptModule = new PromptModuleRepository(handle)
         this.promptModuleAsset = new PromptModuleAssetRepository(handle)
         this.asset = new AssetRepository(handle)
-        this.characterOrganization = new CharacterOrganizationRepository(handle)
-        this.characterGroup = new CharacterGroupRepository(handle, this.characterOrganization)
-        this.character = new CharacterRepository(handle, this.characterOrganization)
+        this.character = new CharacterRepository(handle)
         this.characterAsset = new CharacterAssetRepository(handle)
         this.characterLore = new CharacterLoreRepository(handle)
-        this.message = new MessageRepository(handle)
+        this.characterGroup = new CharacterGroupRepository(handle)
+        this.characterOrganization = new CharacterOrganizationRepository(handle)
+        this.conversation = new ConversationRepository(handle)
+        this.conversationGroup = new ConversationGroupRepository(handle)
+        this.conversationLore = new ConversationLoreRepository(handle)
+        this.conversationModule = new ConversationModuleRepository(handle)
         this.conversationOrganization = new ConversationOrganizationRepository(handle)
-        this.conversationGroup = new ConversationGroupRepository(
-            handle,
-            this.character,
-            this.conversationOrganization,
-        )
-        this.conversation = new ConversationRepository(
-            handle,
-            this.settings,
-            this.promptPreset,
-            this.character,
-            this.message,
-            this.conversationOrganization,
-        )
-        this.conversationModule = new ConversationModuleRepository(
-            handle,
-            this.settings,
-            this.promptPreset,
-            this.promptModule,
-            this.character,
-            this.message,
-        )
-        this.generation = new GenerationRepository(handle, this.message)
+        this.message = new MessageRepository(handle)
+        this.generation = new GenerationRepository(handle)
         this.requestDebug = new RequestDebugRepository(handle)
         this.memorySettings = new MemorySettingsRepository(handle)
-        this.memoryMetrics = new MemoryMetricsRepository(handle, this.memorySettings)
+        this.memoryMetrics = new MemoryMetricsRepository(handle)
         this.memorySummary = new MemorySummaryRepository(handle)
         this.modelChain = new ModelChainRepository(handle)
         this.modelChainMemory = new ModelChainMemoryRepository(handle)
+        this.luaRun = new LuaRunRepository(handle)
+        this.luaState = new LuaStateRepository(handle)
+        this.luaDisplayBatch = new LuaDisplayBatchRepository(handle)
+        this.luaRemoteCommand = new LuaRemoteCommandRepository(handle)
     }
 
-    get sqlite() {
-        return this.handle.sqlite
-    }
-
-    get db() {
-        return this.handle.db
-    }
-
-    replaceWith(sourcePath: string, rollbackPath: string): void {
-        this.handle.replaceWith(sourcePath, rollbackPath)
-    }
-
-    close(): void {
-        this.handle.close()
+    /**
+     * Runs `fn` atomically. Repositories share one connection, so every repository call inside
+     * `fn` joins the transaction; nested transactions become savepoints.
+     */
+    transaction<T>(fn: () => T): T {
+        return this.handle.sqlite.transaction(fn)()
     }
 }

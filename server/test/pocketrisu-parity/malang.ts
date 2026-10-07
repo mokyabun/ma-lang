@@ -87,7 +87,7 @@ export async function compileWithMalang(
             chainOfThought: scenario.chainOfThought ?? false,
         })
 
-        const conversation = store.conversation.create({
+        const conversation = context.conversations.create({
             characterId: character.id,
             promptPresetId: preset.id,
             greetingIndex: scenario.chat.fmIndex ?? -1,
@@ -106,7 +106,7 @@ export async function compileWithMalang(
         })
         for (const source of scenario.modules ?? []) {
             const module = await context.modules.import(json(source), 'module.json')
-            store.conversationModule.set(conversation.id, module.id, true)
+            context.modules.setConversationState(conversation.id, module.id, true)
         }
 
         const preview = await context.generations.preview(conversation.id)

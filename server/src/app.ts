@@ -145,7 +145,7 @@ export function createApp(context: AppContext) {
     app.get('/health/live', (c) => c.json({ status: 'ok' }))
     app.get('/health/ready', (c) => {
         try {
-            context.store.sqlite.query('SELECT 1').get()
+            context.database.sqlite.query('SELECT 1').get()
             return c.json({ status: 'ready' })
         } catch {
             return c.json({ status: 'not_ready' }, 503)

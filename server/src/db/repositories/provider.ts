@@ -1,21 +1,13 @@
 import type { ProviderConfig } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
 import { appSettings } from '../schema'
 import { RepositoryBase } from './base'
-import { SettingsRepository } from './settings'
+import { ensureAppSettingsRow } from './settings'
 
 export class ProviderRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly settings: SettingsRepository,
-    ) {
-        super(handle)
-    }
-
     get(): ProviderConfig | null {
-        this.settings.ensure()
+        ensureAppSettingsRow(this.db)
         const row = this.db
             .select({ providerJson: appSettings.providerJson })
             .from(appSettings)
@@ -25,7 +17,7 @@ export class ProviderRepository extends RepositoryBase {
     }
 
     set(provider: ProviderConfig): ProviderConfig {
-        this.settings.ensure()
+        ensureAppSettingsRow(this.db)
         this.db
             .update(appSettings)
             .set({ providerJson: provider })

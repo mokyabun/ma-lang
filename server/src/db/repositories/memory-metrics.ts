@@ -2,22 +2,14 @@ import type { LongTermMemoryMetrics } from '@malang/shared'
 import { LongTermMemoryMetricsSchema } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
 import { conversationMemorySettings } from '../schema'
 import { RepositoryBase } from './base'
-import { MemorySettingsRepository } from './memory-settings'
+import { defaultMemorySettings } from './memory-settings'
 
 export const defaultMemoryMetrics = (): LongTermMemoryMetrics =>
     LongTermMemoryMetricsSchema.parse({})
 
 export class MemoryMetricsRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly settings: MemorySettingsRepository,
-    ) {
-        super(handle)
-    }
-
     get(conversationId: string): LongTermMemoryMetrics {
         const row = this.db
             .select({ metricsJson: conversationMemorySettings.metricsJson })
@@ -34,7 +26,7 @@ export class MemoryMetricsRepository extends RepositoryBase {
             .insert(conversationMemorySettings)
             .values({
                 conversationId,
-                settingsJson: this.settings.get(conversationId),
+                settingsJson: defaultMemorySettings(),
                 metricsJson: LongTermMemoryMetricsSchema.parse(metrics),
                 updatedAt: new Date(),
             })

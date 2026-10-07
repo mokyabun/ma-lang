@@ -22,28 +22,13 @@ export async function renderDisplayMessages(
         .update(JSON.stringify(scripts.filter((script) => script.phase === 'editdisplay')))
         .digest('hex')
     const epoch = context.conversation.displayEpoch
-    const cached = store.sqlite
-        .query<
-            { status: string; result_json: string | null; error_json: string | null },
-            [string, number, string]
-        >(
-            `SELECT status, result_json, error_json FROM lua_display_batches
-             WHERE conversation_id = ? AND display_epoch = ? AND script_set_hash = ?`,
-        )
-        .get(conversationId, epoch, scriptSetHash)
+    const batch = { conversationId, displayEpoch: epoch, scriptSetHash }
+    const cached = store.luaDisplayBatch.find(batch)
     if (cached?.status === 'complete' && cached.result_json) {
         return JSON.parse(cached.result_json) as GenerationContext['messages']
     }
     if (cached?.status === 'failed') throw new Error('The cached Lua display batch failed')
-    if (!cached) {
-        store.sqlite
-            .query(
-                `INSERT INTO lua_display_batches
-                 (conversation_id, display_epoch, script_set_hash, status, created_at)
-                 VALUES (?, ?, ?, 'running', ?)`,
-            )
-            .run(conversationId, epoch, scriptSetHash, Date.now())
-    }
+    if (!cached) store.luaDisplayBatch.start(batch)
     const warnings: string[] = []
     const { parser, greeting, chatMessages } = loadRisuChat({
         character: context.character,
@@ -92,28 +77,12 @@ export async function renderDisplayMessages(
                 ...(rendered === message.content ? {} : { displayContent: rendered }),
             })
         }
-        store.sqlite
-            .query(
-                `UPDATE lua_display_batches SET status = 'complete', result_json = ?, completed_at = ?
-                 WHERE conversation_id = ? AND display_epoch = ? AND script_set_hash = ?`,
-            )
-            .run(JSON.stringify(output), Date.now(), conversationId, epoch, scriptSetHash)
+        store.luaDisplayBatch.complete(batch, output)
         return output
     } catch (error) {
-        store.sqlite
-            .query(
-                `UPDATE lua_display_batches SET status = 'failed', error_json = ?, completed_at = ?
-                 WHERE conversation_id = ? AND display_epoch = ? AND script_set_hash = ?`,
-            )
-            .run(
-                JSON.stringify({
-                    message: error instanceof Error ? error.message : String(error),
-                }),
-                Date.now(),
-                conversationId,
-                epoch,
-                scriptSetHash,
-            )
+        store.luaDisplayBatch.fail(batch, {
+            message: error instanceof Error ? error.message : String(error),
+        })
         throw error
     } finally {
         sandbox.close()

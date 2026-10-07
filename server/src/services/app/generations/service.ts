@@ -54,6 +54,13 @@ export class GenerationService {
         private readonly log: Logger,
     ) {}
 
+    /** Promotes a completed generation run's output to be the message's content. */
+    selectOutput(messageId: string, generationId: string) {
+        const output = this.store.generation.completedOutput(messageId, generationId)
+        if (output === null) return null
+        return this.store.message.update(messageId, { content: output, status: 'complete' })
+    }
+
     async preview(conversationId: string) {
         const context = this.context(conversationId)
         const provider = this.providers.configForConversation(conversationId)

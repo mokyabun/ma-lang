@@ -1012,7 +1012,7 @@ describe('Hono API and SQLite persistence', () => {
             moduleIntegrations: originalPreset.moduleIntegrations,
             promptSettings: originalPreset.promptSettings,
         })
-        const otherConversation = context.store.conversation.create({
+        const otherConversation = context.conversations.create({
             characterId,
             greetingIndex: -1,
         })
@@ -1637,7 +1637,7 @@ describe('Hono API and SQLite persistence', () => {
         expect(providerBody).toMatchObject({ apiKeyConfigured: true, apiKeyLocked: false })
         expect(providerBody).not.toHaveProperty('apiKey')
 
-        const stored = context.store.sqlite
+        const stored = context.database.sqlite
             .query<
                 { provider_json: string; provider_secret_json: string; secret_salt: string },
                 []
@@ -1712,7 +1712,7 @@ describe('Hono API and SQLite persistence', () => {
             apiKeyConfigured: false,
             serviceAccountConfigured: true,
         })
-        const serviceAccountStorage = context.store.sqlite
+        const serviceAccountStorage = context.database.sqlite
             .query<{ provider_json: string; provider_secret_json: string }, []>(
                 'SELECT provider_json, provider_secret_json FROM app_settings WHERE id = 1',
             )

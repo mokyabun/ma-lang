@@ -17,6 +17,8 @@ import { ConflictError } from '@/errors/app-error'
 import { renderTemplate } from '@/services/prompt/template-engine'
 import { providerFor } from '@/services/providers'
 
+import { effectivePromptPresetId } from '../app/conversations'
+import { conversationModuleStates } from '../app/modules'
 import type { PersonaService } from '../app/personas'
 import type { ProviderService } from '../app/providers'
 import { LuaRemoteCommandError, RemoteRuntime } from './remote-runtime'
@@ -99,19 +101,7 @@ export class LuaRuntime {
         private readonly log: Logger,
     ) {
         this.remote = new RemoteRuntime(store)
-        const now = Date.now()
-        store.sqlite
-            .query(
-                `UPDATE lua_event_runs SET status = 'failed', error_json = ?, completed_at = ?
-                 WHERE status = 'running'`,
-            )
-            .run(JSON.stringify({ message: 'Server stopped during Lua event' }), now)
-        store.sqlite
-            .query(
-                `UPDATE lua_api_calls SET status = 'indeterminate', completed_at = ?
-                 WHERE status = 'running'`,
-            )
-            .run(now)
+        store.luaRun.recoverInterrupted()
     }
 
     async trigger(conversationId: string, request: LuaTriggerRequest): Promise<LuaPhaseResult> {
@@ -146,7 +136,11 @@ export class LuaRuntime {
         const running = this.activeEvents.get(key)
         if (running) return running as Promise<LuaPhaseResult<T>>
         const task = this.withConversationLock(input.conversationId, async () => {
-            const existing = this.getEvent(input.conversationId, input.eventKey, input.phase)
+            const existing = this.store.luaRun.findEvent(
+                input.conversationId,
+                input.eventKey,
+                input.phase,
+            )
             if (existing?.status === 'complete' && existing.result_json) {
                 return JSON.parse(existing.result_json) as LuaPhaseResult<T>
             }
@@ -155,22 +149,14 @@ export class LuaRuntime {
             }
             const eventRunId = existing?.id ?? crypto.randomUUID()
             if (!existing) {
-                this.store.sqlite
-                    .query(
-                        `INSERT INTO lua_event_runs
-                         (id, conversation_id, event_key, phase, client_instance_id, status,
-                          input_json, created_at)
-                         VALUES (?, ?, ?, ?, ?, 'running', ?, ?)`,
-                    )
-                    .run(
-                        eventRunId,
-                        input.conversationId,
-                        input.eventKey,
-                        input.phase,
-                        input.clientInstanceId,
-                        JSON.stringify({ data: input.data, meta: input.meta }),
-                        Date.now(),
-                    )
+                this.store.luaRun.startEvent({
+                    id: eventRunId,
+                    conversationId: input.conversationId,
+                    eventKey: input.eventKey,
+                    phase: input.phase,
+                    clientInstanceId: input.clientInstanceId,
+                    input: { data: input.data, meta: input.meta },
+                })
             }
             try {
                 let data: unknown = input.data
@@ -202,20 +188,10 @@ export class LuaRuntime {
                     messages: this.store.message.list(input.conversationId),
                     displayEpoch: conversation.displayEpoch,
                 }
-                this.store.sqlite
-                    .query(
-                        `UPDATE lua_event_runs SET status = 'complete', result_json = ?, completed_at = ?
-                         WHERE id = ?`,
-                    )
-                    .run(JSON.stringify(result), Date.now(), eventRunId)
+                this.store.luaRun.completeEvent(eventRunId, result)
                 return result
             } catch (error) {
-                this.store.sqlite
-                    .query(
-                        `UPDATE lua_event_runs SET status = 'failed', error_json = ?, completed_at = ?
-                         WHERE id = ?`,
-                    )
-                    .run(JSON.stringify(errorJson(error)), Date.now(), eventRunId)
+                this.store.luaRun.failEvent(eventRunId, errorJson(error))
                 throw error
             }
         })
@@ -258,15 +234,12 @@ export class LuaRuntime {
         data: unknown
         meta: Record<string, unknown>
     }) {
-        const existing = this.store.sqlite
-            .query<
-                { id: string; status: string; result_json: string | null; warnings_json: string },
-                [string, string, string, number]
-            >(
-                `SELECT id, status, result_json, warnings_json FROM lua_invocations
-                 WHERE event_run_id = ? AND owner_type = ? AND owner_id = ? AND script_revision = ?`,
-            )
-            .get(input.eventRunId, input.owner.type, input.owner.id, input.owner.script.revision)
+        const existing = this.store.luaRun.findInvocation(
+            input.eventRunId,
+            input.owner.type,
+            input.owner.id,
+            input.owner.script.revision,
+        )
         if (existing?.status === 'complete') {
             const result = JSON.parse(existing.result_json || '{}') as {
                 data: unknown
@@ -276,22 +249,14 @@ export class LuaRuntime {
         }
         const invocationId = existing?.id ?? crypto.randomUUID()
         if (!existing) {
-            this.store.sqlite
-                .query(
-                    `INSERT INTO lua_invocations
-                     (id, event_run_id, owner_type, owner_id, script_revision, sequence, status,
-                      created_at)
-                     VALUES (?, ?, ?, ?, ?, ?, 'running', ?)`,
-                )
-                .run(
-                    invocationId,
-                    input.eventRunId,
-                    input.owner.type,
-                    input.owner.id,
-                    input.owner.script.revision,
-                    input.owner.order,
-                    Date.now(),
-                )
+            this.store.luaRun.startInvocation({
+                id: invocationId,
+                eventRunId: input.eventRunId,
+                ownerType: input.owner.type,
+                ownerId: input.owner.id,
+                scriptRevision: input.owner.script.revision,
+                sequence: input.owner.order,
+            })
         }
         const permissions = permissionsFor(input.mode, input.owner.script.lowLevelAccess)
         const context: InvocationContext = {
@@ -349,26 +314,11 @@ export class LuaRuntime {
             }
             this.commitStage(context)
             const result = { data, stopSending: context.stage.stopSending }
-            this.store.sqlite
-                .query(
-                    `UPDATE lua_invocations SET status = 'complete', result_json = ?, warnings_json = ?,
-                     completed_at = ? WHERE id = ?`,
-                )
-                .run(JSON.stringify(result), JSON.stringify(warnings), Date.now(), invocationId)
+            this.store.luaRun.completeInvocation(invocationId, result, warnings)
             return { ...result, warnings }
         } catch (error) {
             this.disposeEngine(context)
-            this.store.sqlite
-                .query(
-                    `UPDATE lua_invocations SET status = 'failed', error_json = ?, warnings_json = ?,
-                     completed_at = ? WHERE id = ?`,
-                )
-                .run(
-                    JSON.stringify(errorJson(error)),
-                    JSON.stringify(warnings),
-                    Date.now(),
-                    invocationId,
-                )
+            this.store.luaRun.failInvocation(invocationId, errorJson(error), warnings)
             throw error
         }
     }
@@ -810,50 +760,24 @@ export class LuaRuntime {
         call: () => Promise<T>,
     ): Promise<T> {
         const callIndex = ++current.callIndex
-        const existing = this.store.sqlite
-            .query<
-                { status: string; result_json: string | null; error_json: string | null },
-                [string, number]
-            >(
-                'SELECT status, result_json, error_json FROM lua_api_calls WHERE invocation_id = ? AND call_index = ?',
-            )
-            .get(current.invocationId, callIndex)
+        const existing = this.store.luaRun.findApiCall(current.invocationId, callIndex)
         if (existing?.status === 'complete') return JSON.parse(existing.result_json || 'null') as T
         if (existing?.status === 'indeterminate')
             throw new Error('External API result is indeterminate; automatic retry is disabled')
-        const id = crypto.randomUUID()
         if (!existing) {
-            this.store.sqlite
-                .query(
-                    `INSERT INTO lua_api_calls
-                     (id, invocation_id, call_index, operation, status, request_json, created_at)
-                     VALUES (?, ?, ?, ?, 'running', ?, ?)`,
-                )
-                .run(
-                    id,
-                    current.invocationId,
-                    callIndex,
-                    operation,
-                    JSON.stringify(request),
-                    Date.now(),
-                )
+            this.store.luaRun.startApiCall({
+                invocationId: current.invocationId,
+                callIndex,
+                operation,
+                request,
+            })
         }
         try {
             const result = await call()
-            this.store.sqlite
-                .query(
-                    `UPDATE lua_api_calls SET status = 'complete', result_json = ?, completed_at = ?
-                     WHERE invocation_id = ? AND call_index = ?`,
-                )
-                .run(JSON.stringify(result), Date.now(), current.invocationId, callIndex)
+            this.store.luaRun.completeApiCall(current.invocationId, callIndex, result)
             return result
         } catch (error) {
-            this.store.sqlite
-                .query(
-                    `UPDATE lua_api_calls SET status = 'failed', error_json = ?, completed_at = ?
-                     WHERE invocation_id = ? AND call_index = ?`,
-                )
-                .run(JSON.stringify(errorJson(error)), Date.now(), current.invocationId, callIndex)
+            this.store.luaRun.failApiCall(current.invocationId, callIndex, errorJson(error))
             throw error
         }
     }
@@ -889,29 +813,16 @@ export class LuaRuntime {
             epochBumped = true
         }
         if (stage.changedVariables) {
-            this.store.sqlite
-                .query('UPDATE conversations SET variables_json = ?, updated_at = ? WHERE id = ?')
-                .run(JSON.stringify(stage.variables), Date.now(), current.conversationId)
+            this.store.conversation.setVariables(current.conversationId, stage.variables)
             for (const [key, value] of Object.entries(stage.variables)) {
                 if (!key.startsWith('__')) continue
-                this.store.sqlite
-                    .query(
-                        `INSERT INTO lua_states
-                         (conversation_id, owner_type, owner_id, state_key, value_json, version, updated_at)
-                         VALUES (?, ?, ?, ?, ?, 1, ?)
-                         ON CONFLICT(conversation_id, owner_type, owner_id, state_key) DO UPDATE SET
-                           value_json = excluded.value_json,
-                           version = lua_states.version + 1,
-                           updated_at = excluded.updated_at`,
-                    )
-                    .run(
-                        current.conversationId,
-                        current.owner.type,
-                        current.owner.id,
-                        key.slice(2),
-                        JSON.stringify(value),
-                        Date.now(),
-                    )
+                this.store.luaState.upsert({
+                    conversationId: current.conversationId,
+                    ownerType: current.owner.type,
+                    ownerId: current.owner.id,
+                    key: key.slice(2),
+                    value,
+                })
             }
             if (!epochBumped && current.mode !== 'editDisplay') {
                 this.store.message.bumpDisplayEpoch(current.conversationId)
@@ -939,20 +850,7 @@ export class LuaRuntime {
             }
         }
         for (const [name, entry] of stage.loreUpserts) {
-            this.store.sqlite
-                .query(
-                    `INSERT INTO conversation_lore_entries (id, conversation_id, name, entry_json, updated_at)
-                     VALUES (?, ?, ?, ?, ?)
-                     ON CONFLICT(conversation_id, name) DO UPDATE
-                     SET entry_json = excluded.entry_json, updated_at = excluded.updated_at`,
-                )
-                .run(
-                    crypto.randomUUID(),
-                    current.conversationId,
-                    name,
-                    JSON.stringify(entry),
-                    Date.now(),
-                )
+            this.store.conversationLore.upsert(current.conversationId, name, entry)
         }
         if ((stage.reloadDisplay || stage.loreUpserts.size) && !epochBumped) {
             this.store.message.bumpDisplayEpoch(current.conversationId)
@@ -965,7 +863,7 @@ export class LuaRuntime {
         if (Object.hasOwn(character.defaultVariables, key)) return character.defaultVariables[key]!
         const conversation = this.conversation(current)
         const preset = this.store.promptPreset.get(
-            this.store.conversation.effectivePromptPresetId(conversation),
+            effectivePromptPresetId(conversation, this.store.settings.get()),
         )
         if (preset && Object.hasOwn(preset.defaultVariables, key))
             return preset.defaultVariables[key]!
@@ -992,16 +890,10 @@ export class LuaRuntime {
     private loreBooks(current: InvocationContext, search: string) {
         const needle = search.toLocaleLowerCase()
         const character = this.character(current)
-        const modules = this.store.conversationModule
-            .list(current.conversationId)
+        const modules = conversationModuleStates(this.store, current.conversationId)
             .filter((state) => state.enabled)
             .flatMap((state) => state.module.lorebook)
-        const local = this.store.sqlite
-            .query<{ entry_json: string }, [string]>(
-                'SELECT entry_json FROM conversation_lore_entries WHERE conversation_id = ?',
-            )
-            .all(current.conversationId)
-            .map((row) => JSON.parse(row.entry_json))
+        const local = this.store.conversationLore.list(current.conversationId)
         return [...(character.lorebook || []), ...modules, ...local].filter((entry) => {
             if (!needle) return true
             if (!isRecord(entry)) return false
@@ -1034,8 +926,7 @@ export class LuaRuntime {
             })
         }
         result.push(
-            ...this.store.conversationModule
-                .list(conversationId)
+            ...conversationModuleStates(this.store, conversationId)
                 .filter((state) => state.enabled && state.module.luaScript?.enabled)
                 .sort(
                     (a, b) =>
@@ -1070,23 +961,6 @@ export class LuaRuntime {
 
     private assetReference(assetId: string | null) {
         return assetId ? `{{inlay::${assetId}}}` : ''
-    }
-
-    private getEvent(conversationId: string, eventKey: string, phase: string) {
-        return this.store.sqlite
-            .query<
-                {
-                    id: string
-                    status: string
-                    result_json: string | null
-                    error_json: string | null
-                },
-                [string, string, string]
-            >(
-                `SELECT id, status, result_json, error_json FROM lua_event_runs
-                 WHERE conversation_id = ? AND event_key = ? AND phase = ?`,
-            )
-            .get(conversationId, eventKey, phase)
     }
 
     private async withConversationLock<T>(key: string, task: () => Promise<T>): Promise<T> {

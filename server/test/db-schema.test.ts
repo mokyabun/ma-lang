@@ -1,15 +1,32 @@
-import { Database } from 'bun:sqlite'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { generateSQLiteDrizzleJson, generateSQLiteMigration } from 'drizzle-kit/api'
 import { eq } from 'drizzle-orm'
 
 import { openDatabase } from '../src/db'
-import { runMigrations } from '../src/db/migrate'
+import journal from '../src/db/migrations/meta/_journal.json'
+import * as schema from '../src/db/schema'
 import { adminUsers } from '../src/db/schema'
 
 describe('database baseline', () => {
+    test('has a generated migration for every schema.ts change', async () => {
+        const latest = journal.entries.at(-1)!
+        const snapshot = JSON.parse(
+            readFileSync(
+                join(
+                    import.meta.dir,
+                    `../src/db/migrations/meta/${latest.tag.slice(0, 4)}_snapshot.json`,
+                ),
+                'utf8',
+            ),
+        )
+        const current = await generateSQLiteDrizzleJson(schema)
+        // Non-empty means schema.ts changed without `bun run db:generate`.
+        expect(await generateSQLiteMigration(snapshot, current)).toEqual([])
+    })
+
     test('applies all migrations without deprecated columns', () => {
         const handle = openDatabase(':memory:')
         try {
@@ -25,7 +42,7 @@ describe('database baseline', () => {
                         'SELECT version FROM schema_migrations ORDER BY version',
                     )
                     .all(),
-            ).toEqual([{ version: 1 }, { version: 2 }])
+            ).toEqual([{ version: 1 }])
             expect(columns('app_settings')).not.toContain('persona')
             expect(columns('conversations')).not.toContain('toggles_json')
             expect(columns('model_chain_presets')).toContain('config_json')
@@ -36,46 +53,6 @@ describe('database baseline', () => {
             expect(columns('prompt_modules')).toContain('toggles_json')
         } finally {
             handle.close()
-        }
-    })
-
-    test('repairs MIME types of assets imported before their extension was known', () => {
-        const sqlite = new Database(':memory:', { strict: true })
-        try {
-            sqlite.exec(
-                readFileSync(
-                    join(import.meta.dir, '../src/db/migrations/0000_initial.sql'),
-                    'utf8',
-                ),
-            )
-            sqlite.exec(`
-                CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
-                INSERT INTO schema_migrations VALUES (1, 0);
-                INSERT INTO assets (id, sha256, mime_type, size, path) VALUES
-                    ('avif', 'a', 'application/octet-stream', 1, 'a'),
-                    ('unknown', 'b', 'application/octet-stream', 1, 'b'),
-                    ('unlinked', 'c', 'application/octet-stream', 1, 'c');
-                INSERT INTO prompt_module_assets (id, module_id, asset_id, type, name, extension, source_uri)
-                    VALUES ('l1', 'm', 'avif', 'other', 'x', 'AVIF', 'risum:0');
-                INSERT INTO character_assets (id, character_id, asset_id, type, name, extension, source_uri)
-                    VALUES ('l2', 'c', 'unknown', 'other', 'y', 'xyz', 'embeded://y');
-            `)
-
-            runMigrations(sqlite)
-
-            expect(
-                sqlite
-                    .query<{ id: string; mime: string }, []>(
-                        'SELECT id, mime_type AS mime FROM assets ORDER BY id',
-                    )
-                    .all(),
-            ).toEqual([
-                { id: 'avif', mime: 'image/avif' },
-                { id: 'unknown', mime: 'application/octet-stream' },
-                { id: 'unlinked', mime: 'application/octet-stream' },
-            ])
-        } finally {
-            sqlite.close()
         }
     })
 

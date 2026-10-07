@@ -1,22 +1,11 @@
 import type { ConversationGroup } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
 import { conversationGroups } from '../schema'
-import { RepositoryBase } from './base'
-import { CharacterRepository } from './characters'
-import { ConversationOrganizationRepository } from './conversation-organization'
+import { RepositoryBase, requireValue } from './base'
 import { mapConversationGroup } from './conversation-records'
 
 export class ConversationGroupRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly character: CharacterRepository,
-        private readonly organization: ConversationOrganizationRepository,
-    ) {
-        super(handle)
-    }
-
     list(characterId?: string): ConversationGroup[] {
         const base = this.db.select().from(conversationGroups)
         const rows = characterId
@@ -34,8 +23,7 @@ export class ConversationGroupRepository extends RepositoryBase {
         return rows.map(mapConversationGroup)
     }
 
-    create(characterId: string, name: string): ConversationGroup | null {
-        if (!this.character.get(characterId)) return null
+    create(characterId: string, name: string, sortOrder: number): ConversationGroup {
         const now = new Date()
         const id = crypto.randomUUID()
         this.db
@@ -44,12 +32,15 @@ export class ConversationGroupRepository extends RepositoryBase {
                 id,
                 characterId,
                 name,
-                sortOrder: this.organization.nextRootOrder(characterId),
+                sortOrder,
                 createdAt: now,
                 updatedAt: now,
             })
             .run()
-        return this.list(characterId).find((group) => group.id === id) ?? null
+        return requireValue(
+            this.list(characterId).find((group) => group.id === id),
+            'Failed to create chat group',
+        )
     }
 
     update(id: string, name: string): ConversationGroup | null {

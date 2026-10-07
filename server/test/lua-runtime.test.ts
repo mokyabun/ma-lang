@@ -30,7 +30,7 @@ describe('PocketRisu Lua runtime', () => {
                 },
             }),
         )
-        conversationId = context.store.conversation.create({
+        conversationId = context.conversations.create({
             characterId: character.id,
             greetingIndex: -1,
         }).id
@@ -61,7 +61,7 @@ describe('PocketRisu Lua runtime', () => {
         await context.lua.trigger(conversationId, request)
         expect(context.store.conversation.get(conversationId)?.variables.initializations).toBe('1')
         expect(
-            context.store.sqlite
+            context.database.sqlite
                 .query<{ count: number }, [string, string]>(
                     'SELECT count(*) as count FROM lua_event_runs WHERE conversation_id = ? AND event_key = ?',
                 )
@@ -95,7 +95,7 @@ describe('PocketRisu Lua runtime', () => {
         expect(first.at(-1)?.displayContent).toContain('STATUS')
         expect(second).toEqual(first)
         expect(
-            context.store.sqlite
+            context.database.sqlite
                 .query<{ count: number }, [string]>(
                     'SELECT count(*) as count FROM lua_display_batches WHERE conversation_id = ?',
                 )
@@ -153,7 +153,7 @@ describe('PocketRisu Lua runtime', () => {
                     luaScript: { code, enabled: true, lowLevelAccess: false },
                 }),
             )
-            return context.store.conversation.create({
+            return context.conversations.create({
                 characterId: character.id,
                 greetingIndex: -1,
             }).id

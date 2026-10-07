@@ -1,13 +1,14 @@
 import type { Logger } from 'pino'
 
 import { type AppConfig, loadConfig } from '@/config'
-import { openDatabase, Store } from '@/db'
+import { type DatabaseHandle, openDatabase, Store } from '@/db'
 import { createLogger } from '@/logger'
 
 import { AssetStore } from './app/assets'
 import { AuthService } from './app/auth'
 import { BackupService } from './app/backups'
 import { CharacterService } from './app/characters'
+import { ConversationService } from './app/conversations'
 import { GenerationService } from './app/generations'
 import { PromptModuleService } from './app/modules'
 import { PersonaService } from './app/personas'
@@ -26,11 +27,13 @@ export * from './memory'
 
 export interface AppContext {
     config: AppConfig
+    database: DatabaseHandle
     store: Store
     auth: AuthService
     assets: AssetStore
     uploads: UploadStore
     characters: CharacterService
+    conversations: ConversationService
     personas: PersonaService
     prompts: PromptService
     modules: PromptModuleService
@@ -45,19 +48,27 @@ export interface AppContext {
 }
 
 export async function createContext(config: AppConfig = loadConfig()): Promise<AppContext> {
-    const store = new Store(openDatabase(config.databasePath))
+    const database = openDatabase(config.databasePath)
+    const store = new Store(database)
     store.generation.recoverInterrupted()
     store.settings.ensure()
-    store.promptPreset.ensureDefault()
-    store.character.ensureGeneralChat()
+    const assetStore = new AssetStore(config.dataDir, store)
+    const prompts = new PromptService(store)
+    const conversations = new ConversationService(store, prompts)
+    const characters = new CharacterService(config, store, assetStore, conversations)
+    prompts.ensureDefault()
+    characters.ensureGeneralChat()
     const vault = new SecretVault(store)
     const auth = new AuthService(store, config.sessionSecret, vault)
     await auth.bootstrap(config.adminPassword)
-    const assetStore = new AssetStore(config.dataDir, store)
     const systemLogs = new SystemLogService(config.dataDir)
     const logger = createLogger(config, systemLogs)
-    const backups = new BackupService(config, store, logger.child({ module: 'backups' }), () =>
-        vault.lock(),
+    const backups = new BackupService(
+        config,
+        database,
+        store,
+        logger.child({ module: 'backups' }),
+        () => vault.lock(),
     )
     const providers = new ProviderService(store, vault)
     const personas = new PersonaService(store, assetStore)
@@ -70,13 +81,15 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
     backups.start()
     return {
         config,
+        database,
         store,
         auth,
         assets: assetStore,
         uploads: new UploadStore(config.dataDir, config.limits.uploadChunkBytes),
-        characters: new CharacterService(config, store, assetStore),
+        characters,
+        conversations,
         personas,
-        prompts: new PromptService(store),
+        prompts,
         modules: new PromptModuleService(store, config, assetStore),
         providers,
         lua,
@@ -96,7 +109,7 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
             backups.close()
             systemLogs.close()
             lua.close()
-            store.close()
+            database.close()
         },
     }
 }

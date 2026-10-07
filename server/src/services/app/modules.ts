@@ -14,8 +14,44 @@ import {
 import { mergeLuaTriggers, toRisuRegexScripts } from '@/services/prompt/risu'
 
 import type { AssetStore } from './assets'
+import { effectivePromptPresetId } from './conversations'
 
 export class PromptModuleConflictError extends ConflictError {}
+
+export type ModuleActivationSource = 'conversation' | 'preset' | 'character' | 'default'
+
+/**
+ * Resolves which modules a conversation runs with: an explicit per-conversation override wins,
+ * otherwise a module is on when the effective preset or the character references it, or when it
+ * is enabled by default.
+ */
+export function conversationModuleStates(store: Store, conversationId: string) {
+    const conversation = store.conversation.get(conversationId)
+    if (!conversation) return []
+    const overrides = store.conversationModule.overrides(conversationId)
+    const preset = store.promptPreset.get(
+        effectivePromptPresetId(conversation, store.settings.get()),
+    )
+    const character = store.character.get(conversation.characterId)
+    const integrations = new Set(preset?.moduleIntegrations || [])
+    const characterModules = new Set(character?.moduleReferences || [])
+    return store.promptModule.list().map((module) => {
+        const presetActive = integrations.has(module.id) || integrations.has(module.namespace)
+        const characterActive =
+            characterModules.has(module.id) || characterModules.has(module.sourceId)
+        const explicit = overrides.get(module.id)
+        const enabled = explicit ?? (presetActive || characterActive || module.enabledByDefault)
+        const activationSource: ModuleActivationSource =
+            explicit !== undefined
+                ? 'conversation'
+                : presetActive
+                  ? 'preset'
+                  : characterActive
+                    ? 'character'
+                    : 'default'
+        return { module, enabled, inherited: explicit === undefined, activationSource }
+    })
+}
 
 export class PromptModuleService {
     constructor(
@@ -130,7 +166,7 @@ export class PromptModuleService {
     }
 
     conversationStates(conversationId: string) {
-        return this.store.conversationModule.list(conversationId).map((state) => ({
+        return conversationModuleStates(this.store, conversationId).map((state) => ({
             ...state,
             module: this.withAssets(state.module),
         }))
@@ -138,8 +174,11 @@ export class PromptModuleService {
 
     setConversationState(conversationId: string, moduleId: string, enabled: boolean | null) {
         if (!this.store.promptModule.get(moduleId)) return false
-        if (enabled === null) this.store.conversationModule.reset(conversationId, moduleId)
-        else this.store.conversationModule.set(conversationId, moduleId, enabled)
+        this.store.transaction(() => {
+            if (enabled === null) this.store.conversationModule.reset(conversationId, moduleId)
+            else this.store.conversationModule.set(conversationId, moduleId, enabled)
+            this.store.message.bumpDisplayEpoch(conversationId)
+        })
         return true
     }
 

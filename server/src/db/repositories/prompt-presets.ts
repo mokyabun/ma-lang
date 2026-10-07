@@ -1,20 +1,11 @@
-import type { PromptBlock, PromptPreset, PromptPresetInput } from '@malang/shared'
+import type { PromptPreset, PromptPresetInput } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
-import { conversations, promptPresets } from '../schema'
+import { appSettings, conversations, promptPresets } from '../schema'
 import { RepositoryBase, requireValue } from './base'
 import { defaultPromptSettings, mapPromptPreset } from './prompt-records'
-import { SettingsRepository } from './settings'
 
 export class PromptPresetRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly settings: SettingsRepository,
-    ) {
-        super(handle)
-    }
-
     create(
         input: PromptPresetInput,
         source: Record<string, unknown> = {},
@@ -87,7 +78,12 @@ export class PromptPresetRepository extends RepositoryBase {
 
     delete(id: string): 'deleted' | 'not_found' | 'in_use' {
         if (!this.get(id)) return 'not_found'
-        if (this.settings.get().defaultPromptPresetId === id) return 'in_use'
+        const isDefault = this.db
+            .select({ id: appSettings.id })
+            .from(appSettings)
+            .where(eq(appSettings.defaultPromptPresetId, id))
+            .get()
+        if (isDefault) return 'in_use'
         const used = this.db
             .select({ id: conversations.id })
             .from(conversations)
@@ -97,40 +93,5 @@ export class PromptPresetRepository extends RepositoryBase {
         if (used) return 'in_use'
         this.db.delete(promptPresets).where(eq(promptPresets.id, id)).run()
         return 'deleted'
-    }
-
-    ensureDefault(): PromptPreset {
-        const settings = this.settings.get()
-        if (settings.defaultPromptPresetId) {
-            const existing = this.get(settings.defaultPromptPresetId)
-            if (existing) return existing
-        }
-        const block = (type: string, rest: Record<string, unknown> = {}): PromptBlock =>
-            ({ id: crypto.randomUUID(), enabled: true, type, ...rest }) as PromptBlock
-        const preset = this.create({
-            name: 'Default',
-            parameters: { temperature: 0.9, maxContextTokens: 8192, maxOutputTokens: 512 },
-            defaultVariables: {},
-            toggles: [],
-            regexScripts: [],
-            moduleIntegrations: [],
-            promptSettings: { ...defaultPromptSettings },
-            blocks: [
-                block('plain', {
-                    type2: 'main',
-                    role: 'system',
-                    text: 'Continue the fictional conversation as {{char}}.',
-                }),
-                block('description'),
-                block('persona'),
-                block('lorebook'),
-                block('chat', { rangeStart: 0, rangeEnd: 'end' }),
-                block('authornote'),
-                block('plain', { type2: 'globalNote', role: 'system', text: '' }),
-                block('postEverything'),
-            ],
-        })
-        this.settings.update({ defaultPromptPresetId: preset.id })
-        return preset
     }
 }

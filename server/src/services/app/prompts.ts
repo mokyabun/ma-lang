@@ -1,4 +1,10 @@
-import type { PromptPresetInput, RegexPhase, RegexScript } from '@malang/shared'
+import type {
+    PromptBlock,
+    PromptPreset,
+    PromptPresetInput,
+    RegexPhase,
+    RegexScript,
+} from '@malang/shared'
 
 import type { Store } from '@/db'
 import { ValidationError } from '@/errors/app-error'
@@ -27,6 +33,17 @@ export class PromptService {
 
     delete(id: string) {
         return this.store.promptPreset.delete(id)
+    }
+
+    ensureDefault(): PromptPreset {
+        return this.store.transaction(() => {
+            const defaultId = this.store.settings.get().defaultPromptPresetId
+            const existing = defaultId ? this.store.promptPreset.get(defaultId) : null
+            if (existing) return existing
+            const preset = this.store.promptPreset.create(defaultPromptPresetInput())
+            this.store.settings.update({ defaultPromptPresetId: preset.id })
+            return preset
+        })
     }
 
     async import(bytes: Uint8Array, filename: string) {
@@ -90,6 +107,33 @@ export class PromptService {
             ...input,
             templateContext: { values: {}, variables: {}, globalVariables: {}, toggles: {} },
         })
+    }
+}
+
+function defaultPromptPresetInput(): PromptPresetInput {
+    const block = (type: string, rest: Record<string, unknown> = {}): PromptBlock =>
+        ({ id: crypto.randomUUID(), enabled: true, type, ...rest }) as PromptBlock
+    return {
+        name: 'Default',
+        parameters: { temperature: 0.9, maxContextTokens: 8192, maxOutputTokens: 512 },
+        defaultVariables: {},
+        toggles: [],
+        regexScripts: [],
+        moduleIntegrations: [],
+        blocks: [
+            block('plain', {
+                type2: 'main',
+                role: 'system',
+                text: 'Continue the fictional conversation as {{char}}.',
+            }),
+            block('description'),
+            block('persona'),
+            block('lorebook'),
+            block('chat', { rangeStart: 0, rangeEnd: 'end' }),
+            block('authornote'),
+            block('plain', { type2: 'globalNote', role: 'system', text: '' }),
+            block('postEverything'),
+        ],
     }
 }
 

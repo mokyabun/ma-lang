@@ -1,74 +1,52 @@
-import type { Conversation, ConversationCreate } from '@malang/shared'
-import { and, asc, desc, eq, isNull } from 'drizzle-orm'
+import type { Conversation } from '@malang/shared'
+import { asc, count, desc, eq, isNull } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
-import { conversations, messages } from '../schema'
+import { conversations } from '../schema'
 import { RepositoryBase, requireValue } from './base'
-import { CharacterRepository } from './characters'
-import { ConversationOrganizationRepository } from './conversation-organization'
 import { mapConversation } from './conversation-records'
-import { MessageRepository } from './messages'
-import { PromptPresetRepository } from './prompt-presets'
-import { SettingsRepository } from './settings'
+
+export interface NewConversationRecord {
+    characterId: string
+    promptPresetId: string
+    modelPresetId: string | null
+    auxiliaryModelPresetId: string | null
+    modelChainPresetId: string | null
+    title: string
+    greetingIndex: number
+    sortOrder: number
+}
 
 export class ConversationRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly settings: SettingsRepository,
-        private readonly promptPreset: PromptPresetRepository,
-        private readonly character: CharacterRepository,
-        private readonly message: MessageRepository,
-        private readonly organization: ConversationOrganizationRepository,
-    ) {
-        super(handle)
-    }
-
-    create(input: ConversationCreate): Conversation {
-        const character = this.character.get(input.characterId)
-        if (!character) throw new Error('Character not found')
-        const prompt = input.promptPresetId
-            ? this.promptPreset.get(input.promptPresetId)
-            : this.promptPreset.ensureDefault()
-        if (!prompt) throw new Error('Prompt preset not found')
+    create(input: NewConversationRecord): Conversation {
         const id = crypto.randomUUID()
         const now = new Date()
-        const defaultTitle = `Chat ${
-            this.db
-                .select({ id: conversations.id })
-                .from(conversations)
-                .where(eq(conversations.characterId, character.id))
-                .all().length + 1
-        }`
         this.db
             .insert(conversations)
             .values({
                 id,
-                characterId: character.id,
-                promptPresetId: prompt.id,
+                ...input,
                 promptPresetLocked: false,
-                modelPresetId: input.modelPresetId ?? null,
-                auxiliaryModelPresetId: input.auxiliaryModelPresetId ?? null,
-                modelChainPresetId: input.modelChainPresetId ?? null,
-                title: input.title || defaultTitle,
-                greetingIndex: input.greetingIndex,
                 variablesJson: {},
                 authorNote: '',
                 boundPersonaId: null,
                 personaLocked: false,
                 groupId: null,
-                sortOrder: this.organization.nextRootOrder(character.id),
                 archivedAt: null,
                 displayEpoch: 0,
                 createdAt: now,
                 updatedAt: now,
             })
             .run()
-        const greeting =
-            input.greetingIndex >= 0
-                ? character.alternateGreetings[input.greetingIndex]
-                : character.firstMessage
-        if (greeting) this.message.create(id, 'assistant', greeting, 'complete')
         return requireValue(this.get(id), 'Failed to create conversation')
+    }
+
+    countByCharacter(characterId: string): number {
+        const row = this.db
+            .select({ value: count() })
+            .from(conversations)
+            .where(eq(conversations.characterId, characterId))
+            .get()
+        return row?.value ?? 0
     }
 
     list(includeArchived = false): Conversation[] {
@@ -172,44 +150,15 @@ export class ConversationRepository extends RepositoryBase {
         return true
     }
 
-    updateGreeting(id: string, greetingIndex: number, greeting: string) {
-        const conversation = this.get(id)
-        if (!conversation) return null
-        const hasUserMessage = this.db
-            .select({ id: messages.id })
-            .from(messages)
-            .where(and(eq(messages.conversationId, id), eq(messages.role, 'user')))
-            .limit(1)
-            .get()
-        if (hasUserMessage) return null
-        this.sqlite.transaction(() => {
-            this.db
-                .update(conversations)
-                .set({ greetingIndex })
-                .where(eq(conversations.id, id))
-                .run()
-            const first = this.db
-                .select()
-                .from(messages)
-                .where(and(eq(messages.conversationId, id), eq(messages.role, 'assistant')))
-                .orderBy(asc(messages.position))
-                .limit(1)
-                .get()
-            if (first) {
-                this.db
-                    .update(messages)
-                    .set({ content: greeting })
-                    .where(eq(messages.id, first.id))
-                    .run()
-            } else if (greeting) {
-                this.message.create(id, 'assistant', greeting, 'complete')
-            }
-        })()
-        return this.get(id)
+    setVariables(id: string, variables: Conversation['variables']): void {
+        this.db
+            .update(conversations)
+            .set({ variablesJson: variables, updatedAt: new Date() })
+            .where(eq(conversations.id, id))
+            .run()
     }
 
-    effectivePromptPresetId(conversation: Conversation): string {
-        if (conversation.promptPresetLocked) return conversation.promptPresetId
-        return this.settings.get().defaultPromptPresetId ?? conversation.promptPresetId
+    setGreetingIndex(id: string, greetingIndex: number): void {
+        this.db.update(conversations).set({ greetingIndex }).where(eq(conversations.id, id)).run()
     }
 }

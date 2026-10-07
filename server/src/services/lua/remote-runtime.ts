@@ -1,6 +1,6 @@
 import type { LuaRemoteCommandResult } from '@malang/shared'
 
-import type { Store } from '@/db'
+import type { LuaRemoteCommandRow, Store } from '@/db'
 
 export interface RuntimeCommand {
     type: 'runtime.command'
@@ -41,23 +41,7 @@ export class RemoteRuntime {
                 clients.add(controller)
                 this.clients.set(clientInstanceId, clients)
                 controller.enqueue(this.encoder.encode(': connected\n\n'))
-                const rows = this.store.sqlite
-                    .query<
-                        {
-                            id: string
-                            kind: string
-                            payload_json: string
-                            blocking: number
-                            expires_at: number
-                        },
-                        [string, number]
-                    >(
-                        `SELECT id, kind, payload_json, blocking, expires_at
-                         FROM lua_remote_commands
-                         WHERE client_instance_id = ? AND status = 'pending' AND expires_at > ?
-                         ORDER BY created_at`,
-                    )
-                    .all(clientInstanceId, Date.now())
+                const rows = this.store.luaRemoteCommand.listPending(clientInstanceId)
                 for (const row of rows) this.send(controller, this.rowCommand(row))
             },
             cancel: () => {
@@ -86,38 +70,23 @@ export class RemoteRuntime {
         blocking: boolean
         timeoutMs?: number
     }): Promise<unknown> {
-        const existing = this.store.sqlite
-            .query<
-                { id: string; status: string; result_json: string | null; expires_at: number },
-                [string, number]
-            >(
-                'SELECT id, status, result_json, expires_at FROM lua_remote_commands WHERE invocation_id = ? AND call_index = ?',
-            )
-            .get(input.invocationId, input.callIndex)
+        const existing = this.store.luaRemoteCommand.findByCall(input.invocationId, input.callIndex)
         if (existing?.status === 'complete') {
             return Promise.resolve(parseJson(existing.result_json, null))
         }
         const id = existing?.id ?? crypto.randomUUID()
         const expiresAt = existing?.expires_at ?? Date.now() + (input.timeoutMs ?? 300_000)
         if (!existing) {
-            this.store.sqlite
-                .query(
-                    `INSERT INTO lua_remote_commands
-                     (id, invocation_id, call_index, client_instance_id, kind, payload_json,
-                      status, blocking, expires_at, created_at)
-                     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
-                )
-                .run(
-                    id,
-                    input.invocationId,
-                    input.callIndex,
-                    input.clientInstanceId,
-                    input.kind,
-                    JSON.stringify(input.payload),
-                    input.blocking ? 1 : 0,
-                    expiresAt,
-                    Date.now(),
-                )
+            this.store.luaRemoteCommand.create({
+                id,
+                invocationId: input.invocationId,
+                callIndex: input.callIndex,
+                clientInstanceId: input.clientInstanceId,
+                kind: input.kind,
+                payload: input.payload,
+                blocking: input.blocking,
+                expiresAt,
+            })
         }
         const command: RuntimeCommand = {
             type: 'runtime.command',
@@ -156,25 +125,16 @@ export class RemoteRuntime {
     }
 
     resolve(commandId: string, input: LuaRemoteCommandResult): 'ok' | 'not_found' | 'forbidden' {
-        const row = this.store.sqlite
-            .query<
-                { client_instance_id: string; status: string; result_json: string | null },
-                [string]
-            >(
-                'SELECT client_instance_id, status, result_json FROM lua_remote_commands WHERE id = ?',
-            )
-            .get(commandId)
+        const row = this.store.luaRemoteCommand.get(commandId)
         if (!row) return 'not_found'
         if (row.client_instance_id !== input.clientInstanceId) return 'forbidden'
         if (row.status === 'complete') return 'ok'
         if (row.status !== 'pending') return 'not_found'
-        const now = Date.now()
-        this.store.sqlite
-            .query(
-                `UPDATE lua_remote_commands
-                 SET status = ?, result_json = ?, completed_at = ? WHERE id = ? AND status = 'pending'`,
-            )
-            .run(input.error ? 'failed' : 'complete', JSON.stringify(input.result), now, commandId)
+        this.store.luaRemoteCommand.settle(
+            commandId,
+            input.error ? 'failed' : 'complete',
+            input.result,
+        )
         const pending = this.pending.get(commandId)
         if (pending) {
             clearTimeout(pending.timer)
@@ -186,21 +146,10 @@ export class RemoteRuntime {
     }
 
     private failCommand(id: string, error: string) {
-        this.store.sqlite
-            .query(
-                `UPDATE lua_remote_commands SET status = 'failed', result_json = ?, completed_at = ?
-                 WHERE id = ? AND status = 'pending'`,
-            )
-            .run(JSON.stringify({ error }), Date.now(), id)
+        this.store.luaRemoteCommand.settle(id, 'failed', { error })
     }
 
-    private rowCommand(row: {
-        id: string
-        kind: string
-        payload_json: string
-        blocking: number
-        expires_at: number
-    }): RuntimeCommand {
+    private rowCommand(row: LuaRemoteCommandRow): RuntimeCommand {
         return {
             type: 'runtime.command',
             commandId: row.id,

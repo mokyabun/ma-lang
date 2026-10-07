@@ -1,19 +1,10 @@
 import type { CharacterGroup } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
 import { characterGroups } from '../schema'
 import { iso, RepositoryBase, requireValue } from './base'
-import { CharacterOrganizationRepository } from './character-organization'
 
 export class CharacterGroupRepository extends RepositoryBase {
-    constructor(
-        handle: DatabaseHandle,
-        private readonly organization: CharacterOrganizationRepository,
-    ) {
-        super(handle)
-    }
-
     list(): CharacterGroup[] {
         return this.db
             .select()
@@ -23,7 +14,7 @@ export class CharacterGroupRepository extends RepositoryBase {
             .map(mapCharacterGroup)
     }
 
-    create(name: string): CharacterGroup {
+    create(name: string, sortOrder: number): CharacterGroup {
         const now = new Date()
         const id = crypto.randomUUID()
         this.db
@@ -31,7 +22,7 @@ export class CharacterGroupRepository extends RepositoryBase {
             .values({
                 id,
                 name,
-                sortOrder: this.organization.nextRootOrder(),
+                sortOrder,
                 createdAt: now,
                 updatedAt: now,
             })
