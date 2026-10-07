@@ -94,6 +94,8 @@ export function MessageTranscript({
     onLuaTriggered: () => void | Promise<void>
 }) {
     const viewportRef = useRef<HTMLDivElement>(null)
+    const contentRef = useRef<HTMLDivElement>(null)
+    const lastScrollTopRef = useRef(0)
     const restoredConversationRef = useRef<string | null>(null)
     const atBottomRef = useRef(true)
     const pendingScrollTopRef = useRef<number | null>(null)
@@ -118,22 +120,38 @@ export function MessageTranscript({
     useLayoutEffect(() => {
         const viewport = viewportRef.current
         if (!viewport || (loading && !messages.length)) return
+        // The previous conversation's messages linger for a render after switching.
+        if (messages[0] && messages[0].conversationId !== conversationId) return
 
         if (restoredConversationRef.current !== conversationId) {
             const saved = transcriptScrollPositions.get(conversationId)
-            viewport.scrollTop = saved && !saved.atBottom ? saved.top : viewport.scrollHeight
             atBottomRef.current = saved?.atBottom ?? true
+            if (saved && !saved.atBottom) viewport.scrollTop = saved.top
+            else scrollToBottom(viewport)
+            lastScrollTopRef.current = viewport.scrollTop
             restoredConversationRef.current = conversationId
             return
         }
 
-        if (atBottomRef.current) viewport.scrollTop = viewport.scrollHeight
+        if (atBottomRef.current) scrollToBottom(viewport)
     }, [conversationId, loading, messages])
+
+    // Rows are measured, and images load, after the first scroll; keep a pinned transcript pinned.
+    useLayoutEffect(() => {
+        const viewport = viewportRef.current
+        const content = contentRef.current
+        if (!viewport || !content) return
+        const observer = new ResizeObserver(() => {
+            if (atBottomRef.current) scrollToBottom(viewport)
+        })
+        observer.observe(content)
+        return () => observer.disconnect()
+    }, [])
 
     useLayoutEffect(
         () => () => {
             const viewport = viewportRef.current
-            if (viewport) rememberTranscriptScroll(conversationId, viewport)
+            if (viewport) rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
         },
         [conversationId],
     )
@@ -146,7 +164,7 @@ export function MessageTranscript({
         viewport.scrollTop = pendingScrollTop
         pendingScrollTopRef.current = null
         atBottomRef.current = isNearBottom(viewport)
-        rememberTranscriptScroll(conversationId, viewport)
+        rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
     }, [conversationId, editingMessageId])
 
     useLayoutEffect(() => {
@@ -157,7 +175,7 @@ export function MessageTranscript({
         viewport.scrollTop = pending.scrollTop + (rowVirtualizer.getTotalSize() - pending.totalSize)
         pendingPrependRef.current = null
         atBottomRef.current = isNearBottom(viewport)
-        rememberTranscriptScroll(conversationId, viewport)
+        rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
     }, [conversationId, firstMessageId, rowVirtualizer])
 
     function changeEditingMessage(messageId: string | null) {
@@ -172,8 +190,11 @@ export function MessageTranscript({
     function handleScroll() {
         const viewport = viewportRef.current
         if (!viewport) return
-        atBottomRef.current = isNearBottom(viewport)
-        rememberTranscriptScroll(conversationId, viewport)
+        // Content growing under a pinned transcript is not the user leaving the bottom.
+        const scrolledUp = viewport.scrollTop < lastScrollTopRef.current
+        lastScrollTopRef.current = viewport.scrollTop
+        if (scrolledUp || !atBottomRef.current) atBottomRef.current = isNearBottom(viewport)
+        rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
         if (viewport.scrollTop < 240) void loadOlder()
     }
 
@@ -265,7 +286,7 @@ export function MessageTranscript({
             className="malang-transcript min-h-0 overflow-y-auto"
             onScroll={handleScroll}
         >
-            <div className="malang-transcript__inner mx-auto py-5 sm:py-8">
+            <div ref={contentRef} className="malang-transcript__inner mx-auto py-5 sm:py-8">
                 <div className="malang-scene-marker mb-5 flex items-center gap-4 px-2 font-mono text-[8px] uppercase tracking-widest text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border sm:mb-7">
                     {hasOlderMessages ? (
                         <button
@@ -435,16 +456,21 @@ export function MessageTranscript({
     )
 }
 
+function scrollToBottom(viewport: HTMLDivElement) {
+    viewport.scrollTop = viewport.scrollHeight
+}
+
 function isNearBottom(viewport: HTMLDivElement): boolean {
     return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48
 }
 
-function rememberTranscriptScroll(conversationId: string, viewport: HTMLDivElement) {
+function rememberTranscriptScroll(
+    conversationId: string,
+    viewport: HTMLDivElement,
+    atBottom: boolean,
+) {
     transcriptScrollPositions.delete(conversationId)
-    transcriptScrollPositions.set(conversationId, {
-        top: viewport.scrollTop,
-        atBottom: isNearBottom(viewport),
-    })
+    transcriptScrollPositions.set(conversationId, { top: viewport.scrollTop, atBottom })
     if (transcriptScrollPositions.size > MAX_SAVED_TRANSCRIPTS) {
         const oldest = transcriptScrollPositions.keys().next().value
         if (oldest) transcriptScrollPositions.delete(oldest)

@@ -30,8 +30,11 @@ export interface LuaPhaseResult<T = unknown> {
     data: T
     stopSending: boolean
     warnings: string[]
-    messages: Message[]
     displayEpoch: number
+}
+
+export interface LuaTriggerResult extends LuaPhaseResult {
+    messages: Message[]
 }
 
 export interface LuaScriptOwnerSnapshot {
@@ -104,11 +107,11 @@ export class LuaRuntime {
         store.luaRun.recoverInterrupted()
     }
 
-    async trigger(conversationId: string, request: LuaTriggerRequest): Promise<LuaPhaseResult> {
+    async trigger(conversationId: string, request: LuaTriggerRequest): Promise<LuaTriggerResult> {
         if (this.store.generation.findRunning(conversationId)) {
             throw new LuaEventConflictError('Lua triggers are disabled while generation is running')
         }
-        return this.executeEvent({
+        const result = await this.executeEvent({
             conversationId,
             eventKey: request.idempotencyKey,
             phase: request.type,
@@ -120,6 +123,7 @@ export class LuaRuntime {
             },
             clientInstanceId: request.clientInstanceId,
         })
+        return { ...result, messages: this.store.message.list(conversationId) }
     }
 
     async executeEvent<T = unknown>(input: {
@@ -185,7 +189,6 @@ export class LuaRuntime {
                     data: data as T,
                     stopSending,
                     warnings,
-                    messages: this.store.message.list(input.conversationId),
                     displayEpoch: conversation.displayEpoch,
                 }
                 this.store.luaRun.completeEvent(eventRunId, result)

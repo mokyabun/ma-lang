@@ -680,17 +680,23 @@ export class GenerationService {
     }
 
     async messagePageWithDisplay(conversationId: string, page: { before?: number; limit: number }) {
-        const rendered = await this.messagesWithDisplay(conversationId)
+        const context = this.context(conversationId)
         const eligible =
             page.before === undefined
-                ? rendered
-                : rendered.filter((message) => message.position < page.before!)
-        const messages = eligible.slice(-page.limit)
-        const hasMore = eligible.length > messages.length
+                ? context.messages
+                : context.messages.filter((message) => message.position < page.before!)
+        const window = eligible.slice(-page.limit)
+        const hasMore = eligible.length > window.length
         return {
-            messages,
+            messages: await renderDisplayMessages(
+                this.store,
+                this.lua,
+                conversationId,
+                context,
+                window,
+            ),
             hasMore,
-            nextCursor: hasMore ? (messages[0]?.position ?? null) : null,
+            nextCursor: hasMore ? (window[0]?.position ?? null) : null,
         }
     }
 

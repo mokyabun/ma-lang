@@ -12,7 +12,7 @@ export interface LuaDisplayBatchRow {
     error_json: string | null
 }
 
-/** Cache of rendered chat display, valid for one display epoch and script set. */
+/** Cache of rendered message display, valid for one display epoch and script set. */
 export class LuaDisplayBatchRepository extends RepositoryBase {
     find(key: LuaDisplayBatchKey): LuaDisplayBatchRow | null {
         return this.sqlite
@@ -23,43 +23,45 @@ export class LuaDisplayBatchRepository extends RepositoryBase {
             .get(key.conversationId, key.displayEpoch, key.scriptSetHash)
     }
 
-    start(key: LuaDisplayBatchKey): void {
+    save(key: LuaDisplayBatchKey, result: unknown): void {
+        const now = Date.now()
         this.sqlite
             .query(
                 `INSERT INTO lua_display_batches
-                 (conversation_id, display_epoch, script_set_hash, status, created_at)
-                 VALUES (?, ?, ?, 'running', ?)`,
-            )
-            .run(key.conversationId, key.displayEpoch, key.scriptSetHash, Date.now())
-    }
-
-    complete(key: LuaDisplayBatchKey, result: unknown): void {
-        this.sqlite
-            .query(
-                `UPDATE lua_display_batches SET status = 'complete', result_json = ?, completed_at = ?
-                 WHERE conversation_id = ? AND display_epoch = ? AND script_set_hash = ?`,
+                 (conversation_id, display_epoch, script_set_hash, status, result_json, created_at, completed_at)
+                 VALUES (?, ?, ?, 'complete', ?, ?, ?)
+                 ON CONFLICT (conversation_id, display_epoch, script_set_hash)
+                 DO UPDATE SET status = 'complete', result_json = excluded.result_json,
+                               completed_at = excluded.completed_at`,
             )
             .run(
-                JSON.stringify(result),
-                Date.now(),
                 key.conversationId,
                 key.displayEpoch,
                 key.scriptSetHash,
+                JSON.stringify(result),
+                now,
+                now,
             )
     }
 
     fail(key: LuaDisplayBatchKey, error: unknown): void {
+        const now = Date.now()
         this.sqlite
             .query(
-                `UPDATE lua_display_batches SET status = 'failed', error_json = ?, completed_at = ?
-                 WHERE conversation_id = ? AND display_epoch = ? AND script_set_hash = ?`,
+                `INSERT INTO lua_display_batches
+                 (conversation_id, display_epoch, script_set_hash, status, error_json, created_at, completed_at)
+                 VALUES (?, ?, ?, 'failed', ?, ?, ?)
+                 ON CONFLICT (conversation_id, display_epoch, script_set_hash)
+                 DO UPDATE SET status = 'failed', error_json = excluded.error_json,
+                               completed_at = excluded.completed_at`,
             )
             .run(
-                JSON.stringify(error),
-                Date.now(),
                 key.conversationId,
                 key.displayEpoch,
                 key.scriptSetHash,
+                JSON.stringify(error),
+                now,
+                now,
             )
     }
 }

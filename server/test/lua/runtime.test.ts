@@ -104,6 +104,37 @@ describe('PocketRisu Lua runtime', () => {
         ).toBe(1)
     })
 
+    test('renders editDisplay only for the requested message page', async () => {
+        for (let index = 0; index < 5; index++) {
+            context.store.message.create(conversationId, 'assistant', 'Status', 'complete')
+        }
+        const countDisplayEvents = () =>
+            context.database.sqlite
+                .query<{ count: number }, [string]>(
+                    "SELECT count(*) as count FROM lua_event_runs WHERE conversation_id = ? AND phase LIKE 'editDisplay:%'",
+                )
+                .get(conversationId)?.count
+
+        const latest = await context.generations.messagePageWithDisplay(conversationId, {
+            limit: 2,
+        })
+        expect(latest.messages).toHaveLength(2)
+        expect(latest.messages.every((message) => message.displayContent?.includes('STATUS'))).toBe(
+            true,
+        )
+        expect(countDisplayEvents()).toBe(2)
+
+        await context.generations.messagePageWithDisplay(conversationId, { limit: 2 })
+        expect(countDisplayEvents()).toBe(2)
+
+        const older = await context.generations.messagePageWithDisplay(conversationId, {
+            before: latest.nextCursor!,
+            limit: 2,
+        })
+        expect(older.messages.map((message) => message.position)).toEqual([1, 2])
+        expect(countDisplayEvents()).toBe(4)
+    })
+
     test('round-trips a blocking alert only through the initiating tab', async () => {
         const clientInstanceId = crypto.randomUUID()
         const stream = context.lua.remote.subscribe(clientInstanceId)
