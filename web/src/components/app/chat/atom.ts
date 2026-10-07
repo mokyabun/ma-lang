@@ -42,64 +42,92 @@ export const generatingConversationIdsAtom = atom(
 
 const MESSAGE_PAGE_SIZE = 50
 
-export const loadConversationAtom = atom(
-    null,
-    async (get, set, request: string | { conversationId: string; resetMessages?: boolean }) => {
-        const conversationId = typeof request === 'string' ? request : request.conversationId
-        const resetMessages = typeof request === 'string' ? false : request.resetMessages === true
-        const isFirstPage =
-            resetMessages || get(loadedMessagesConversationIdAtom) !== conversationId
-        if (isFirstPage && get(selectedConversationIdAtom) === conversationId) {
-            set(messagesAtom, [])
-            set(hasOlderMessagesAtom, false)
-            set(nextMessageCursorAtom, null)
-            set(loadedMessagesConversationIdAtom, conversationId)
-        }
-        set(messageLoadingAtom, true)
-        try {
-            const [messageResult, activeResult, moduleResult] = await Promise.all([
-                api.messages(conversationId, { limit: MESSAGE_PAGE_SIZE }),
-                api.activeGeneration(conversationId),
-                api.conversationModules(conversationId),
-            ])
-            if (get(selectedConversationIdAtom) === conversationId) {
-                if (isFirstPage) {
-                    set(messagesAtom, messageResult.messages)
-                    set(hasOlderMessagesAtom, messageResult.hasMore)
-                    set(nextMessageCursorAtom, messageResult.nextCursor)
-                } else {
-                    set(messagesAtom, (current) => {
-                        const firstLatestPosition = messageResult.messages[0]?.position
-                        const older =
-                            firstLatestPosition === undefined
-                                ? []
-                                : current.filter(
-                                      (message) => message.position < firstLatestPosition,
-                                  )
-                        return [...older, ...messageResult.messages]
-                    })
-                }
-                set(conversationModuleStatesAtom, moduleResult.modules)
+export const loadConversationAtom = atom(null, async (get, set, conversationId: string) => {
+    const isFirstPage = get(loadedMessagesConversationIdAtom) !== conversationId
+    if (isFirstPage && get(selectedConversationIdAtom) === conversationId) {
+        set(messagesAtom, [])
+        set(hasOlderMessagesAtom, false)
+        set(nextMessageCursorAtom, null)
+        set(loadedMessagesConversationIdAtom, conversationId)
+    }
+    set(messageLoadingAtom, true)
+    try {
+        const [messageResult, activeResult, moduleResult] = await Promise.all([
+            api.messages(conversationId, { limit: MESSAGE_PAGE_SIZE }),
+            api.activeGeneration(conversationId),
+            api.conversationModules(conversationId),
+        ])
+        if (get(selectedConversationIdAtom) === conversationId) {
+            if (isFirstPage) {
+                set(messagesAtom, messageResult.messages)
+                set(hasOlderMessagesAtom, messageResult.hasMore)
+                set(nextMessageCursorAtom, messageResult.nextCursor)
+            } else {
+                set(messagesAtom, (current) => {
+                    const firstLatestPosition = messageResult.messages[0]?.position
+                    const older =
+                        firstLatestPosition === undefined
+                            ? []
+                            : current.filter((message) => message.position < firstLatestPosition)
+                    return [...older, ...messageResult.messages]
+                })
             }
-            set(activeGenerationsAtom, (current) => {
-                const next = { ...current }
-                if (activeResult.generation) {
-                    next[conversationId] = { generationId: activeResult.generation.id }
-                } else {
-                    delete next[conversationId]
-                }
-                return next
-            })
-        } catch (cause) {
-            set(
-                workspaceErrorAtom,
-                cause instanceof Error ? cause.message : '메시지를 불러오지 못했습니다.',
-            )
-        } finally {
-            set(messageLoadingAtom, false)
+            set(conversationModuleStatesAtom, moduleResult.modules)
         }
-    },
-)
+        set(activeGenerationsAtom, (current) => {
+            const next = { ...current }
+            if (activeResult.generation) {
+                next[conversationId] = { generationId: activeResult.generation.id }
+            } else {
+                delete next[conversationId]
+            }
+            return next
+        })
+    } catch (cause) {
+        set(
+            workspaceErrorAtom,
+            cause instanceof Error ? cause.message : '메시지를 불러오지 못했습니다.',
+        )
+    } finally {
+        set(messageLoadingAtom, false)
+    }
+})
+
+const MAX_MESSAGE_PAGE_SIZE = 200
+
+/** Re-fetches as many messages as are loaded and swaps them in place, so the transcript never empties. */
+export const refreshMessagesAtom = atom(null, async (get, set, conversationId: string) => {
+    if (get(loadedMessagesConversationIdAtom) !== conversationId) return
+    const target = Math.max(get(messagesAtom).length, MESSAGE_PAGE_SIZE)
+    try {
+        let messages: Message[] = []
+        let before: number | undefined
+        let hasMore = true
+        while (messages.length < target && hasMore) {
+            const page = await api.messages(conversationId, {
+                before,
+                limit: Math.min(MAX_MESSAGE_PAGE_SIZE, target - messages.length),
+            })
+            messages = [...page.messages, ...messages]
+            hasMore = page.hasMore
+            before = page.nextCursor ?? undefined
+        }
+        if (
+            get(selectedConversationIdAtom) !== conversationId ||
+            get(loadedMessagesConversationIdAtom) !== conversationId
+        ) {
+            return
+        }
+        set(messagesAtom, messages)
+        set(hasOlderMessagesAtom, hasMore)
+        set(nextMessageCursorAtom, hasMore ? (before ?? null) : null)
+    } catch (cause) {
+        set(
+            workspaceErrorAtom,
+            cause instanceof Error ? cause.message : '메시지를 불러오지 못했습니다.',
+        )
+    }
+})
 
 export const loadOlderMessagesAtom = atom(null, async (get, set, conversationId: string) => {
     if (

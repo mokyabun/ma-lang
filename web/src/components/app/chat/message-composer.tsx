@@ -1,8 +1,10 @@
 import { ArrowUp, Stop } from '@phosphor-icons/react'
-import { type FormEvent, type KeyboardEvent, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, useEffect, useEffectEvent, useState } from 'react'
 
+import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { chatHotkeyAction, composerKeyHint, isSendKey } from '@/lib/chat-shortcuts'
 
 export function Composer({
     characterName,
@@ -23,6 +25,7 @@ export function Composer({
     onCancel: () => void
     onOpenSettings: () => void
 }) {
+    const { sendKey } = useTheme()
     const [content, setContent] = useState('')
 
     function submit() {
@@ -32,13 +35,24 @@ export function Composer({
         onSend(value)
     }
 
+    const handleHotkey = useEffectEvent((event: globalThis.KeyboardEvent) => {
+        if (chatHotkeyAction(event) !== 'send') return
+        event.preventDefault()
+        submit()
+    })
+    useEffect(() => {
+        const listener = (event: globalThis.KeyboardEvent) => handleHotkey(event)
+        document.addEventListener('keydown', listener)
+        return () => document.removeEventListener('keydown', listener)
+    }, [])
+
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
         submit()
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-        if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+        if (isSendKey(sendKey, event) && !event.nativeEvent.isComposing) {
             event.preventDefault()
             submit()
         }
@@ -89,7 +103,7 @@ export function Composer({
                 )}
             </form>
             <div className="malang-composer__inner mx-auto mt-2 flex justify-between gap-4 px-1 font-mono text-[9px] text-muted-foreground max-sm:[&>span:last-child]:hidden">
-                <span>Enter 전송 · Shift + Enter 줄바꿈</span>
+                <span>{composerKeyHint(sendKey)}</span>
                 {disabled && !busy ? (
                     <Button variant="ghost" onClick={onOpenSettings}>
                         모델을 먼저 연결하세요

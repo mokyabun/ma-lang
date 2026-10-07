@@ -45,6 +45,7 @@ import {
     messageLoadingAtom,
     messagesAtom,
     olderMessagesLoadingAtom,
+    refreshMessagesAtom,
     updateConversationAtom,
 } from './atom'
 import { ChatHeader } from './chat-header'
@@ -80,6 +81,7 @@ export function ChatWorkspace({
     const loadIllustrations = useSetAtom(loadIllustrationsAtom)
     const applyIllustrationEvent = useSetAtom(applyIllustrationEventAtom)
     const loadOlderMessages = useSetAtom(loadOlderMessagesAtom)
+    const refreshMessages = useSetAtom(refreshMessagesAtom)
     const updateConversation = useSetAtom(updateConversationAtom)
     const updatePromptToggleValues = useSetAtom(updatePromptToggleValuesAtom)
     const generateReply = useSetAtom(generateReplyAtom)
@@ -237,29 +239,17 @@ export function ChatWorkspace({
                                         mode: 'continue',
                                     })
                                 }
-                                onLuaTriggered={() =>
-                                    loadConversation({
-                                        conversationId: conversation.id,
-                                        resetMessages: true,
-                                    })
-                                }
+                                onLuaTriggered={() => refreshMessages(conversation.id)}
                                 onSelectGreeting={async (greetingIndex) => {
                                     const updated = await updateConversation({
                                         conversationId: conversation.id,
                                         input: { greetingIndex },
                                     })
-                                    if (updated)
-                                        await loadConversation({
-                                            conversationId: conversation.id,
-                                            resetMessages: true,
-                                        })
+                                    if (updated) await refreshMessages(conversation.id)
                                 }}
                                 onEdit={async (message, content) => {
                                     await api.updateMessage(conversation.id, message.id, content)
-                                    await loadConversation({
-                                        conversationId: conversation.id,
-                                        resetMessages: true,
-                                    })
+                                    await refreshMessages(conversation.id)
                                 }}
                                 onDelete={async (message, scope) => {
                                     if (scope === 'from') {
@@ -267,10 +257,7 @@ export function ChatWorkspace({
                                     } else {
                                         await api.deleteMessage(conversation.id, message.id)
                                     }
-                                    await loadConversation({
-                                        conversationId: conversation.id,
-                                        resetMessages: true,
-                                    })
+                                    await refreshMessages(conversation.id)
                                 }}
                                 onVersions={(message) =>
                                     api.messageGenerations(conversation.id, message.id)
@@ -281,10 +268,7 @@ export function ChatWorkspace({
                                         message.id,
                                         generationId,
                                     )
-                                    await loadConversation({
-                                        conversationId: conversation.id,
-                                        resetMessages: true,
-                                    })
+                                    await refreshMessages(conversation.id)
                                 }}
                             />
                             <Composer

@@ -9,8 +9,13 @@ import {
 } from '@malang/shared'
 import {
     ArrowClockwise,
+    ArrowDown,
     ArrowLeft,
     ArrowRight,
+    CaretDoubleDown,
+    CaretDoubleUp,
+    CaretDown,
+    CaretUp,
     Check,
     ClockCounterClockwise,
     Copy,
@@ -21,7 +26,16 @@ import {
 } from '@phosphor-icons/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useAtomValue } from 'jotai'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+    type ReactNode,
+    useEffect,
+    useEffectEvent,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react'
+import { flushSync } from 'react-dom'
 
 import {
     AlertDialog,
@@ -36,6 +50,7 @@ import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Textarea } from '@/components/ui/textarea'
 import { api, getClientInstanceId } from '@/lib/api'
+import { chatHotkeyAction, isConfirmKey } from '@/lib/chat-shortcuts'
 import type { IllustrationView } from '@/lib/message-images'
 import { resolveInlayPlaceholders } from '@/lib/pocketrisu/inlays'
 import { renderMessageContentHtml } from '@/lib/render-message-content'
@@ -47,13 +62,14 @@ import { formatClock, statusLabel } from './format'
 import { illustrationViewsAtom } from './illustration-atom'
 import { MessageIllustrationTool } from './message-illustration-tool'
 
-interface TranscriptScrollSnapshot {
-    top: number
-    atBottom: boolean
-}
-
-const transcriptScrollPositions = new Map<string, TranscriptScrollSnapshot>()
+/** The message at the top of the viewport; `null` while reading the latest messages. */
+const transcriptScrollAnchors = new Map<string, string | null>()
 const MAX_SAVED_TRANSCRIPTS = 50
+const TRANSCRIPT_PADDING_END = 32
+const END_THRESHOLD = 48
+const SCROLL_NAV_VISIBLE_MS = 1500
+/** A message whose top is further above the viewport than this counts as the current one. */
+const MESSAGE_NAV_TOLERANCE = 30
 
 export function MessageTranscript({
     character,
@@ -99,18 +115,20 @@ export function MessageTranscript({
     onLuaTriggered: () => void | Promise<void>
 }) {
     const viewportRef = useRef<HTMLDivElement>(null)
-    const contentRef = useRef<HTMLDivElement>(null)
-    const lastScrollTopRef = useRef(0)
+    const headerRef = useRef<HTMLDivElement>(null)
     const restoredConversationRef = useRef<string | null>(null)
-    const atBottomRef = useRef(true)
-    const pendingScrollTopRef = useRef<number | null>(null)
     const loadingOlderRef = useRef(false)
-    const pendingPrependRef = useRef<{ scrollTop: number; totalSize: number } | null>(null)
+    const atEndRef = useRef(true)
+    const lastMessageRef = useRef<Message | null>(null)
+    const scrollNavTimerRef = useRef<number | undefined>(undefined)
+    const [headerHeight, setHeaderHeight] = useState(0)
+    const [hasNewMessage, setHasNewMessage] = useState(false)
+    const [scrollNavVisible, setScrollNavVisible] = useState(false)
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+    const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
     const hasUserMessage = messages.some((message) => message.role === 'user')
     const continuable = canContinue(messages)
     const canSelectGreeting = !hasUserMessage && greetingCount > 1
-    const firstMessageId = messages[0]?.id
     // TanStack Virtual intentionally exposes an imperative instance that React Compiler skips.
     // oxlint-disable-next-line react/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -120,106 +138,132 @@ export function MessageTranscript({
         estimateSize: () => 280,
         overscan: 4,
         measureElement: (element) => element.getBoundingClientRect().height,
+        // Chat mode: prepended pages keep the reader's place; the end stays pinned as rows grow.
+        anchorTo: 'end',
+        followOnAppend: true,
+        scrollEndThreshold: END_THRESHOLD,
+        paddingStart: headerHeight,
+        paddingEnd: TRANSCRIPT_PADDING_END,
     })
 
     useLayoutEffect(() => {
-        const viewport = viewportRef.current
-        if (!viewport || (loading && !messages.length)) return
-        // The previous conversation's messages linger for a render after switching.
-        if (messages[0] && messages[0].conversationId !== conversationId) return
-
-        if (restoredConversationRef.current !== conversationId) {
-            const saved = transcriptScrollPositions.get(conversationId)
-            atBottomRef.current = saved?.atBottom ?? true
-            if (saved && !saved.atBottom) viewport.scrollTop = saved.top
-            else scrollToBottom(viewport)
-            lastScrollTopRef.current = viewport.scrollTop
-            restoredConversationRef.current = conversationId
-            return
-        }
-
-        if (atBottomRef.current) scrollToBottom(viewport)
-    }, [conversationId, loading, messages])
-
-    // Rows are measured, and images load, after the first scroll; keep a pinned transcript pinned.
-    useLayoutEffect(() => {
-        const viewport = viewportRef.current
-        const content = contentRef.current
-        if (!viewport || !content) return
-        const observer = new ResizeObserver(() => {
-            if (atBottomRef.current) scrollToBottom(viewport)
-        })
-        observer.observe(content)
+        const header = headerRef.current
+        if (!header) return
+        const observer = new ResizeObserver(() => setHeaderHeight(header.offsetHeight))
+        setHeaderHeight(header.offsetHeight)
+        observer.observe(header)
         return () => observer.disconnect()
     }, [])
 
-    useLayoutEffect(
-        () => () => {
-            const viewport = viewportRef.current
-            if (viewport) rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
-        },
-        [conversationId],
-    )
+    useLayoutEffect(() => {
+        if (restoredConversationRef.current === conversationId || !messages.length) return
+        // The previous conversation's messages linger for a render after switching.
+        if (messages[0]!.conversationId !== conversationId) return
+        restoredConversationRef.current = conversationId
+        const anchorId = transcriptScrollAnchors.get(conversationId)
+        const anchorIndex = anchorId ? messages.findIndex((message) => message.id === anchorId) : -1
+        if (anchorIndex >= 0) rowVirtualizer.scrollToIndex(anchorIndex, { align: 'start' })
+        else rowVirtualizer.scrollToEnd()
+    }, [conversationId, messages, rowVirtualizer])
 
     useLayoutEffect(() => {
-        const viewport = viewportRef.current
-        const pendingScrollTop = pendingScrollTopRef.current
-        if (!viewport || pendingScrollTop === null) return
+        const last = messages.at(-1) ?? null
+        const previous = lastMessageRef.current
+        lastMessageRef.current = last
+        if (!last || previous?.conversationId !== last.conversationId) return
+        if (last.position <= previous.position) return
+        // Sending returns the reader to the end; a reply never pulls a reader who scrolled away.
+        if (last.role === 'user') rowVirtualizer.scrollToEnd()
+        else if (!atEndRef.current) setHasNewMessage(true)
+    }, [messages, rowVirtualizer])
 
-        viewport.scrollTop = pendingScrollTop
-        pendingScrollTopRef.current = null
-        atBottomRef.current = isNearBottom(viewport)
-        rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
-    }, [conversationId, editingMessageId])
+    useEffect(() => () => window.clearTimeout(scrollNavTimerRef.current), [])
 
-    useLayoutEffect(() => {
-        const viewport = viewportRef.current
-        const pending = pendingPrependRef.current
-        if (!viewport || !pending) return
-        rowVirtualizer.measure()
-        viewport.scrollTop = pending.scrollTop + (rowVirtualizer.getTotalSize() - pending.totalSize)
-        pendingPrependRef.current = null
-        atBottomRef.current = isNearBottom(viewport)
-        rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
-    }, [conversationId, firstMessageId, rowVirtualizer])
-
-    function changeEditingMessage(messageId: string | null) {
-        const viewport = viewportRef.current
-        if (viewport) {
-            pendingScrollTopRef.current = viewport.scrollTop
-            atBottomRef.current = false
-        }
-        setEditingMessageId(messageId)
+    function revealScrollNav() {
+        setScrollNavVisible(true)
+        window.clearTimeout(scrollNavTimerRef.current)
+        scrollNavTimerRef.current = window.setTimeout(
+            () => setScrollNavVisible(false),
+            SCROLL_NAV_VISIBLE_MS,
+        )
     }
+
+    function scrollToTop() {
+        rowVirtualizer.scrollToOffset(0, { behavior: 'smooth' })
+    }
+
+    function scrollToLatest() {
+        setHasNewMessage(false)
+        rowVirtualizer.scrollToEnd({ behavior: 'smooth' })
+    }
+
+    function scrollToAdjacentMessage(direction: -1 | 1) {
+        const viewport = viewportRef.current
+        const current = viewport && rowVirtualizer.getVirtualItemForOffset(viewport.scrollTop)
+        if (!viewport || !current) return
+        const currentIsCutOff = current.start < viewport.scrollTop - MESSAGE_NAV_TOLERANCE
+        const index =
+            direction === -1 && currentIsCutOff ? current.index : current.index + direction
+        if (index < 0 || index >= messages.length) return
+        rowVirtualizer.scrollToIndex(index, { align: 'start', behavior: 'smooth' })
+    }
+
+    function startEditing(index: number, messageId: string) {
+        flushSync(() => setEditingMessageId(messageId))
+        const row = viewportRef.current?.querySelector<HTMLElement>(`[data-index="${index}"]`)
+        // The editor is shorter or taller than the text it replaces; keep the editor itself in view.
+        if (row) rowVirtualizer.measureElement(row)
+        rowVirtualizer.scrollToIndex(index, { align: 'auto' })
+    }
+
+    // PocketRisu's chat hotkeys act on the latest message, like its first `.button-icon-*` match.
+    const handleChatHotkey = useEffectEvent((event: KeyboardEvent) => {
+        const action = chatHotkeyAction(event)
+        const index = messages.length - 1
+        const last = messages[index]
+        if (!action || action === 'send' || !last) return
+        event.preventDefault()
+        if (action === 'copy') {
+            void navigator.clipboard.writeText(last.content)
+            return
+        }
+        // The greeting and a message under edit show no tools, so their hotkeys stay inert too.
+        if (editingMessageId || (last.role === 'assistant' && last.position === 0)) return
+        if (action === 'edit') {
+            startEditing(index, last.id)
+        } else if (action === 'delete') {
+            rowVirtualizer.scrollToIndex(index, { align: 'auto' })
+            setDeletingMessageId(last.id)
+        } else if (last.role === 'assistant' && last.status !== 'streaming') {
+            onRegenerate()
+        }
+    })
+
+    useEffect(() => {
+        const listener = (event: KeyboardEvent) => handleChatHotkey(event)
+        document.addEventListener('keydown', listener)
+        return () => document.removeEventListener('keydown', listener)
+    }, [])
 
     function handleScroll() {
         const viewport = viewportRef.current
         if (!viewport) return
-        // Content growing under a pinned transcript is not the user leaving the bottom.
-        const scrolledUp = viewport.scrollTop < lastScrollTopRef.current
-        lastScrollTopRef.current = viewport.scrollTop
-        if (scrolledUp || !atBottomRef.current) atBottomRef.current = isNearBottom(viewport)
-        rememberTranscriptScroll(conversationId, viewport, atBottomRef.current)
+        atEndRef.current = rowVirtualizer.isAtEnd(END_THRESHOLD)
+        if (atEndRef.current) setHasNewMessage(false)
+        const top = atEndRef.current
+            ? undefined
+            : rowVirtualizer.getVirtualItemForOffset(viewport.scrollTop)
+        rememberTranscriptAnchor(conversationId, top ? (messages[top.index]?.id ?? null) : null)
         if (viewport.scrollTop < 240) void loadOlder()
     }
 
     async function loadOlder() {
-        const viewport = viewportRef.current
-        if (!viewport || !hasOlderMessages || loadingOlderMessages || loadingOlderRef.current)
-            return
+        if (!hasOlderMessages || loadingOlderMessages || loadingOlderRef.current) return
         loadingOlderRef.current = true
-        const pending = {
-            scrollTop: viewport.scrollTop,
-            totalSize: rowVirtualizer.getTotalSize(),
-        }
-        pendingPrependRef.current = pending
         try {
             await onLoadOlder()
         } finally {
             loadingOlderRef.current = false
-            window.requestAnimationFrame(() => {
-                if (pendingPrependRef.current === pending) pendingPrependRef.current = null
-            })
         }
     }
 
@@ -285,51 +329,58 @@ export function MessageTranscript({
     })
 
     return (
-        <div
-            ref={viewportRef}
-            id="malang-chat-theme"
-            className="malang-transcript min-h-0 overflow-y-auto"
-            onScroll={handleScroll}
-        >
-            <div ref={contentRef} className="malang-transcript__inner mx-auto py-5 sm:py-8">
-                <div className="malang-scene-marker mb-5 flex items-center gap-4 px-2 font-mono text-[8px] uppercase tracking-widest text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border sm:mb-7">
-                    {hasOlderMessages ? (
-                        <button
-                            type="button"
-                            className="hover:text-foreground disabled:cursor-wait"
-                            disabled={loadingOlderMessages}
-                            onClick={() => void loadOlder()}
-                        >
-                            {loadingOlderMessages ? '불러오는 중…' : '이전 메시지 불러오기'}
-                        </button>
-                    ) : (
-                        <>
-                            <span>SCENE</span>
-                            <p>{character.scenario || '새로운 장면이 시작됩니다.'}</p>
-                        </>
-                    )}
-                </div>
-                {loading && !messages.length ? <MessageSkeleton /> : null}
-                {!loading && !messages.length ? (
-                    <Empty className="min-h-80">
-                        <EmptyHeader>
-                            <EmptyTitle>아직 작성된 장면이 없습니다.</EmptyTitle>
-                            <EmptyDescription>
-                                {canSelectGreeting
-                                    ? '화살표로 카드의 다른 시작 메시지를 선택하세요.'
-                                    : '아래 입력창에서 첫 메시지를 보내 대화를 시작하세요.'}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        {canSelectGreeting ? (
-                            <GreetingNavigator
-                                currentIndex={greetingIndex}
-                                count={greetingCount}
-                                onSelect={onSelectGreeting}
-                            />
+        <div className="relative grid min-h-0 grid-rows-[minmax(0,1fr)]">
+            <div
+                ref={viewportRef}
+                id="malang-chat-theme"
+                className="malang-transcript min-h-0 overflow-y-auto [overflow-anchor:none]"
+                onScroll={handleScroll}
+                onWheel={revealScrollNav}
+                onTouchMove={revealScrollNav}
+            >
+                <div
+                    className="malang-transcript__inner relative mx-auto"
+                    style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+                >
+                    <div ref={headerRef} className="absolute inset-x-0 top-0 pt-5 sm:pt-8">
+                        <div className="malang-scene-marker mb-5 flex items-center gap-4 px-2 font-mono text-[8px] uppercase tracking-widest text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border sm:mb-7">
+                            {hasOlderMessages ? (
+                                <button
+                                    type="button"
+                                    className="hover:text-foreground disabled:cursor-wait"
+                                    disabled={loadingOlderMessages}
+                                    onClick={() => void loadOlder()}
+                                >
+                                    {loadingOlderMessages ? '불러오는 중…' : '이전 메시지 불러오기'}
+                                </button>
+                            ) : (
+                                <>
+                                    <span>SCENE</span>
+                                    <p>{character.scenario || '새로운 장면이 시작됩니다.'}</p>
+                                </>
+                            )}
+                        </div>
+                        {loading && !messages.length ? <MessageSkeleton /> : null}
+                        {!loading && !messages.length ? (
+                            <Empty className="min-h-80">
+                                <EmptyHeader>
+                                    <EmptyTitle>아직 작성된 장면이 없습니다.</EmptyTitle>
+                                    <EmptyDescription>
+                                        {canSelectGreeting
+                                            ? '화살표로 카드의 다른 시작 메시지를 선택하세요.'
+                                            : '아래 입력창에서 첫 메시지를 보내 대화를 시작하세요.'}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                                {canSelectGreeting ? (
+                                    <GreetingNavigator
+                                        currentIndex={greetingIndex}
+                                        count={greetingCount}
+                                        onSelect={onSelectGreeting}
+                                    />
+                                ) : null}
+                            </Empty>
                         ) : null}
-                    </Empty>
-                ) : null}
-                <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+                    </div>
                     {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                         const index = virtualRow.index
                         const message = messages[index]!
@@ -398,10 +449,10 @@ export function MessageTranscript({
                                     {isEditing ? (
                                         <InlineMessageEditor
                                             message={message}
-                                            onCancel={() => changeEditingMessage(null)}
+                                            onCancel={() => setEditingMessageId(null)}
                                             onSave={async (content) => {
                                                 await onEdit(message, content)
-                                                changeEditingMessage(null)
+                                                setEditingMessageId(null)
                                             }}
                                         />
                                     ) : (
@@ -445,8 +496,12 @@ export function MessageTranscript({
                                             onRegenerate={onRegenerate}
                                             canContinue={continuable}
                                             onContinue={onContinue}
-                                            onStartEdit={() => changeEditingMessage(message.id)}
+                                            onStartEdit={() => startEditing(index, message.id)}
                                             deleteCount={messages.length - index}
+                                            deleting={deletingMessageId === message.id}
+                                            onDeletingChange={(open) =>
+                                                setDeletingMessageId(open ? message.id : null)
+                                            }
                                             onDelete={onDelete}
                                             onVersions={onVersions}
                                             onSelectVersion={onSelectVersion}
@@ -458,28 +513,74 @@ export function MessageTranscript({
                     })}
                 </div>
             </div>
+            {messages.length ? (
+                <div
+                    className={cn(
+                        'absolute right-3 bottom-4 z-20 flex flex-col overflow-hidden rounded-lg border border-border/60 bg-background/80 shadow-lg backdrop-blur-sm transition-opacity duration-300',
+                        !scrollNavVisible && 'pointer-events-none opacity-0',
+                    )}
+                    onPointerEnter={revealScrollNav}
+                    onPointerMove={revealScrollNav}
+                >
+                    <ScrollNavButton label="맨 위로" onClick={scrollToTop}>
+                        <CaretDoubleUp />
+                    </ScrollNavButton>
+                    <ScrollNavButton
+                        label="이전 메시지"
+                        onClick={() => scrollToAdjacentMessage(-1)}
+                    >
+                        <CaretUp />
+                    </ScrollNavButton>
+                    <ScrollNavButton label="다음 메시지" onClick={() => scrollToAdjacentMessage(1)}>
+                        <CaretDown />
+                    </ScrollNavButton>
+                    <ScrollNavButton label="맨 아래로" onClick={scrollToLatest}>
+                        <CaretDoubleDown />
+                    </ScrollNavButton>
+                </div>
+            ) : null}
+            {hasNewMessage ? (
+                <Button
+                    size="sm"
+                    className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full shadow-lg"
+                    onClick={scrollToLatest}
+                >
+                    <ArrowDown />새 메시지
+                </Button>
+            ) : null}
         </div>
     )
 }
 
-function scrollToBottom(viewport: HTMLDivElement) {
-    viewport.scrollTop = viewport.scrollHeight
+function ScrollNavButton({
+    label,
+    onClick,
+    children,
+}: {
+    label: string
+    onClick: () => void
+    children: ReactNode
+}) {
+    return (
+        <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-none text-muted-foreground not-last:border-b not-last:border-border/60 hover:text-foreground"
+            aria-label={label}
+            title={label}
+            onClick={onClick}
+        >
+            {children}
+        </Button>
+    )
 }
 
-function isNearBottom(viewport: HTMLDivElement): boolean {
-    return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48
-}
-
-function rememberTranscriptScroll(
-    conversationId: string,
-    viewport: HTMLDivElement,
-    atBottom: boolean,
-) {
-    transcriptScrollPositions.delete(conversationId)
-    transcriptScrollPositions.set(conversationId, { top: viewport.scrollTop, atBottom })
-    if (transcriptScrollPositions.size > MAX_SAVED_TRANSCRIPTS) {
-        const oldest = transcriptScrollPositions.keys().next().value
-        if (oldest) transcriptScrollPositions.delete(oldest)
+function rememberTranscriptAnchor(conversationId: string, anchorMessageId: string | null) {
+    transcriptScrollAnchors.delete(conversationId)
+    transcriptScrollAnchors.set(conversationId, anchorMessageId)
+    if (transcriptScrollAnchors.size > MAX_SAVED_TRANSCRIPTS) {
+        const oldest = transcriptScrollAnchors.keys().next().value
+        if (oldest) transcriptScrollAnchors.delete(oldest)
     }
 }
 
@@ -555,6 +656,15 @@ function InlineMessageEditor({
         textarea.setSelectionRange(textarea.value.length, textarea.value.length)
     }, [])
 
+    // Grows with the text like the message it replaces; `field-sizing` alone is missing on older Safari.
+    useLayoutEffect(() => {
+        const textarea = textareaRef.current
+        if (!textarea) return
+        textarea.style.height = 'auto'
+        const border = textarea.offsetHeight - textarea.clientHeight
+        textarea.style.height = `${textarea.scrollHeight + border}px`
+    }, [value])
+
     async function save() {
         if (!nextContent || unchanged || saving) return
         setSaving(true)
@@ -572,9 +682,8 @@ function InlineMessageEditor({
             <Textarea
                 ref={textareaRef}
                 value={value}
-                rows={10}
                 disabled={saving}
-                className="min-h-56 max-h-[68dvh] resize-y rounded-lg border-border bg-background/45 px-4 py-4 font-mono text-[0.9rem] leading-7 shadow-inner focus-visible:ring-ring/35"
+                className="resize-none overflow-hidden rounded-lg border-border bg-background/45 px-4 py-4 font-mono text-[0.9rem] leading-7 shadow-inner focus-visible:ring-ring/35"
                 aria-label="메시지 원문 편집"
                 aria-invalid={error ? true : undefined}
                 onChange={(event) => setValue(event.target.value)}
@@ -582,7 +691,7 @@ function InlineMessageEditor({
                     if (event.key === 'Escape') {
                         event.preventDefault()
                         onCancel()
-                    } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                    } else if (isConfirmKey(event)) {
                         event.preventDefault()
                         void save()
                     }
@@ -725,6 +834,8 @@ function MessageTools({
     onContinue,
     onStartEdit,
     deleteCount,
+    deleting,
+    onDeletingChange,
     onDelete,
     onVersions,
     onSelectVersion,
@@ -737,12 +848,13 @@ function MessageTools({
     onContinue: () => void
     onStartEdit: () => void
     deleteCount: number
+    deleting: boolean
+    onDeletingChange: (open: boolean) => void
     onDelete: (message: Message, scope: 'only' | 'from') => Promise<void>
     onVersions: (message: Message) => Promise<{ generations: GenerationRun[] }>
     onSelectVersion: (message: Message, generationId: string) => Promise<void>
 }) {
     const [runs, setRuns] = useState<GenerationRun[] | null>(null)
-    const [truncating, setTruncating] = useState(false)
 
     async function versions() {
         if (runs) {
@@ -775,7 +887,7 @@ function MessageTools({
             <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setTruncating(true)}
+                onClick={() => onDeletingChange(true)}
                 aria-label="메시지 삭제"
                 title="삭제"
             >
@@ -820,9 +932,9 @@ function MessageTools({
                 </Button>
             ) : null}
             <MessageDeleteDialog
-                open={truncating}
+                open={deleting}
                 deleteCount={deleteCount}
-                onOpenChange={setTruncating}
+                onOpenChange={onDeletingChange}
                 onDelete={(scope) => onDelete(message, scope)}
             />
             {runs ? (

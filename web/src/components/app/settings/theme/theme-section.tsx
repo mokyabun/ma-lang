@@ -4,6 +4,7 @@ import { CHAT_APPEARANCE_DEFAULTS, CHAT_APPEARANCE_LIMITS } from '@/components/t
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { chatHotkeyModifierLabel, SEND_KEYS, sendKeyLabel } from '@/lib/chat-shortcuts'
 
 import { SectionHeading } from '../../page-heading'
 import { SettingTitle } from '../shared/setting-title'
@@ -21,6 +22,8 @@ export function ThemeSection() {
         setChatMaxWidth,
         quickSettingsButton,
         setQuickSettingsButton,
+        sendKey,
+        setSendKey,
         resetChatAppearance,
     } = useTheme()
 
@@ -107,6 +110,34 @@ export function ThemeSection() {
 
                         <ThemePreview fontSize={chatFontSize} maxWidth={chatMaxWidth} />
                     </div>
+                </section>
+
+                <section className="border-t border-border py-6">
+                    <SettingTitle
+                        title="전송 키"
+                        description="메시지 입력창에서 보내기에 쓸 키입니다. 나머지 Enter 조합은 줄바꿈이 됩니다. 이 브라우저에 저장됩니다."
+                    />
+                    <fieldset
+                        aria-label="전송 키"
+                        className="mt-4 grid min-w-0 grid-cols-4 gap-2 max-sm:grid-cols-2"
+                    >
+                        {SEND_KEYS.map((key) => (
+                            <Button
+                                key={key}
+                                type="button"
+                                aria-pressed={sendKey === key}
+                                variant={sendKey === key ? 'default' : 'outline'}
+                                onClick={() => setSendKey(key)}
+                            >
+                                {sendKeyLabel(key)}
+                            </Button>
+                        ))}
+                    </fieldset>
+                    <p className="mt-3 border-l border-primary pl-3 text-[11px] leading-5 text-muted-foreground">
+                        채팅 단축키: {chatHotkeyModifierLabel()} + R 다시 쓰기 · E 마지막 메시지
+                        편집 · D 삭제 · C 복사 · Enter 전송. 편집창은 {sendKeyLabel('mod-enter')}로
+                        저장, Esc로 취소합니다.
+                    </p>
                 </section>
 
                 <section className="border-t border-border py-6">

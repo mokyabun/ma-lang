@@ -7,6 +7,8 @@ import {
     useState,
 } from 'react'
 
+import { defaultSendKey, SEND_KEYS, type SendKey } from '@/lib/chat-shortcuts'
+
 import { CHAT_APPEARANCE_DEFAULTS, CHAT_APPEARANCE_LIMITS } from './theme-preferences'
 
 type Theme = 'light' | 'dark'
@@ -15,6 +17,7 @@ const THEME_STORAGE_KEY = 'malang-theme'
 const CHAT_FONT_SIZE_STORAGE_KEY = 'malang-chat-font-size'
 const CHAT_MAX_WIDTH_STORAGE_KEY = 'malang-chat-max-width'
 const QUICK_SETTINGS_BUTTON_STORAGE_KEY = 'malang-quick-settings-button'
+const SEND_KEY_STORAGE_KEY = 'malang-send-key'
 
 const ThemeContext = createContext<{
     theme: Theme
@@ -25,6 +28,8 @@ const ThemeContext = createContext<{
     setChatMaxWidth: (width: number) => void
     quickSettingsButton: boolean
     setQuickSettingsButton: (visible: boolean) => void
+    sendKey: SendKey
+    setSendKey: (sendKey: SendKey) => void
     resetChatAppearance: () => void
 } | null>(null)
 
@@ -47,6 +52,13 @@ function storedBoolean(key: string, fallback: boolean): boolean {
     if (typeof window === 'undefined') return fallback
     const stored = window.localStorage.getItem(key)
     return stored === null ? fallback : stored === 'true'
+}
+
+// Unset until chosen, so the device-type default keeps applying.
+function initialSendKey(): SendKey {
+    if (typeof window === 'undefined') return 'enter'
+    const stored = window.localStorage.getItem(SEND_KEY_STORAGE_KEY)
+    return SEND_KEYS.find((key) => key === stored) ?? defaultSendKey()
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -73,6 +85,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             CHAT_APPEARANCE_DEFAULTS.quickSettingsButton,
         ),
     )
+    const [sendKey, setSendKeyState] = useState(initialSendKey)
+
+    function setSendKey(next: SendKey) {
+        setSendKeyState(next)
+        window.localStorage.setItem(SEND_KEY_STORAGE_KEY, next)
+    }
 
     useLayoutEffect(() => {
         const root = document.documentElement
@@ -122,6 +140,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                 setChatMaxWidth,
                 quickSettingsButton,
                 setQuickSettingsButton,
+                sendKey,
+                setSendKey,
                 resetChatAppearance,
             }}
         >
