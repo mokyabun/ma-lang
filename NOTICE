@@ -1,0 +1,50 @@
+Malang
+Copyright (C) 2026 mokya (mokyabun)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License version 3 as published by the Free Software Foundation. It is
+distributed WITHOUT ANY WARRANTY; see the LICENSE file for the full terms.
+
+--------------------------------------------------------------------------------------------------
+Third-party code
+--------------------------------------------------------------------------------------------------
+
+Malang contains code ported from, and modified relative to, the following GPL-3.0 projects:
+
+  RisuAI      https://github.com/kwaroran/RisuAI
+              Copyright (C) 2024 Kwaroran
+              Licensed under the GNU General Public License v3.0
+
+  PocketRisu  https://github.com/PocketRisu/PocketRisu
+              A fork of RisuAI by the PocketRisu contributors
+              Licensed under the GNU General Public License v3.0
+
+Malang is an independent project. It is not affiliated with or endorsed by RisuAI or PocketRisu.
+
+Ported code. These files are TypeScript ports of PocketRisu source. They keep the original names
+and control flow where possible so they can be compared with upstream, and each one names the
+upstream functions it ports at the top of the file:
+
+  server/src/services/prompt/compiler.ts         sendChat prompt-template path
+  server/src/services/prompt/pocketrisu/         chat, example messages, lorebook
+                                                 (convertCharbook, loadLoreBookV3Prompt), parser,
+                                                 regex scripts (processScriptFull regex stage)
+  server/src/services/prompt/template-engine.ts  the calcString RPN engine
+  web/src/lib/pocketrisu/                        chat markup stage of parser.svelte.ts
+                                                 (ParseMarkdown, trimMarkdown) and inlays
+                                                 (resolveInlayPlaceholders, processInlayQueue)
+  web/src/lib/risu-css.ts                        message CSS isolation rules
+
+Modifications (2026, for Malang): the TypeScript port itself, running prompt assembly on the
+server instead of the browser, a worker sandbox for regex scripts, scoping of message <style>
+blocks to the chat surface, and the deliberate differences listed at the top of each ported file.
+
+Compatibility. These parts are Malang's own implementations that read, write or reproduce
+RisuAI/PocketRisu formats and behavior: Character Card v2/v3, CHARX, .risum modules,
+.risupreset and RPack prompt presets, PocketRisu character packages and model profiles,
+HypaMemory V3 memory selection, regex script ordering, the Lua runtime API, and the
+PocketRisu Gemini request body.
+
+The test oracle in scripts/pocketrisu-oracle/ runs a separate PocketRisu checkout (extra/PocketRisu
+or POCKETRISU_ROOT) to produce expected results. It ships only small stubs that stand in for
+PocketRisu modules by their export names, not PocketRisu source.

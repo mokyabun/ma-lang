@@ -138,3 +138,20 @@ CHARX imports enforce the total expanded archive limit, compression-ratio checks
 `MAX_ARCHIVE_ENTRIES` (default 65536; RisuAI stores two entries per asset). The per-asset limit
 defaults to `MAX_IMPORT_BYTES`; set `MAX_ASSET_BYTES` explicitly only when a stricter
 individual-file cap is desired.
+
+## RisuAI and PocketRisu
+
+Malang reads and writes RisuAI and PocketRisu data: Character Card v2/v3, CHARX, `.risum`
+modules, `.risupreset`/RPack prompt presets, and PocketRisu character packages and model
+profiles. Prompt assembly, the chat message renderer and parts of the template engine are
+ported from [PocketRisu](https://github.com/PocketRisu/PocketRisu), a fork of
+[RisuAI](https://github.com/kwaroran/RisuAI), and parity tests compare their output against a
+PocketRisu checkout. [NOTICE](./NOTICE) lists the ported files and what was changed.
+
+Malang is an independent project, not affiliated with or endorsed by RisuAI or PocketRisu.
+
+## License
+
+Malang is licensed under the [GNU General Public License v3.0](./LICENSE) (GPL-3.0-only), the
+license of the RisuAI and PocketRisu code it contains. See [NOTICE](./NOTICE) for third-party
+attribution.

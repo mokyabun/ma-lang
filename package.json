@@ -3,6 +3,7 @@
     "module": "index.ts",
     "type": "module",
     "private": true,
+    "license": "GPL-3.0-only",
     "devDependencies": {
         "@types/bun": "latest",
         "oxfmt": "^0.64.0",
