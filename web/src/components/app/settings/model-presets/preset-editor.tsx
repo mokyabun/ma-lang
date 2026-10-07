@@ -1,4 +1,4 @@
-import type { ProviderKind } from '@malang/shared'
+import type { ProviderKind, TokenizerId } from '@malang/shared'
 import {
     CloudCheck,
     DownloadSimple,
@@ -19,7 +19,7 @@ import { SettingsGroup } from '../shared/settings-group'
 import { CredentialChooser } from './credential-chooser'
 import { ModelIdPicker } from './model-id-picker'
 import { SchemaDefinedSettings } from './profile-settings'
-import { PROVIDERS } from './provider-catalog'
+import { PROVIDERS, TOKENIZERS } from './provider-catalog'
 import { usePresetEditor, type PresetEditorProps } from './use-preset-editor'
 
 export function PresetEditor({
@@ -68,6 +68,8 @@ export function PresetEditor({
         setProfileValues,
         options,
         setOptions,
+        tokenizer,
+        setTokenizer,
         notice,
         setNotice,
         meta,
@@ -191,6 +193,28 @@ export function PresetEditor({
                         />
                     </Field>
                 </div>
+                <Field
+                    label="토크나이저"
+                    description="문맥 자르기, 로어북 예산, 장기 기억의 토큰 계산에 씁니다."
+                >
+                    <select
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        value={tokenizer}
+                        onChange={(event) => setTokenizer(event.target.value as TokenizerId | '')}
+                    >
+                        <option value="">
+                            자동
+                            {profileBinding?.envelope.profile.recommendedTokenizer
+                                ? ` (${profileBinding.envelope.profile.recommendedTokenizer})`
+                                : ''}
+                        </option>
+                        {TOKENIZERS.map((item) => (
+                            <option key={item.id} value={item.id}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
             </div>
             {profileBinding ? (
                 <SchemaDefinedSettings

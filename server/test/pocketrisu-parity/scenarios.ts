@@ -1,7 +1,7 @@
 import type { PromptScenario } from '../../../scripts/pocketrisu-oracle/protocol'
 
-// Scenarios in PocketRisu export formats: one feature each, deterministic (no {{random}}, dates
-// or token-budget trimming).
+// Scenarios in PocketRisu export formats: one feature each, deterministic (no {{random}} or
+// dates). Only scenarios with a `context` budget trim history.
 
 type CardData = Record<string, unknown>
 type Block = Record<string, unknown>
@@ -96,6 +96,27 @@ function characterBook(entries: Record<string, unknown>[]) {
         extensions: {},
         entries: entries.map(lore),
     }
+}
+
+const koreanLines = [
+    '오늘은 비가 와서 카페 안이 유난히 조용하네.',
+    '창가 자리에 앉아서 따뜻한 라떼를 천천히 마셨어.',
+    '지난주에 말했던 원두가 드디어 들어왔다고 들었는데 맞아?',
+    '응, 에티오피아 예가체프야. 꽃향기가 정말 진하게 나.',
+    '그럼 핸드드립으로 한 잔 부탁할게. 시럽은 빼 주고.',
+    '물 온도는 구십이 도로 맞추고 삼 분 동안 내릴게.',
+    '기다리는 동안 새로 나온 케이크도 구경해도 될까?',
+    '물론이지. 오늘 아침에 구운 레몬 파운드가 제일 인기야.',
+    '레몬 파운드 한 조각이랑 같이 계산해 줘.',
+    '카드로 할게? 아니면 지난번처럼 쿠폰을 쓸래?',
+    '쿠폰 도장이 아홉 개니까 이번에 열 개 채우고 싶어.',
+    '좋아, 도장 찍었어. 다음 방문 때는 음료 한 잔이 무료야.',
+]
+const koreanChat: PromptScenario['chat'] = {
+    messages: koreanLines.map((data, index) => ({
+        role: index % 2 === 0 ? ('user' as const) : ('char' as const),
+        data,
+    })),
 }
 
 export const promptScenarios: Record<string, PromptScenario> = {
@@ -766,5 +787,50 @@ export const promptScenarios: Record<string, PromptScenario> = {
         character: card(),
         user,
         chat: shortChat,
+    },
+
+    'korean-history-trimming': {
+        preset: preset(),
+        character: card({
+            description: '{{char}}는 동네 카페의 바리스타로, {{user}}와 오래 알고 지냈다.',
+            first_mes: '어서 와, {{user}}. 오늘도 늘 마시던 걸로?',
+            mes_example:
+                '<START>\n{{user}}: 추천해 줄 만한 거 있어?\n{{char}}: 오늘은 하우스 블렌드가 좋아.\n<START>\n{{user}}: 디저트는?\n{{char}}: 크루아상이 막 나왔어.',
+        }),
+        user: { name: '민수' },
+        chat: koreanChat,
+        context: { maxContext: 420, maxResponse: 100 },
+    },
+
+    'korean-lorebook-token-budget': {
+        preset: preset(),
+        character: card({
+            description: '{{char}}는 동네 카페의 바리스타다.',
+            character_book: {
+                ...characterBook([
+                    {
+                        constant: true,
+                        content: '카페 이름은 달빛콩이고 골목 끝 이층 건물에 있다.',
+                        comment: 'name',
+                        insertion_order: 300,
+                    },
+                    {
+                        constant: true,
+                        content: '모든 라떼에는 귀리 우유를 쓰며 시럽은 직접 만든다.',
+                        comment: 'milk',
+                        insertion_order: 200,
+                    },
+                    {
+                        constant: true,
+                        content: '단골손님에게는 열 번째 음료를 무료로 준다.',
+                        comment: 'coupon',
+                        insertion_order: 100,
+                    },
+                ]),
+                token_budget: 45,
+            },
+        }),
+        user: { name: '민수' },
+        chat: koreanChat,
     },
 }

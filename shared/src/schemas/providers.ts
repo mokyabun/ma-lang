@@ -57,6 +57,25 @@ export const ProviderApiFormatSchema = z.enum([
     'echo',
 ])
 
+// RisuAI's tokenizer names; `cl100k_base`/`o200k_base` are its plugin-provider names for tiktoken.
+export const TokenizerIdSchema = z.enum([
+    'tik',
+    'cl100k_base',
+    'o200k_base',
+    'mistral',
+    'novelai',
+    'claude',
+    'llama',
+    'llama3',
+    'novellist',
+    'gemma',
+    'cohere',
+    'deepseek',
+    'deepseek-v4',
+    'glm4',
+    'glm5',
+])
+
 const ProviderBaseSchema = z.object({
     modelId: z.string().min(1).max(512),
     auxiliaryModelId: z.string().max(512).optional(),
@@ -70,6 +89,7 @@ const ProviderBaseSchema = z.object({
     apiFormat: ProviderApiFormatSchema.optional(),
     providerOptions: z.record(z.string(), z.unknown()).default({}),
     credentialType: z.enum(['none', 'adc', 'apiKey', 'serviceAccount', 'aws']).optional(),
+    tokenizer: TokenizerIdSchema.optional(),
 })
 
 function keyedProvider<

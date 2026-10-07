@@ -4,6 +4,8 @@ import type { MemorySummaryRecord } from '@/db'
 import { cosineSimilarity, featureVector, selectMemorySummaries } from '@/services/memory/hypa-v3'
 import { compilePrompt } from '@/services/prompt/compiler'
 
+import { testTokenizer } from '../support/tokenizer'
+
 function summary(
     id: string,
     text: string,
@@ -41,23 +43,28 @@ describe('HypaMemory V3 local similarity', () => {
         const result = selectMemorySummaries(
             [important, unrelated, related],
             '서울에서 함께 갔던 장소를 기억해?',
-            40,
+            60,
             { recentMemoryRatio: 0, similarMemoryRatio: 1 },
+            testTokenizer,
         )
 
         expect(result.metrics.importantSummaryIds).toEqual(['important'])
         expect(result.metrics.similarSummaryIds[0]).toBe('related')
         expect(result.summaries.map((item) => item.id)).toContain('important')
         expect(result.summaries.map((item) => item.id)).toContain('related')
+        expect(result.summaries.map((item) => item.id)).not.toContain('unrelated')
     })
 
     test('keeps selected summaries in chronological order', async () => {
         const old = summary('old', '오래전 서울에서 만났다.')
         const recent = summary('recent', '오늘 부산으로 출발했다.')
-        const result = selectMemorySummaries([old, recent], '서울에서 만난 일', 100, {
-            recentMemoryRatio: 0.5,
-            similarMemoryRatio: 0.5,
-        })
+        const result = selectMemorySummaries(
+            [old, recent],
+            '서울에서 만난 일',
+            100,
+            { recentMemoryRatio: 0.5, similarMemoryRatio: 0.5 },
+            testTokenizer,
+        )
 
         expect(result.summaries.map((item) => item.id)).toEqual(['old', 'recent'])
     })
@@ -114,6 +121,7 @@ describe('HypaMemory V3 prompt integration', () => {
             },
             settings: { userName: 'Mina', globalVariables: {} },
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
             longTermMemory: {
                 enabled: true,
                 content: '<Past Events Summary>\nAria found the key.\n</Past Events Summary>',

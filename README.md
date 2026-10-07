@@ -25,6 +25,13 @@ state. Each conversation can override module activation, while the
 active prompt preset, persona, and prompt toggle values are persisted globally and shared across
 conversations.
 
+## Token counting
+
+Context trimming, lorebook token budgets and HypaMemory V3 count tokens with the same tokenizers
+RisuAI uses (tiktoken, Claude, Gemma, Llama, Mistral, NovelAI, Novellist, Cohere, DeepSeek and
+GLM vocabularies). A model preset picks its tokenizer automatically from the provider and model
+ID, or from a PocketRisu profile's recommendation, and can override it in the preset editor.
+
 ## HypaMemory V3 long-term memory
 
 Each conversation can enable PocketRisu-style HypaMemory V3 from its chat settings. When the

@@ -1,7 +1,6 @@
 import type { LoreEntry } from '@malang/shared'
 import { CCardLib } from '@risuai/ccardlib'
 
-import { estimateTokens } from '../lorebook'
 import type { RisuLore } from './types'
 
 // Port of PocketRisu's convertCharbook and loadLoreBookV3Prompt.
@@ -162,6 +161,7 @@ export function loadLoreBookV3Prompt(input: {
     getChatVar: (key: string) => string
     setChatVar: (key: string, value: string) => void
     parse: (text: string) => string
+    countTokens: (text: string) => number
 }): { actives: ActiveLore[] } {
     const fullLore = structuredClone(input.lore)
     const currentChat = input.messages
@@ -470,7 +470,7 @@ export function loadLoreBookV3Prompt(input: {
                     prompt: content,
                     role,
                     order,
-                    tokens: estimateTokens(input.parse(content)),
+                    tokens: input.countTokens(input.parse(content)),
                     priority,
                     source: lore.comment || `lorebook ${i}`,
                     inject,

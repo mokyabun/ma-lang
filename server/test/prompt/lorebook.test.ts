@@ -4,6 +4,8 @@ import type { LoreEntry } from '@malang/shared'
 
 import { selectLoreEntries } from '@/services/prompt/lorebook'
 
+import { testTokenizer } from '../support/tokenizer'
+
 const baseEntry: LoreEntry = {
     id: '00000000-0000-4000-8000-000000000001',
     keys: [],
@@ -41,7 +43,9 @@ describe('Risu lore decorators', () => {
             },
         ]
 
-        const selected = selectLoreEntries(entries, [], { tokenBudget: 100 })
+        const selected = selectLoreEntries(entries, [], { tokenBudget: 100 }, (text) =>
+            testTokenizer.count(text),
+        )
 
         expect(selected.entries).toHaveLength(1)
         expect(selected.entries[0]?.name).toBe('profile')

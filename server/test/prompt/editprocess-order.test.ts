@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import { compilePrompt } from '@/services/prompt/compiler'
 
+import { testTokenizer } from '../support/tokenizer'
+
 describe('PocketRisu editprocess ordering', () => {
     test('processes chat history before prompt blocks are assembled', async () => {
         const input = {
@@ -65,6 +67,7 @@ describe('PocketRisu editprocess ordering', () => {
                 promptToggleValues: { response_mode: '3' },
             },
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
             persona: {
                 id: null,
                 name: 'Mina',

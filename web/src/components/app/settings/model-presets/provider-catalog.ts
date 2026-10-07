@@ -1,4 +1,22 @@
-import type { ProviderKind } from '@malang/shared'
+import type { ProviderKind, TokenizerId } from '@malang/shared'
+
+// RisuAI's tokenizer list; its `tik` counts with o200k, so o200k_base is not listed twice.
+export const TOKENIZERS: Array<{ id: TokenizerId; label: string }> = [
+    { id: 'tik', label: 'Tiktoken (OpenAI)' },
+    { id: 'cl100k_base', label: 'Tiktoken cl100k (GPT-4 이전)' },
+    { id: 'mistral', label: 'Mistral' },
+    { id: 'novelai', label: 'NovelAI' },
+    { id: 'claude', label: 'Claude' },
+    { id: 'llama', label: 'Llama' },
+    { id: 'llama3', label: 'Llama3' },
+    { id: 'novellist', label: 'Novellist' },
+    { id: 'gemma', label: 'Gemma' },
+    { id: 'cohere', label: 'Cohere' },
+    { id: 'deepseek', label: 'DeepSeek' },
+    { id: 'deepseek-v4', label: 'DeepSeek V4' },
+    { id: 'glm4', label: 'GLM4' },
+    { id: 'glm5', label: 'GLM5' },
+]
 
 export const PROVIDERS: Array<{
     id: ProviderKind

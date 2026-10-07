@@ -13,8 +13,8 @@ import type {
 
 import type { CharacterRecord } from '@/db'
 import { AppError } from '@/errors/app-error'
+import type { ChatTokenizer } from '@/services/tokenizer'
 
-import { estimateTokens } from './lorebook'
 import { loadRisuChat } from './pocketrisu/chat'
 import { exampleMessage } from './pocketrisu/example-messages'
 import { loadLoreBookV3Prompt, toRisuLore } from './pocketrisu/lorebook'
@@ -113,8 +113,6 @@ function systemizeChat(chats: RisuChat[]): RisuChat[] {
     return chats
 }
 
-const estimateChatTokens = (chat: RisuChat) => estimateTokens(chat.content) + 4
-
 /** A raw PocketRisu card Malang does not model, such as `memory`. */
 function rawCard(block: PromptBlock): Record<string, unknown> | null {
     return 'raw' in block ? block.raw : null
@@ -132,6 +130,7 @@ export async function compilePrompt(input: {
     persona?: EffectivePersona
     assets?: TemplateContext['assets']
     modelId?: string
+    tokenizer: ChatTokenizer
     /** PocketRisu adds `[Start a new chat]` for every model except NovelAI. */
     includeStartNewChat?: boolean
     /** PocketRisu merges consecutive system turns only for GPT/Claude-family models. */
@@ -176,6 +175,9 @@ export async function compilePrompt(input: {
             warnings,
         })
     const parse = (text: string, role?: string) => parser.parse(text, { role })
+    const tokenizeChat = (chat: RisuChat) => input.tokenizer.tokenizeChat(chat)
+    const tokenizeChats = (chats: RisuChat[]) =>
+        chats.reduce((sum, chat) => sum + tokenizeChat(chat), 0)
 
     // runCurrentChatFunction: every stored message runs its variable commands once, in order.
     for (const [index, turn] of parser.chat.entries()) {
@@ -253,6 +255,7 @@ export async function compilePrompt(input: {
             getChatVar: (key) => parser.getChatVar(key),
             setChatVar: (key, value) => parser.setChatVar(key, value),
             parse: (text) => parse(text),
+            countTokens: (text) => input.tokenizer.count(text),
         })
 
         const positionRegex = /{{position::(.+?)}}/g
@@ -357,28 +360,94 @@ export async function compilePrompt(input: {
             return prompts
         }
 
+        /** The prompts a template card contributes; PocketRisu builds them the same way in both passes. */
+        const cardPrompts = (block: KnownBlock): RisuChat[] => {
+            switch (block.type) {
+                case 'persona': {
+                    const prompts = structuredClone(unformated.personaPrompt)
+                    applyPromptBlockRole(prompts, block.role2)
+                    if (block.innerFormat && prompts.length > 0) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(
+                                positionParser(block.innerFormat, block.type),
+                            ).replace('{{slot}}', prompt.content)
+                        }
+                    }
+                    return prompts
+                }
+                case 'description': {
+                    const prompts = getDescriptionPrompts(block.role2)
+                    if (block.innerFormat && prompts.length > 0) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(
+                                positionParser(block.innerFormat, block.type),
+                            ).replace('{{slot}}', prompt.content)
+                        }
+                    }
+                    return prompts
+                }
+                case 'authornote': {
+                    const prompts = structuredClone(unformated.authorNote)
+                    applyPromptBlockRole(prompts, block.role2)
+                    if (block.innerFormat && prompts.length > 0) {
+                        for (const prompt of prompts) {
+                            prompt.content = parse(
+                                positionParser(block.innerFormat, block.type),
+                            ).replace('{{slot}}', prompt.content || block.defaultText || '')
+                        }
+                    }
+                    return prompts
+                }
+                case 'lorebook':
+                    return unformated.lorebook
+                case 'postEverything':
+                    return promptSettings.postEndInnerFormat
+                        ? [
+                              ...unformated.postEverything,
+                              { role: 'system', content: promptSettings.postEndInnerFormat },
+                          ]
+                        : unformated.postEverything
+                case 'plain':
+                case 'jailbreak':
+                case 'cot': {
+                    if (!settings.jailbreakToggle && block.type === 'jailbreak') return []
+                    if (!settings.chainOfThought && block.type === 'cot') return []
+                    const posType = block.type === 'plain' ? block.type2 : block.type
+                    let content = positionParser(block.text, posType)
+                    if (block.type2 === 'globalNote' && character.postHistoryInstructions) {
+                        content = positionParser(
+                            character.postHistoryInstructions,
+                            posType,
+                        ).replaceAll('{{original}}', content)
+                    }
+                    return [
+                        {
+                            role: convertPromptRole[block.role],
+                            content: parse(content, block.role),
+                        },
+                    ]
+                }
+                case 'chatML':
+                    return parseChatML(block.text, (text) => parse(text)) ?? []
+                case 'chat':
+                    return []
+            }
+        }
+
         let supaMemoryCardUsed = template.some((block) => rawCard(block)?.type === 'memory')
 
         // Fixed prompt cost, for the history budget below (PocketRisu's first template pass).
         const reservedOutputTokens = input.parameters.maxOutputTokens || 512
         const maxContextTokens = input.parameters.maxContextTokens || 8192
         let currentTokens = reservedOutputTokens + 50
-        for (const block of template) {
-            if (block.type === 'plain' || block.type === 'jailbreak' || block.type === 'cot') {
-                if ('text' in block) currentTokens += estimateTokens(block.text) + 4
-            }
-        }
-        for (const section of [
-            unformated.description,
-            unformated.personaPrompt,
-            unformated.authorNote,
-            unformated.lorebook,
-            unformated.postEverything,
-        ]) {
-            for (const chat of section) currentTokens += estimateChatTokens(chat)
+        // A chat card counts nothing here: PocketRisu tokenizes `unformated.chats` while still empty.
+        for (const card of template) {
+            if (!rawCard(card)) currentTokens += tokenizeChats(cardPrompts(card as KnownBlock))
         }
 
         const examples = exampleMessage(character.exampleMessage, character.name, parse)
+        currentTokens += tokenizeChats(examples)
+        // `[Start a new chat]` is never counted, though trimming it below subtracts it.
         let chats: RisuChat[] = examples
         if (input.includeStartNewChat !== false && !promptSettings.trimStartNewChat) {
             chats.push({ role: 'system', content: '[Start a new chat]', memo: 'NewChat' })
@@ -404,6 +473,7 @@ export async function compilePrompt(input: {
                 chat.attr = ['nameAdded']
             }
             chats.push(chat)
+            currentTokens += tokenizeChat(chat)
         }
 
         for (const [index, turn] of parser.chat.entries()) {
@@ -436,37 +506,44 @@ export async function compilePrompt(input: {
             )
             // asset_prompt images are attachments; the tag itself never reaches the text.
             formatedChat = formatedChat.replace(/\{\{asset_?prompt::(.+?)\}\}/gimsu, '')
-            chats.push({
+            const chat: RisuChat = {
                 role: turn.role === 'user' ? 'user' : 'assistant',
                 content: formatedChat,
                 memo: turn.id,
                 attr: [],
                 thoughts,
                 sourceMessageId: turn.id,
-            })
+            }
+            chats.push(chat)
+            currentTokens += tokenizeChat(chat)
         }
 
         const depthPrompts = lorepmt.actives.filter(
             (lore) => (lore.pos === 'depth' && lore.depth > 0) || lore.pos === 'reverse_depth',
         )
         for (const depthPrompt of depthPrompts) {
-            currentTokens += estimateTokens(parse(resolvePosition(depthPrompt.prompt))) + 4
+            currentTokens += tokenizeChat({
+                role: depthPrompt.role,
+                content: parse(resolvePosition(depthPrompt.prompt)),
+            })
         }
 
         // Malang: HypaV3 summaries take the place of PocketRisu's supaMemory turn.
         if (input.longTermMemory?.content.trim()) {
-            chats = [
-                { role: 'system', content: input.longTermMemory.content, memo: 'supaMemory' },
-                ...chats,
-            ]
+            const memory: RisuChat = {
+                role: 'system',
+                content: input.longTermMemory.content,
+                memo: 'supaMemory',
+            }
+            chats = [memory, ...chats]
+            currentTokens += tokenizeChat(memory)
         }
 
-        for (const chat of chats) currentTokens += estimateChatTokens(chat)
         const trimmedMessageIds: string[] = []
         while (currentTokens > maxContextTokens) {
             if (chats.length <= 1) throw new ContextTooLargeError()
             const removed = chats.shift()!
-            currentTokens -= estimateChatTokens(removed)
+            currentTokens -= tokenizeChat(removed)
             if (removed.sourceMessageId) trimmedMessageIds.push(removed.sourceMessageId)
         }
 
@@ -578,80 +655,6 @@ export async function compilePrompt(input: {
             }
             const block = card as KnownBlock
             switch (block.type) {
-                case 'persona': {
-                    const prompts = structuredClone(unformated.personaPrompt)
-                    applyPromptBlockRole(prompts, block.role2)
-                    if (block.innerFormat && prompts.length > 0) {
-                        for (const prompt of prompts) {
-                            prompt.content = parse(
-                                positionParser(block.innerFormat, block.type),
-                            ).replace('{{slot}}', prompt.content)
-                        }
-                    }
-                    pushPrompts(prompts)
-                    break
-                }
-                case 'description': {
-                    const prompts = getDescriptionPrompts(block.role2)
-                    if (block.innerFormat && prompts.length > 0) {
-                        for (const prompt of prompts) {
-                            prompt.content = parse(
-                                positionParser(block.innerFormat, block.type),
-                            ).replace('{{slot}}', prompt.content)
-                        }
-                    }
-                    pushPrompts(prompts)
-                    break
-                }
-                case 'authornote': {
-                    const prompts = structuredClone(unformated.authorNote)
-                    applyPromptBlockRole(prompts, block.role2)
-                    if (block.innerFormat && prompts.length > 0) {
-                        for (const prompt of prompts) {
-                            prompt.content = parse(
-                                positionParser(block.innerFormat, block.type),
-                            ).replace('{{slot}}', prompt.content || block.defaultText || '')
-                        }
-                    }
-                    pushPrompts(prompts)
-                    break
-                }
-                case 'lorebook':
-                    pushPrompts(unformated.lorebook)
-                    break
-                case 'postEverything':
-                    pushPrompts(unformated.postEverything)
-                    if (promptSettings.postEndInnerFormat) {
-                        pushPrompts([
-                            { role: 'system', content: promptSettings.postEndInnerFormat },
-                        ])
-                    }
-                    break
-                case 'plain':
-                case 'jailbreak':
-                case 'cot': {
-                    if (!settings.jailbreakToggle && block.type === 'jailbreak') continue
-                    if (!settings.chainOfThought && block.type === 'cot') continue
-                    const posType = block.type === 'plain' ? block.type2 : block.type
-                    let content = positionParser(block.text, posType)
-                    if (block.type2 === 'globalNote' && character.postHistoryInstructions) {
-                        content = positionParser(
-                            character.postHistoryInstructions,
-                            posType,
-                        ).replaceAll('{{original}}', content)
-                    }
-                    pushPrompts([
-                        {
-                            role: convertPromptRole[block.role],
-                            content: parse(content, block.role),
-                        },
-                    ])
-                    if (block.type2 === 'main') pushModulePromptsOnce('afterMain')
-                    break
-                }
-                case 'chatML':
-                    pushPrompts(parseChatML(block.text, (text) => parse(text)) ?? [])
-                    break
                 case 'chat': {
                     pushModulePromptsOnce('beforeChat')
                     let start = block.rangeStart
@@ -672,6 +675,11 @@ export async function compilePrompt(input: {
                     pushModulePromptsOnce('afterChat')
                     break
                 }
+                default:
+                    pushPrompts(cardPrompts(block))
+                    if (block.type === 'plain' && block.type2 === 'main') {
+                        pushModulePromptsOnce('afterMain')
+                    }
             }
         }
         pushModulePromptsOnce('afterMain')
@@ -684,15 +692,15 @@ export async function compilePrompt(input: {
         })
 
         // Token recheck: blank out removable turns from the front until the prompt fits.
-        let inputTokens = formated.reduce((sum, chat) => sum + estimateChatTokens(chat), 0)
-        const budget = maxContextTokens - reservedOutputTokens
-        if (inputTokens > budget) {
+        // PocketRisu compares against the whole context here; the output reservation is not subtracted.
+        let inputTokens = tokenizeChats(formated)
+        if (inputTokens > maxContextTokens) {
             let pointer = 0
-            while (inputTokens > budget) {
+            while (inputTokens > maxContextTokens) {
                 if (pointer >= formated.length) throw new ContextTooLargeError()
                 const chat = formated[pointer]!
                 if (chat.removable) {
-                    inputTokens -= estimateChatTokens(chat)
+                    inputTokens -= tokenizeChat(chat)
                     chat.content = ''
                     if (chat.sourceMessageId) trimmedMessageIds.push(chat.sourceMessageId)
                 }

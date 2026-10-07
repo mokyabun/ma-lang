@@ -1,6 +1,7 @@
 import type { CompiledMessage, ModelChainAgent } from '@malang/shared'
 
 import { selectLoreEntries } from '@/services/prompt/lorebook'
+import type { ChatTokenizer } from '@/services/tokenizer'
 
 import type { GenerationContext } from './context'
 
@@ -110,6 +111,7 @@ export function buildChainExecutionContext(
     context: GenerationContext,
     messages: GenerationContext['messages'],
     longTermMemory: string,
+    tokenizer: ChatTokenizer,
 ): ChainExecutionContext {
     const lore = selectLoreEntries(
         [
@@ -118,6 +120,7 @@ export function buildChainExecutionContext(
         ],
         messages,
         context.character.loreSettings,
+        (text) => tokenizer.count(text),
     ).entries
     const currentUserIndex = messages.findLastIndex((message) => message.role === 'user')
     const recentMessages = messages

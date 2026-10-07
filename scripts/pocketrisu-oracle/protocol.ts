@@ -70,6 +70,8 @@ export interface PromptScenario {
     toggles?: Record<string, string>
     jailbreakToggle?: boolean
     chainOfThought?: boolean
+    /** Model preset token budget; omitted means neither side trims history. */
+    context?: { maxContext: number; maxResponse: number }
 }
 
 /** The prompt PocketRisu's sendChat would hand to the request layer. */

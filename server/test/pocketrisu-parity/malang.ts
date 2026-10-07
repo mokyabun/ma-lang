@@ -14,7 +14,7 @@ import { appConfig } from '../support/fixtures'
 
 const encoder = new TextEncoder()
 
-// Mirrors the request oracle: neither side may trim history.
+// Mirrors the request oracle: no trimming unless the scenario sets a budget.
 const UNLIMITED_CONTEXT = 10_000_000
 
 function testConfig(directory: string) {
@@ -42,7 +42,10 @@ export async function compileWithMalang(
             modelId: 'gemini-3-flash-preview',
             projectId: '',
             location: 'global',
-            defaults: { maxContextTokens: UNLIMITED_CONTEXT },
+            defaults: {
+                maxContextTokens: scenario.context?.maxContext ?? UNLIMITED_CONTEXT,
+                maxOutputTokens: scenario.context?.maxResponse,
+            },
             providerOptions: {},
         })
 

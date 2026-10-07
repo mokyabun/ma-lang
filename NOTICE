@@ -30,6 +30,8 @@ upstream functions it ports at the top of the file:
                                                  (convertCharbook, loadLoreBookV3Prompt), parser,
                                                  regex scripts (processScriptFull regex stage)
   server/src/services/prompt/template-engine.ts  the calcString RPN engine
+  server/src/services/tokenizer/                 tokenizer.ts (encode, ChatTokenizer) and the
+                                                 model list's tokenizer assignments
   web/src/lib/pocketrisu/                        chat markup stage of parser.svelte.ts
                                                  (ParseMarkdown, trimMarkdown) and inlays
                                                  (resolveInlayPlaceholders, processInlayQueue)
@@ -44,6 +46,11 @@ RisuAI/PocketRisu formats and behavior: Character Card v2/v3, CHARX, .risum modu
 .risupreset and RPack prompt presets, PocketRisu character packages and model profiles,
 HypaMemory V3 memory selection, regex script ordering, the Lua runtime API, and the
 PocketRisu Gemini request body.
+
+Tokenizer vocabularies. server/assets/tokenizers/ holds the tokenizer files RisuAI
+ships in public/token/, gzip-compressed and otherwise unchanged. They belong to their respective
+model publishers; SOURCES.md there lists each file's origin and checksum, and the upstream license
+or source notes RisuAI distributes with them are copied alongside.
 
 The test oracle in scripts/pocketrisu-oracle/ runs a separate PocketRisu checkout (extra/PocketRisu
 or POCKETRISU_ROOT) to produce expected results. It ships only small stubs that stand in for

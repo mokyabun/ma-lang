@@ -22,6 +22,7 @@ import { providerFor } from '@/services/providers'
 import { readPocketRisuProfileBinding } from '@/services/providers/pocketrisu-profile'
 import type { ProviderUsage } from '@/services/providers/types'
 import type { RuntimeProviderConfig } from '@/services/providers/types'
+import { chatTokenizerFor } from '@/services/tokenizer'
 
 import type { PersonaService } from '../personas'
 import type { ProviderService } from '../providers'
@@ -64,14 +65,17 @@ export class GenerationService {
         const context = this.context(conversationId)
         const provider = this.providers.configForConversation(conversationId)
         const parameters = generationParameters(provider, context.preset.parameters)
+        const tokenizer = await chatTokenizerFor(provider)
         const longTermMemory = this.memory.recall(
             conversationId,
             context.messages,
             parameters.maxContextTokens,
+            tokenizer,
         )
         return compilePrompt({
             ...context,
             parameters,
+            tokenizer,
             longTermMemory,
             ...providerPromptOptions(provider),
         })
@@ -115,6 +119,7 @@ export class GenerationService {
         const clientInstanceId = request.clientInstanceId ?? crypto.randomUUID()
         const luaScriptSnapshot = this.lua.snapshotScripts(conversationId)
         const parameters = generationParameters(providerConfig, context.preset.parameters)
+        const tokenizer = await chatTokenizerFor(providerConfig)
         const generationId = crypto.randomUUID()
         this.store.generation.create({
             id: generationId,
@@ -182,18 +187,21 @@ export class GenerationService {
                 ...context,
                 messages: compileMessages,
                 parameters,
+                tokenizer,
                 ...providerPromptOptions(providerConfig),
             })
             const longTermMemory = await this.memory.prepare(
                 conversationId,
                 compileMessages,
                 parameters.maxContextTokens,
+                tokenizer,
                 preliminary.trimmedMessageIds,
             )
             preview = await compilePrompt({
                 ...context,
                 messages: compileMessages,
                 parameters,
+                tokenizer,
                 longTermMemory,
                 ...providerPromptOptions(providerConfig),
             })
@@ -201,6 +209,7 @@ export class GenerationService {
                 context,
                 compileMessages,
                 longTermMemory.content,
+                tokenizer,
             )
             const editedRequest = await this.lua.executeEvent({
                 conversationId,

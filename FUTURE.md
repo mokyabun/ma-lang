@@ -18,17 +18,19 @@
 
 ### 2. 실제 토크나이저 포팅
 
-- [ ] PocketRisu 토크나이저 모듈(모델별 토크나이저 선택 로직 포함, 원본 위치 확인 필요)을 서버로 포팅한다.
-      현재 `estimateTokens`(`server/src/services/prompt/lorebook.ts`)는 `글자 수 / 3` 추정치라
-      한국어에서 오차가 크다.
-- [ ] 이 추정치를 쓰는 곳을 모두 교체한다.
-    - 프롬프트 컴파일러의 채팅 기록 자르기(`services/prompt/compiler.ts`)
-    - 로어북 토큰 예산(`services/prompt/lorebook.ts`, `pocketrisu/lorebook.ts`)
-    - HypaMemory V3 요약 시점과 메모리 예산(`services/memory/hypa-v3.ts`)
-    - 프롬프트 미리보기의 `estimatedInputTokens`
-- [ ] 모델 프리셋/프로바이더 설정에서 토크나이저를 고를 수 있게 하거나, PocketRisu처럼 모델 ID로 자동 선택한다.
-- [ ] 토크나이저 데이터 파일을 서버 번들/Docker 이미지에 포함한다.
-- [ ] parity 시나리오에 한국어 장문 대화(기록 자르기와 로어북 예산이 동작하는 길이)를 추가한다.
+- [x] RisuAI/PocketRisu `tokenizer.ts`를 `server/src/services/tokenizer/`로 포팅한다.
+      어휘 파일은 RisuAI `public/token/`에서 gzip으로 `server/assets/tokenizers/`에 복사했고(`SOURCES.md`),
+      RisuAI에만 있는 `deepseek-v4`/`glm4`/`glm5`도 포함한다.
+      Gemma는 RisuAI처럼 `llama3.json`을 쓰며, `@huggingface/transformers` 없이 같은 토큰 ID가 나온다.
+- [x] `글자 수 / 3` 추정치를 모두 교체한다(컴파일러, 두 로어북, HypaMemory V3, 미리보기).
+- [x] 컴파일러의 토큰 계산을 `sendChat`대로 포팅한다: 템플릿 카드별 1차 계산, 메시지당 추가 토큰(GPT 5, 그 외 3과 이름),
+      `[Start a new chat]` 미계산, 재확인 단계의 `maxContext` 비교.
+- [x] 토크나이저 선택: 모델 프리셋 `tokenizer` → PocketRisu 프로필 `recommendedTokenizer` → 모델 목록 기본값.
+      PocketRisu는 `tokenizerOverride`를 UI에만 두고 계산에는 쓰지 않는데, Malang은 주석에 적힌 의도대로 적용한다.
+- [x] 어휘 파일을 서버 번들과 Docker 이미지에 포함한다(`@dqbd/tiktoken`은 wasm 경로 때문에 external).
+- [x] parity 시나리오에 한국어 기록 자르기와 로어북 토큰 예산을 추가한다(시나리오 `context` 예산).
+- [ ] Google `countTokens` API로 세는 PocketRisu `googleClaudeTokenizing` 옵션은 포팅하지 않았다.
+- [ ] 로컬 GGUF(`LLMTokenizer.Local`)와 플러그인 커스텀 토크나이저는 해당 기능이 없어 cl100k로 센다.
 
 ### 3. 정규식 엔진을 PocketRisu 구현 하나로 통일
 

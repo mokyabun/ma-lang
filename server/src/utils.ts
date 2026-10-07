@@ -1,3 +1,5 @@
+import { isAbsolute, join } from 'node:path'
+
 import { zValidator } from '@hono/zod-validator'
 import type { Context } from 'hono'
 import type { ZodType } from 'zod'
@@ -93,4 +95,10 @@ export function binaryResponse(
     }
 
     return new Response(bytes, { headers })
+}
+
+/** Resolves a `with { type: 'file' }` import, which bundled builds emit relative to the bundle. */
+export function bundledFilePath(path: string): string {
+    if (path.startsWith('$bunfs/') || isAbsolute(path)) return path
+    return join(import.meta.dir, path)
 }

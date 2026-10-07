@@ -18,6 +18,7 @@ export function selectLoreEntries(
     entries: LoreEntry[],
     messages: Message[],
     settings: LoreSettings,
+    countTokens: (text: string) => number,
 ): { entries: LoreEntry[]; warnings: string[] } {
     const warnings: string[] = []
     const depth = Math.max(1, settings.scanDepth || 5)
@@ -61,7 +62,7 @@ export function selectLoreEntries(
     for (const entry of [...selected.values()].sort(
         (a, b) => b.priority - a.priority || a.insertionOrder - b.insertionOrder,
     )) {
-        const cost = estimateTokens(entry.content)
+        const cost = countTokens(entry.content)
         if (used + cost > budget) continue
         used += cost
         result.push(entry)
@@ -215,8 +216,4 @@ function splitDecoratorKeys(value: string): string[] {
         .split(/\s*,\s*|\s*::\s*/)
         .map((item) => item.trim())
         .filter(Boolean)
-}
-
-export function estimateTokens(value: string): number {
-    return Math.max(1, Math.ceil(Array.from(value).length / 3))
 }

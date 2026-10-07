@@ -7,6 +7,7 @@ import type {
     PocketRisuProfileBinding,
     ProviderConfig,
     ProviderKind,
+    TokenizerId,
 } from '@malang/shared'
 import { useState } from 'react'
 
@@ -98,6 +99,7 @@ export function usePresetEditor({ preset, apiKeys, onSaved }: PresetEditorProps)
     const [options, setOptions] = useState(
         JSON.stringify(runtimeProviderOptions(preset?.config.providerOptions), null, 2),
     )
+    const [tokenizer, setTokenizer] = useState<TokenizerId | ''>(preset?.config.tokenizer ?? '')
     const [notice, setNotice] = useState<Notice>(null)
     const meta = PROVIDERS.find((item) => item.id === provider) ?? initialMeta
     const keys = apiKeys.filter((item) => item.provider === provider)
@@ -177,6 +179,7 @@ export function usePresetEditor({ preset, apiKeys, onSaved }: PresetEditorProps)
             baseUrl: baseUrl || undefined,
             defaults,
             providerOptions,
+            tokenizer: tokenizer || undefined,
         }
         let config: ProviderConfig
         if (provider === 'vertex') config = { ...common, provider, projectId, location }
@@ -309,6 +312,8 @@ export function usePresetEditor({ preset, apiKeys, onSaved }: PresetEditorProps)
         setProfileValues,
         options,
         setOptions,
+        tokenizer,
+        setTokenizer,
         notice,
         setNotice,
         meta,

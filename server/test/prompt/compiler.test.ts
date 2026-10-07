@@ -6,6 +6,8 @@ import {
     mergeGenerationParameters,
 } from '@/services/prompt/compiler'
 
+import { testTokenizer } from '../support/tokenizer'
+
 describe('generation parameter merging', () => {
     test('treats RisuAI -1000 sentinels as unset', async () => {
         const parameters = mergeGenerationParameters(
@@ -130,6 +132,7 @@ describe('server-side Risu CBS compilation', () => {
                 globalVariables: {},
             },
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
         } as unknown as Parameters<typeof compilePrompt>[0]
 
         const result = await compilePrompt(input)
@@ -211,6 +214,7 @@ describe('PocketRisu module custom toggles', () => {
                 },
             },
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
         } as unknown as Parameters<typeof compilePrompt>[0]
     }
 
@@ -275,6 +279,7 @@ describe('RisuAI-compatible jailbreak / chain-of-thought toggles', () => {
             },
             settings: { userName: 'Mina', globalVariables: {} },
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
         } as unknown as Parameters<typeof compilePrompt>[0]
     }
 
@@ -336,6 +341,7 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
             },
             settings: { userName: 'Mina', globalVariables: {} },
             parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
         } as unknown as Parameters<typeof compilePrompt>[0]
     }
 

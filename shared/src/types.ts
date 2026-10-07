@@ -7,6 +7,7 @@ export type ApiErrorCode = z.infer<typeof schemas.ApiErrorCodeSchema>
 export type ProviderConfig = z.infer<typeof schemas.ProviderConfigSchema>
 export type ProviderKind = z.infer<typeof schemas.ProviderKindSchema>
 export type ProviderApiFormat = z.infer<typeof schemas.ProviderApiFormatSchema>
+export type TokenizerId = z.infer<typeof schemas.TokenizerIdSchema>
 export type ProviderSettingsInput = z.infer<typeof schemas.ProviderSettingsInputSchema>
 export type ProviderSettings = z.infer<typeof schemas.ProviderSettingsSchema>
 export type ModelApiKey = z.infer<typeof schemas.ModelApiKeySchema>

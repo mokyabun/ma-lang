@@ -28,8 +28,7 @@ import type {
 
 const encoder = new TextEncoder()
 
-// Large enough that neither side trims history; token counting differs by
-// design (PocketRisu uses real tokenizers), so trimming is out of scope.
+// Large enough that neither side trims history unless a scenario sets a budget.
 const UNLIMITED_CONTEXT = 10_000_000
 
 // An API-key profile, so building the preview request needs no OAuth exchange.
@@ -61,8 +60,11 @@ async function loadScenario(scenario: PromptScenario) {
             id: GEMINI_PRESET_ID,
             name: 'Oracle Gemini',
             profileSnapshot: resolveSnapshot(loadBundledRegistry(), GEMINI_PROFILE_ID),
-            userValues: { apiKey: 'pocketrisu-oracle' },
-            maxContext: UNLIMITED_CONTEXT,
+            userValues: {
+                apiKey: 'pocketrisu-oracle',
+                ...(scenario.context ? { maxOutputTokens: scenario.context.maxResponse } : {}),
+            },
+            maxContext: scenario.context?.maxContext ?? UNLIMITED_CONTEXT,
             createdAt: 0,
             updatedAt: 0,
         },

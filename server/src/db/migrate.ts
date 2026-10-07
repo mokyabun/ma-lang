@@ -1,6 +1,7 @@
 import type { Database } from 'bun:sqlite'
 import { readFileSync } from 'node:fs'
-import { isAbsolute, join } from 'node:path'
+
+import { bundledFilePath } from '@/utils'
 
 import InitialMigration from './migrations/0000_initial.sql' with { type: 'file' }
 import journal from './migrations/meta/_journal.json'
@@ -34,7 +35,7 @@ export function runMigrations(sqlite: Database): void {
     for (const migration of migrations) {
         if (applied.has(migration.version)) continue
 
-        const statements = readFileSync(resolveMigrationPath(migration.path), 'utf8')
+        const statements = readFileSync(bundledFilePath(migration.path), 'utf8')
         sqlite.transaction(() => {
             sqlite.exec(statements)
             sqlite
@@ -42,9 +43,4 @@ export function runMigrations(sqlite: Database): void {
                 .run(migration.version, Date.now())
         })()
     }
-}
-
-function resolveMigrationPath(path: string) {
-    if (path.startsWith('$bunfs/') || isAbsolute(path)) return path
-    return join(import.meta.dir, path)
 }

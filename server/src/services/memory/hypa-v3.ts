@@ -7,12 +7,13 @@ import type {
 import type { Logger } from 'pino'
 
 import type { MemorySummaryRecord, SparseVector, Store } from '@/db'
-import { estimateTokens } from '@/services/prompt/lorebook'
 import { providerFor } from '@/services/providers'
+import type { ChatTokenizer } from '@/services/tokenizer'
 
 import type { ProviderService } from '../app/providers'
 
 const MEMORY_TAG = 'Past Events Summary'
+const SUMMARY_SEPARATOR = '\n\n'
 const DEFAULT_SUMMARIZATION_PROMPT =
     'Summarize the ongoing roleplay or conversation. Preserve concrete events, decisions, relationships, promises, names, locations, possessions, and unresolved goals. Remove repetition and commentary. Write a compact factual summary.'
 
@@ -89,10 +90,11 @@ export class HypaMemoryV3Service {
         conversationId: string,
         messages: Message[],
         maxContextTokens: number,
+        tokenizer: ChatTokenizer,
     ): HypaMemoryPrompt {
         const settings = this.store.memorySettings.get(conversationId)
         if (!settings.enabled) return emptyPrompt()
-        return this.select(conversationId, messages, maxContextTokens, settings, false)
+        return this.select(conversationId, messages, maxContextTokens, settings, tokenizer, false)
     }
 
     /** Summarize overflowing history, persist it, then select memories for this generation. */
@@ -100,6 +102,7 @@ export class HypaMemoryV3Service {
         conversationId: string,
         messages: Message[],
         maxContextTokens: number,
+        tokenizer: ChatTokenizer,
         forceSummarizeMessageIds: string[] = [],
     ): Promise<HypaMemoryPrompt> {
         const settings = this.store.memorySettings.get(conversationId)
@@ -121,10 +124,9 @@ export class HypaMemoryV3Service {
         const targetTokens = Math.floor(
             maxContextTokens * (1 - settings.memoryTokensRatio - settings.extraSummarizationRatio),
         )
-        let activeTokens = candidates.reduce(
-            (sum, message) => sum + estimateTokens(message.content) + 4,
-            0,
-        )
+        const messageTokens = (batch: Message[]) =>
+            batch.reduce((sum, message) => sum + tokenizer.tokenizeChat(message), 0)
+        let activeTokens = messageTokens(candidates)
         const forcedIds = new Set(forceSummarizeMessageIds)
 
         while (
@@ -140,10 +142,7 @@ export class HypaMemoryV3Service {
                 sourceMessageIds: batch.map((message) => message.id),
                 vector: featureVector(summaryText),
             })
-            activeTokens -= batch.reduce(
-                (sum, message) => sum + estimateTokens(message.content) + 4,
-                0,
-            )
+            activeTokens -= messageTokens(batch)
             for (const message of batch) forcedIds.delete(message.id)
             this.log.info(
                 {
@@ -156,7 +155,15 @@ export class HypaMemoryV3Service {
         }
 
         summaries = this.store.memorySummary.listRecords(conversationId)
-        return this.select(conversationId, messages, maxContextTokens, settings, true, summaries)
+        return this.select(
+            conversationId,
+            messages,
+            maxContextTokens,
+            settings,
+            tokenizer,
+            true,
+            summaries,
+        )
     }
 
     private reconcileOrphans(
@@ -178,6 +185,7 @@ export class HypaMemoryV3Service {
         messages: Message[],
         maxContextTokens: number,
         settings: LongTermMemorySettings,
+        tokenizer: ChatTokenizer,
         persistMetrics: boolean,
         summaryRecords = this.store.memorySummary.listRecords(conversationId),
     ): HypaMemoryPrompt {
@@ -192,6 +200,7 @@ export class HypaMemoryV3Service {
             query,
             Math.max(0, Math.floor(maxContextTokens * settings.memoryTokensRatio) - 12),
             settings,
+            tokenizer,
         )
         if (persistMetrics) this.store.memoryMetrics.set(conversationId, selection.metrics)
         const summarizedMessageIds = [
@@ -200,7 +209,7 @@ export class HypaMemoryV3Service {
         return {
             enabled: true,
             content: selection.summaries.length
-                ? `<${MEMORY_TAG}>\n${selection.summaries.map((item) => item.text).join('\n\n')}\n</${MEMORY_TAG}>`
+                ? `<${MEMORY_TAG}>\n${selection.summaries.map((item) => item.text).join(SUMMARY_SEPARATOR)}\n</${MEMORY_TAG}>`
                 : '',
             summarizedMessageIds,
             selectedSummaryIds: selection.summaries.map((summary) => summary.id),
@@ -282,12 +291,14 @@ export function selectMemorySummaries(
     settings: Pick<LongTermMemorySettings, 'recentMemoryRatio' | 'similarMemoryRatio'> & {
         summaryChunkSeparator?: string
     },
+    tokenizer: ChatTokenizer,
 ): { summaries: MemorySummaryRecord[]; metrics: LongTermMemoryMetrics } {
     const selected: MemorySummaryRecord[] = []
     const selectedIds = new Set<string>()
     let available = tokenBudget
     const take = (summary: MemorySummaryRecord, budget: number) => {
-        const tokens = estimateTokens(summary.text) + 2
+        // PocketRisu prices each summary as its own system turn, separator included.
+        const tokens = tokenizer.tokenizeChat({ content: summary.text + SUMMARY_SEPARATOR })
         if (tokens > budget || selectedIds.has(summary.id)) return 0
         selected.push(summary)
         selectedIds.add(summary.id)
