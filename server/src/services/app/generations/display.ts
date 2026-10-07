@@ -4,8 +4,7 @@ import type { Store } from '@/db'
 import type { LuaRuntime } from '@/services/lua'
 import { renderDisplayText } from '@/services/prompt/display-text'
 import { loadRisuChat } from '@/services/prompt/pocketrisu/chat'
-import { RegexSandbox } from '@/services/prompt/pocketrisu/scripts'
-import { collectRegexScripts } from '@/services/prompt/regex-runtime'
+import { collectRegexScripts, RegexSandbox } from '@/services/prompt/pocketrisu/scripts'
 
 import type { GenerationContext } from './context'
 

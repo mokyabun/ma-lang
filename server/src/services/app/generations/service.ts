@@ -18,7 +18,6 @@ import { normalizeError } from '@/errors/normalize'
 import type { LuaRuntime } from '@/services/lua'
 import type { HypaMemoryV3Service } from '@/services/memory'
 import { compilePrompt, mergeGenerationParameters } from '@/services/prompt/compiler'
-import { collectRegexScripts, processRegexText } from '@/services/prompt/regex-runtime'
 import { providerFor } from '@/services/providers'
 import { readPocketRisuProfileBinding } from '@/services/providers/pocketrisu-profile'
 import type { ProviderUsage } from '@/services/providers/types'
@@ -26,7 +25,7 @@ import type { RuntimeProviderConfig } from '@/services/providers/types'
 
 import type { PersonaService } from '../personas'
 import type { ProviderService } from '../providers'
-import { loadGenerationContext, normalizeCompiledRole, regexTemplateContext } from './context'
+import { loadGenerationContext, normalizeCompiledRole, processEditScripts } from './context'
 import { renderDisplayMessages } from './display'
 import {
     applyPostMode,
@@ -130,8 +129,6 @@ export class GenerationService {
             request.mode === 'regenerate' ? this.store.message.lastAssistant(conversationId) : null
         let addedUserMessage: ReturnType<Store['message']['create']> | null = null
         let compileMessages = context.messages
-        let scripts = collectRegexScripts(context.preset, context.character, context.modules)
-        let templateContext = regexTemplateContext(context)
         let preview: PromptPreview
         let chainContext: ChainExecutionContext | null = null
         let stoppedBeforeProvider = false
@@ -155,18 +152,13 @@ export class GenerationService {
                     scriptSnapshot: luaScriptSnapshot,
                 })
                 context = this.context(conversationId)
-                scripts = collectRegexScripts(context.preset, context.character, context.modules)
-                templateContext = regexTemplateContext(context)
-                const processedInput = await processRegexText({
-                    text: String(editedInput.data ?? ''),
-                    phase: 'editinput',
-                    scripts,
-                    templateContext,
-                })
                 addedUserMessage = this.store.message.create(
                     conversationId,
                     'user',
-                    processedInput.text,
+                    await processEditScripts(context, {
+                        data: String(editedInput.data ?? ''),
+                        mode: 'editinput',
+                    }),
                     'complete',
                 )
             } else if (request.mode === 'regenerate' && !targetMessage) {
@@ -183,8 +175,6 @@ export class GenerationService {
             })
             stoppedBeforeProvider = started.stopSending
             context = this.context(conversationId)
-            scripts = collectRegexScripts(context.preset, context.character, context.modules)
-            templateContext = regexTemplateContext(context)
             compileMessages = targetMessage
                 ? context.messages.filter((message) => message.id !== targetMessage.id)
                 : context.messages
@@ -371,14 +361,11 @@ export class GenerationService {
                         clientInstanceId,
                         scriptSnapshot: luaScriptSnapshot,
                     })
-                    processedContent = (
-                        await processRegexText({
-                            text: String(luaOutput.data ?? ''),
-                            phase: 'editoutput',
-                            scripts,
-                            templateContext,
-                        })
-                    ).text
+                    processedContent = await processEditScripts(this.context(conversationId), {
+                        data: String(luaOutput.data ?? ''),
+                        mode: 'editoutput',
+                        messageId,
+                    })
                     let completed = this.store.message.update(messageId, {
                         content: processedContent,
                         status: 'complete',

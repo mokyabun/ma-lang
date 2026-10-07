@@ -8,8 +8,9 @@ import type {
 
 import type { Store } from '@/db'
 import { ValidationError } from '@/errors/app-error'
+import { RisuParser } from '@/services/prompt/pocketrisu/parser'
+import { processScripts, RegexSandbox } from '@/services/prompt/pocketrisu/scripts'
 import { exportPromptPreset, importPromptPreset } from '@/services/prompt/preset-codec'
-import { processRegexText } from '@/services/prompt/regex-runtime'
 import { normalizeRegexScripts, toRisuRegexScripts } from '@/services/prompt/risu'
 
 export class PromptService {
@@ -102,11 +103,31 @@ export class PromptService {
         )
     }
 
-    previewRegex(input: { text: string; phase: RegexPhase; scripts: RegexScript[] }) {
-        return processRegexText({
-            ...input,
-            templateContext: { values: {}, variables: {}, globalVariables: {}, toggles: {} },
-        })
+    async previewRegex(input: { text: string; phase: RegexPhase; scripts: RegexScript[] }) {
+        const warnings: string[] = []
+        const parser = new RisuParser(
+            { values: {}, globalVariables: {}, toggles: {} },
+            {},
+            {},
+            [],
+            '',
+            warnings,
+        )
+        const sandbox = new RegexSandbox()
+        try {
+            const text = await processScripts({
+                scripts: input.scripts,
+                data: input.text,
+                mode: input.phase,
+                chatId: -1,
+                parse: (value) => parser.parse(value),
+                sandbox,
+                warnings,
+            })
+            return { text, warnings: [...new Set(warnings)] }
+        } finally {
+            sandbox.close()
+        }
     }
 }
 

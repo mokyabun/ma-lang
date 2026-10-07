@@ -40,6 +40,17 @@ export class RisuParser {
         message.content = data
     }
 
+    /** `@@repeat_back`'s source: the previous message with the same role, else the greeting. */
+    repeatBackSource(chatId: number): string | undefined {
+        const current = this.chat[chatId]
+        if (!current) return undefined
+        for (let pointer = chatId - 1; pointer >= 0; pointer--) {
+            const turn = this.chat[pointer]!
+            if (turn.role === current.role) return turn.data
+        }
+        return this.greeting
+    }
+
     getChatVar(key: string): string {
         return this.variables[key] ?? this.variableDefaults[key] ?? 'null'
     }

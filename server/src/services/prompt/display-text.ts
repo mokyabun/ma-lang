@@ -24,6 +24,7 @@ export async function renderDisplayText(input: {
         mode: 'editdisplay',
         chatId,
         parse: (text) => parser.parse(text, { chatId }),
+        parser,
         sandbox: input.sandbox,
         warnings: input.warnings,
     })

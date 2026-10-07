@@ -1,5 +1,10 @@
 import type { Store } from '@/db'
-import type { TemplateContext } from '@/services/prompt/template-engine'
+import { loadRisuChat } from '@/services/prompt/pocketrisu/chat'
+import {
+    collectRegexScripts,
+    processScripts,
+    RegexSandbox,
+} from '@/services/prompt/pocketrisu/scripts'
 
 import { effectivePromptPresetId } from '../conversations'
 import { conversationModuleStates } from '../modules'
@@ -53,60 +58,44 @@ export function loadGenerationContext(
 
 export type GenerationContext = ReturnType<typeof loadGenerationContext>
 
-export function regexTemplateContext(context: GenerationContext): TemplateContext {
-    const toggleValues = Object.fromEntries(
-        [...context.preset.toggles, ...context.modules.flatMap((module) => module.toggles)]
-            .filter((toggle) => ['boolean', 'select', 'text', 'textarea'].includes(toggle.type))
-            .map((toggle) => [
-                toggle.key,
-                context.settings.promptToggleValues[toggle.key] ?? toggle.defaultValue,
-            ]),
-    )
-    const last = context.messages.at(-1)?.content || ''
-    return {
-        values: {
-            user: context.persona.name,
-            char: context.character.name,
-            bot: context.character.name,
-            persona: context.persona.description,
-            description: context.character.description,
-            personality: context.character.personality,
-            scenario: context.character.scenario,
-            exampledialogue: context.character.exampleMessage,
-            examplemessage: context.character.exampleMessage,
-            firstmessage: context.character.firstMessage,
-            authornote: context.conversation.authorNote,
-            globalnote: context.character.postHistoryInstructions,
-            lastmessage: last,
-            lastusermessage:
-                context.messages.findLast((message) => message.role === 'user')?.content || '',
-            lastcharmessage:
-                context.messages.findLast((message) => message.role === 'assistant')?.content || '',
-            lastmessageid: String(context.messages.length - 1),
-        },
-        variables: context.conversation.variables,
-        globalVariables: {
-            ...context.character.defaultVariables,
-            ...context.preset.defaultVariables,
-            ...context.settings.globalVariables,
-            ...Object.fromEntries(
-                Object.entries(toggleValues).map(([key, value]) => [`toggle_${key}`, value]),
-            ),
-        },
-        toggles: Object.fromEntries(
-            Object.entries(toggleValues).map(([key, value]) => [
-                key,
-                value === '1' || value.toLocaleLowerCase() === 'true',
-            ]),
-        ),
-        messages: context.messages.map((message) => ({
-            role: message.role,
-            content: message.content,
-            createdAt: message.createdAt,
-        })),
-        modelId: context.modelId,
-        moduleNamespaces: context.modules.map((module) => module.namespace).filter(Boolean),
+/** processScriptFull for the editinput/editoutput phases against the conversation's live chat. */
+export async function processEditScripts(
+    context: GenerationContext,
+    input: {
+        data: string
+        mode: 'editinput' | 'editoutput'
+        /** The stored message being edited; PocketRisu's chatID, or -1 when absent. */
+        messageId?: string
+    },
+): Promise<string> {
+    const warnings: string[] = []
+    const { parser, chatMessages } = loadRisuChat({
+        character: context.character,
+        conversation: context.conversation,
+        messages: context.messages,
+        preset: context.preset,
+        settings: context.settings,
+        persona: context.persona,
+        modules: context.modules,
         assets: context.assets,
+        modelId: context.modelId,
+        warnings,
+    })
+    const chatId = chatMessages.findIndex((message) => message.id === input.messageId)
+    const sandbox = new RegexSandbox()
+    try {
+        return await processScripts({
+            scripts: collectRegexScripts(context.preset, context.character, context.modules),
+            data: input.data,
+            mode: input.mode,
+            chatId,
+            parse: (text) => parser.parse(text, { chatId }),
+            parser,
+            sandbox,
+            warnings,
+        })
+    } finally {
+        sandbox.close()
     }
 }
 

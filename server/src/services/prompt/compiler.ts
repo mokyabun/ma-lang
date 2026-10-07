@@ -18,9 +18,8 @@ import { estimateTokens } from './lorebook'
 import { loadRisuChat } from './pocketrisu/chat'
 import { exampleMessage } from './pocketrisu/example-messages'
 import { loadLoreBookV3Prompt, toRisuLore } from './pocketrisu/lorebook'
-import { processScripts, RegexSandbox } from './pocketrisu/scripts'
+import { collectRegexScripts, processScripts, RegexSandbox } from './pocketrisu/scripts'
 import type { RisuChat } from './pocketrisu/types'
-import { collectRegexScripts } from './regex-runtime'
 import type { TemplateContext } from './template-engine'
 
 // Port of PocketRisu's sendChat prompt-template path, quirks included. Comments name the
@@ -415,6 +414,7 @@ export async function compilePrompt(input: {
                 mode: 'editprocess',
                 chatId: index,
                 parse: (text) => parser.parse(text, { chatId: index }),
+                parser,
                 sandbox,
                 warnings,
             })

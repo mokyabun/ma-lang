@@ -2,6 +2,8 @@ import { Worker } from 'node:worker_threads'
 
 import type { RegexScript } from '@malang/shared'
 
+import type { RisuParser } from './parser'
+
 // Port of processScriptFull's regex stage. Regexes run in a worker so a catastrophic pattern
 // cannot stall the server.
 
@@ -29,6 +31,7 @@ interface SandboxRequest {
     out: string
     actions: string[]
     chatId: number
+    repeatBackSource?: string
 }
 
 interface SandboxResponse {
@@ -96,12 +99,27 @@ parentPort.on('message', (request) => {
     parentPort.postMessage({ id: request.id, error: String(error && error.message || error) })
   }
 })
-function execute({ data, pattern, flag, out, actions, chatId }) {
+function execute({ data, pattern, flag, out, actions, chatId, repeatBackSource }) {
   const reg = new RegExp(pattern, flag)
   const moving = out.startsWith('@@move_top') || out.startsWith('@@move_bottom') ||
     actions.includes('move_top') || actions.includes('move_bottom')
   if (out.startsWith('@@') || actions.length > 0) {
-    if (!reg.test(data)) return { data, parse: false }
+    if (!reg.test(data)) {
+      if ((out.startsWith('@@repeat_back') || actions.includes('repeat_back')) && chatId !== -1 &&
+        repeatBackSource !== undefined) {
+        const position = out.split(' ', 2)[1]
+        // A source without a match throws, which skips the script as PocketRisu does.
+        const matched = repeatBackSource.match(reg)
+        if (!position) data = data + matched[0]
+        else if (matched[0]) {
+          if (position === 'end') data = data + matched[0]
+          else if (position === 'start') data = matched[0] + data
+          else if (position === 'end_nl') data = data + '\n' + matched[0]
+          else if (position === 'start_nl') data = matched[0] + '\n' + data
+        }
+      }
+      return { data, parse: false }
+    }
     if (out.startsWith('@@emo ')) return { data, parse: false }
     if ((out.startsWith('@@inject') || actions.includes('inject')) && chatId !== -1) {
       return { data: data.replace(reg, ''), parse: false }
@@ -190,6 +208,19 @@ export class RegexSandbox {
     }
 }
 
+/** processScriptFull's script order: preset, then character, then module regexes. */
+export function collectRegexScripts(
+    preset: { regexScripts: RegexScript[] },
+    character: { regexScripts: RegexScript[] },
+    modules: Array<{ regexScripts: RegexScript[] }>,
+): RegexScript[] {
+    return [
+        ...preset.regexScripts,
+        ...character.regexScripts,
+        ...modules.flatMap((module) => module.regexScripts),
+    ].slice(0, 2_000)
+}
+
 /** Parses the input, then re-parses after every script that changed it (PocketRisu order). */
 export async function processScripts(input: {
     scripts: RegexScript[]
@@ -197,9 +228,12 @@ export async function processScripts(input: {
     mode: ScriptMode
     chatId: number
     parse: (text: string) => string
+    /** The bound chat, for `@@repeat_back`. */
+    parser?: RisuParser
     sandbox: RegexSandbox
     warnings: string[]
 }): Promise<string> {
+    const repeatBackSource = input.parser?.repeatBackSource(input.chatId)
     let data = input.parse(input.data)
     for (const { script, actions } of parseScripts(input.scripts)) {
         if (script.in === '' || script.type !== input.mode) continue
@@ -231,6 +265,7 @@ export async function processScripts(input: {
             out,
             actions,
             chatId: input.chatId,
+            repeatBackSource,
         })
         if (result.error !== undefined) {
             input.warnings.push(`Regex ${script.in} was skipped: ${result.error}`)
