@@ -42,7 +42,7 @@ describe('database baseline', () => {
                         'SELECT version FROM schema_migrations ORDER BY version',
                     )
                     .all(),
-            ).toEqual([{ version: 1 }])
+            ).toEqual(journal.entries.map((entry) => ({ version: entry.idx + 1 })))
             expect(columns('app_settings')).not.toContain('persona')
             expect(columns('conversations')).not.toContain('toggles_json')
             expect(columns('model_chain_presets')).toContain('config_json')

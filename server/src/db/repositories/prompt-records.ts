@@ -23,6 +23,7 @@ export function mapPromptPreset(row: typeof promptPresets.$inferSelect): PromptP
         toggles: row.togglesJson,
         regexScripts: row.regexScriptsJson,
         moduleIntegrations: row.moduleIntegrationsJson,
+        bias: row.biasJson,
         promptSettings: row.promptSettingsJson,
         warnings: row.warningsJson,
         createdAt: iso(row.createdAt),

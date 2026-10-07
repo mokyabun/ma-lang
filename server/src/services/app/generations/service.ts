@@ -308,6 +308,10 @@ export class GenerationService {
                         for await (const chunk of adapter.streamChat(runtimeProvider, {
                             messages: injectChainNotes(preview.messages, notes),
                             parameters,
+                            bias: {
+                                entries: preview.bias,
+                                encode: (text) => tokenizer.encode(text),
+                            },
                             signal: abortController.signal,
                             onRequest: (snapshot) => {
                                 try {

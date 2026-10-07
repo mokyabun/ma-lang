@@ -1,4 +1,5 @@
 import type {
+    BiasEntry,
     GenerationParameters,
     LoreEntry,
     LoreEntryInput,
@@ -184,6 +185,7 @@ export const characters = sqliteTable(
             .$type<StringMap>()
             .notNull()
             .default({}),
+        biasJson: text('bias_json', { mode: 'json' }).$type<BiasEntry[]>().notNull().default([]),
         luaCode: text('lua_code'),
         luaEnabled: integer('lua_enabled', { mode: 'boolean' }).notNull().default(false),
         luaLowLevelAccess: integer('lua_low_level_access', { mode: 'boolean' })
@@ -277,6 +279,7 @@ export const promptPresets = sqliteTable('prompt_presets', {
         .$type<string[]>()
         .notNull()
         .default([]),
+    biasJson: text('bias_json', { mode: 'json' }).$type<BiasEntry[]>().notNull().default([]),
     promptSettingsJson: text('prompt_settings_json', { mode: 'json' })
         .$type<PromptSettings>()
         .notNull()

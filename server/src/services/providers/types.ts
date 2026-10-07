@@ -7,6 +7,8 @@ import type {
 
 import { AppError, type AppErrorKind } from '@/errors/app-error'
 
+import type { GenerationBias } from './bias'
+
 export interface ServiceAccountCredentials {
     type: 'service_account'
     project_id: string
@@ -61,6 +63,8 @@ export interface ProviderAdapter {
         request: {
             messages: CompiledMessage[]
             parameters: GenerationParameters
+            /** Only the main chat request carries bias, as in PocketRisu. */
+            bias?: GenerationBias
             signal: AbortSignal
             onRequest?: (snapshot: RequestDebugSnapshot) => void
         },

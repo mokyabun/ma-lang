@@ -1,5 +1,6 @@
 import type {
     AppSettings,
+    BiasEntry,
     CompiledMessage,
     Conversation,
     EffectivePersona,
@@ -547,6 +548,10 @@ export async function compilePrompt(input: {
             if (removed.sourceMessageId) trimmedMessageIds.push(removed.sourceMessageId)
         }
 
+        const bias = preset.bias
+            .concat(character.bias)
+            .map(([text, value]): BiasEntry => [parser.parse(unescapeBiasText(text)), value])
+
         const memories: RisuChat[] = []
         unformated.chats = chats
             .map((chat): RisuChat => {
@@ -727,6 +732,7 @@ export async function compilePrompt(input: {
                 editdisplay: activeRegexIds(preset, character, modules, 'editdisplay'),
             },
             trimmedMessageIds,
+            bias,
             warnings: [...new Set(warnings)],
             persona,
             longTermMemory: input.longTermMemory
@@ -740,6 +746,10 @@ export async function compilePrompt(input: {
     } finally {
         sandbox.close()
     }
+}
+
+function unescapeBiasText(text: string): string {
+    return text.replaceAll('\\n', '\n').replaceAll('\\r', '\r').replaceAll('\\\\', '\\')
 }
 
 function activeRegexIds(

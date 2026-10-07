@@ -9,6 +9,7 @@ export function presetInput(value: PromptPreset): PromptPresetInput {
         toggles: structuredClone(value.toggles),
         regexScripts: structuredClone(value.regexScripts),
         moduleIntegrations: [...value.moduleIntegrations],
+        bias: structuredClone(value.bias),
         promptSettings: { ...value.promptSettings },
     }
 }
@@ -21,6 +22,7 @@ export function blankPreset(): PromptPresetInput {
         toggles: [],
         regexScripts: [],
         moduleIntegrations: [],
+        bias: [],
         promptSettings: {
             assistantPrefill: '',
             postEndInnerFormat: '',

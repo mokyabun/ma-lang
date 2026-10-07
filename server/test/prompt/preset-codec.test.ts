@@ -48,6 +48,10 @@ describe('Risu preset codec', () => {
             },
         ],
         moduleIntegrations: ['test.module'],
+        bias: [
+            ['{{char}}', 20],
+            ['[[42]]', -101],
+        ] as Array<[string, number]>,
         promptSettings: {
             assistantPrefill: 'Aria:',
             postEndInnerFormat: '',
@@ -72,7 +76,19 @@ describe('Risu preset codec', () => {
         expect(decoded.input.toggles?.[0]).toMatchObject({ key: 'style', type: 'select' })
         expect(decoded.input.regexScripts?.[0]).toMatchObject({ pattern: 'Hello' })
         expect(decoded.input.moduleIntegrations).toEqual(['test.module'])
+        expect(decoded.input.bias).toEqual(input.bias)
         expect(decoded.input.promptSettings?.assistantPrefill).toBe('Aria:')
+    })
+
+    test('keeps only [string, number] bias pairs from a Risu preset', async () => {
+        const raw = new TextEncoder().encode(
+            JSON.stringify({
+                name: 'Bias',
+                promptTemplate: [],
+                bias: [['ok', 5], ['bad', '5'], [3, 1], 'nope', ['inf', null]],
+            }),
+        )
+        expect((await importPromptPreset(raw, 'bias.json')).input.bias).toEqual([['ok', 5]])
     })
 
     test('imports and exports RPack-obfuscated .risup values', async () => {

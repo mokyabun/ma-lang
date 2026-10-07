@@ -12,6 +12,7 @@ import { ValidationError } from '@/errors/app-error'
 import {
     normalizePromptSettings,
     normalizeRegexScripts,
+    parseBiasEntries,
     parseModuleIntegrations,
     parsePromptToggles,
     record,
@@ -221,6 +222,7 @@ export async function importPromptPreset(
             toggles: parsePromptToggles(source.customPromptTemplateToggle),
             regexScripts: normalizeRegexScripts(source.regex),
             moduleIntegrations: parseModuleIntegrations(source.moduleIntergration),
+            bias: parseBiasEntries(source.bias),
             // RisuAI stores groupTemplate at the preset's top level.
             promptSettings: normalizePromptSettings({
                 ...record(source.promptSettings),
@@ -263,6 +265,7 @@ export async function exportPromptPreset(
         customPromptTemplateToggle: serializePromptToggles(input.toggles || []),
         regex: toRisuRegexScripts(input.regexScripts || []),
         moduleIntergration: (input.moduleIntegrations || []).join(', '),
+        bias: input.bias || [],
         promptSettings: input.promptSettings,
         // RisuAI stores this at the top level of the preset, not nested in promptSettings.
         groupTemplate: input.promptSettings?.groupTemplate,

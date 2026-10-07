@@ -7,7 +7,7 @@ import {
     LuaScriptInputSchema,
     LuaScriptSchema,
 } from './prompt-modules'
-import { RegexScriptSchema } from './prompts'
+import { BiasEntrySchema, RegexScriptSchema } from './prompts'
 
 export const CharacterAssetSchema = z.object({
     assetId: IdSchema,
@@ -42,6 +42,7 @@ export const CharacterSchema = z.object({
     regexScripts: z.array(RegexScriptSchema).default([]),
     moduleReferences: z.array(z.string().max(200)).default([]),
     defaultVariables: z.record(z.string(), z.string()).default({}),
+    bias: z.array(BiasEntrySchema).default([]),
     luaScript: LuaScriptSchema.nullable().default(null),
     luaRawTriggers: z.array(z.unknown()).max(10_000).default([]),
     loreSettings: LoreSettingsSchema,
@@ -67,6 +68,7 @@ export const CharacterUpdateSchema = CharacterSchema.pick({
     regexScripts: true,
     moduleReferences: true,
     defaultVariables: true,
+    bias: true,
 })
     .partial()
     .extend({ luaScript: LuaScriptInputSchema.nullable().optional() })
@@ -91,5 +93,6 @@ export const CharacterCreateSchema = z.object({
     regexScripts: z.array(RegexScriptSchema).max(2_000).default([]),
     moduleReferences: z.array(z.string().max(200)).max(1_000).default([]),
     defaultVariables: z.record(z.string(), z.string()).default({}),
+    bias: z.array(BiasEntrySchema).max(10_000).default([]),
     luaScript: LuaScriptInputSchema.nullable().default(null),
 })

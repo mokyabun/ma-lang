@@ -4,11 +4,15 @@ import { readFileSync } from 'node:fs'
 import { bundledFilePath } from '@/utils'
 
 import InitialMigration from './migrations/0000_initial.sql' with { type: 'file' }
+import AddBiasMigration from './migrations/0001_add_bias.sql' with { type: 'file' }
+import BackfillBiasMigration from './migrations/0002_backfill_bias.sql' with { type: 'file' }
 import journal from './migrations/meta/_journal.json'
 
 // Bundled builds embed only static imports: register each generated migration here.
 const migrationFiles: Record<string, string> = {
     '0000_initial': InitialMigration,
+    '0001_add_bias': AddBiasMigration,
+    '0002_backfill_bias': BackfillBiasMigration,
 }
 
 const migrations = journal.entries.map((entry) => {

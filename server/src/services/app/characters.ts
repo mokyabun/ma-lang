@@ -22,6 +22,7 @@ import {
     mergeLuaTriggers,
     normalizeLuaTriggers,
     normalizeRegexScripts,
+    parseBiasEntries,
     parseKeyValueVariables,
     record,
     serializeKeyValueVariables,
@@ -386,6 +387,7 @@ export class CharacterService {
                 regexScripts: normalizeRegexScripts(risu.customScripts),
                 moduleReferences: stringArray(risu.modules),
                 defaultVariables: parseKeyValueVariables(risu.defaultVariables),
+                bias: parseBiasEntries(risu.bias),
                 luaScript: lua.luaScript,
                 luaRawTriggers: lua.rawTriggers,
                 loreSettings: {
@@ -447,6 +449,7 @@ export class CharacterService {
                     customScripts: toRisuRegexScripts(character.regexScripts),
                     modules: character.moduleReferences,
                     defaultVariables: serializeKeyValueVariables(character.defaultVariables),
+                    bias: character.bias,
                     triggerscript: mergeLuaTriggers(character.luaRawTriggers, character.luaScript),
                     lowLevelAccess: character.luaScript?.lowLevelAccess === true,
                 },

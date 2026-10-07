@@ -20,6 +20,7 @@ describe('PocketRisu editprocess ordering', () => {
                 lorebook: [],
                 loreSettings: {},
                 regexScripts: [],
+                bias: [],
             },
             conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
             messages: [
@@ -44,6 +45,7 @@ describe('PocketRisu editprocess ordering', () => {
                 defaultVariables: {},
                 parameters: {},
                 regexScripts: [],
+                bias: [],
                 blocks: [
                     {
                         id: 'template',

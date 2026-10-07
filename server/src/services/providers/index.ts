@@ -10,6 +10,7 @@ import { VertexAdapter } from './vertex'
 
 export * from './anthropic'
 export * from './aws'
+export * from './bias'
 export * from './cohere'
 export * from './google'
 export * from './legacy'

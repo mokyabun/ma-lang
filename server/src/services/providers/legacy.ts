@@ -1,5 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises'
 
+import { novelAILogitBiasExp, novelListLogitBias } from './bias'
 import { promptFromMessages } from './openai-compatible'
 import {
     checkedFetch,
@@ -215,6 +216,7 @@ async function* novelAI(
             stop_sequences: request.parameters.stopSequences,
             use_string: true,
             return_full_text: false,
+            logit_bias_exp: request.bias ? novelAILogitBiasExp(request.bias) : [],
             ...objectOption(config, 'parameters'),
         },
     }
@@ -256,6 +258,7 @@ async function* novelList(
         rep_pen: request.parameters.repetitionPenalty,
         top_a: request.parameters.topA,
         model: config.modelId,
+        ...novelListLogitBias(request.bias?.entries ?? []),
         ...objectOption(config, 'parameters'),
     }
     request.onRequest?.({

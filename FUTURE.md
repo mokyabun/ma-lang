@@ -58,11 +58,18 @@
 
 ### 5. Bias (로짓 바이어스)
 
-- [ ] 프롬프트 프리셋의 `bias`를 파싱해 `GenerationParameters`로 옮긴다.
-      `.risupreset` import 시 `bias`는 원본 프리셋에는 남아 있지만 파싱되지 않고, 편집 UI와 프로바이더 요청 어디에도 없다.
-- [ ] PocketRisu처럼 문자열을 모델 토크나이저로 토큰 ID로 바꿔 `logit_bias`를 만든다(2번 토크나이저 작업 이후).
-- [ ] 지원하는 프로바이더(OpenAI 호환 등)에만 보내고, 나머지는 PocketRisu와 같이 무시한다.
-- [ ] 프리셋 편집기에 bias 목록 편집 UI를 추가하고 export 시 되돌려 쓴다.
+- [x] 프리셋 `bias`(PocketRisu `db.bias`)와 캐릭터 `bias`(`extensions.risuai.bias`)를 각각 `bias_json` 컬럼에 저장하고
+      import/export에서 되돌려 쓴다. 기존에 가져온 데이터는 원본에서 채우는 데이터 마이그레이션(`0002_backfill_bias`)으로 옮겼다.
+- [x] `sendChat`대로 프리셋 → 캐릭터 순서로 합치고, `\n`/`\r`/`\\` 이스케이프를 푼 뒤 CBS를 처리한다(컴파일러, 미리보기의 `bias`).
+- [x] 메인 채팅 요청에만 보낸다(`services/providers/bias.ts`). 보조 모델, 모델 체인, HypaMemory, Lua `LLM`은 PocketRisu처럼 보내지 않는다.
+    - OpenAI 호환 chat completions: `[[id]]` 직접 지정, -101 강력 금지어(`strongBan`), 나머지는 문자열의 모든 토큰.
+      Mistral, OpenRouter, NanoGPT, o 시리즈, PocketRisu 모델 프로필 바인딩에는 보내지 않는다(PocketRisu classic 경로의 동작).
+    - NovelAI `logit_bias_exp`(토큰 시퀀스), NovelList `logit_bias`/`logit_bias_values`(원문 문자열).
+- [x] 프리셋 편집기 파라미터 탭(-101~100, `bias.json` 가져오기/내보내기)과 캐릭터 편집기 고급 탭(-100~100)에 편집 UI를 추가한다.
+- [ ] PocketRisu와 다르게 둔 부분: `strongBan` 캐시는 포팅하지 않았다(문자열만 키로 써서 토크나이저가 바뀌어도 재사용하고,
+      캐시 적중 시 앞선 bias 항목을 버리는 버그가 있다). 빈 문자열 -101과 숫자가 아닌 `[[...]]`는 요청을 깨뜨리지 않도록 건너뛴다.
+- [ ] 이미지 입력 모델 판정은 PocketRisu 모델 목록을 프로바이더/모델 ID 규칙으로 옮긴 것이라, `customFlags`나 목록에 없는 모델은 반영하지 않는다.
+- [ ] 오라클은 Gemini 요청 본문만 캡처해서 bias parity 시나리오가 없다. 현재는 PocketRisu 코드 기준 단위 테스트(`test/providers/bias.test.ts`)로 검증한다.
 
 ## 이후 예정 (지금 범위 아님)
 

@@ -83,6 +83,7 @@ describe('server-side Risu CBS compilation', () => {
                 lorebook: [],
                 loreSettings: {},
                 regexScripts: [],
+                bias: [],
             },
             conversation: {
                 id: 'conversation',
@@ -111,6 +112,7 @@ describe('server-side Risu CBS compilation', () => {
                 defaultVariables: {},
                 parameters: {},
                 regexScripts: [],
+                bias: [],
                 blocks: [
                     {
                         id: 'block',
@@ -157,6 +159,7 @@ describe('PocketRisu module custom toggles', () => {
                 lorebook: [],
                 loreSettings: {},
                 regexScripts: [],
+                bias: [],
             },
             conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
             messages: [],
@@ -166,6 +169,7 @@ describe('PocketRisu module custom toggles', () => {
                 defaultVariables: {},
                 parameters: {},
                 regexScripts: [],
+                bias: [],
                 blocks: [],
                 promptSettings: { sendChatAsSystem: false, sendName: false, assistantPrefill: '' },
             },
@@ -246,6 +250,7 @@ describe('RisuAI-compatible jailbreak / chain-of-thought toggles', () => {
                 lorebook: [],
                 loreSettings: {},
                 regexScripts: [],
+                bias: [],
             },
             conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
             messages: [
@@ -257,6 +262,7 @@ describe('RisuAI-compatible jailbreak / chain-of-thought toggles', () => {
                 defaultVariables: {},
                 parameters: {},
                 regexScripts: [],
+                bias: [],
                 blocks: [
                     {
                         id: 'jb',
@@ -322,6 +328,7 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
                 lorebook: [],
                 loreSettings: {},
                 regexScripts: [],
+                bias: [],
             },
             conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
             messages: [
@@ -334,6 +341,7 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
                 defaultVariables: {},
                 parameters: {},
                 regexScripts: [],
+                bias: [],
                 blocks: [
                     { id: 'chat', enabled: true, type: 'chat', rangeStart: 0, rangeEnd: 'end' },
                 ],
@@ -403,5 +411,51 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
         expect(
             (await compilePrompt(input)).messages.map((message) => message.content),
         ).not.toContain('[Start a new chat]')
+    })
+})
+
+describe('PocketRisu bias', () => {
+    test('joins preset then character bias and resolves CBS after unescaping', async () => {
+        const result = await compilePrompt({
+            character: {
+                id: 'character',
+                name: 'Aria',
+                description: '',
+                personality: '',
+                scenario: '',
+                firstMessage: '',
+                exampleMessage: '',
+                systemPrompt: '',
+                postHistoryInstructions: '',
+                lorebook: [],
+                loreSettings: {},
+                regexScripts: [],
+                bias: [['{{user}}', -101]],
+            },
+            conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
+            messages: [],
+            preset: {
+                warnings: [],
+                toggles: [],
+                defaultVariables: {},
+                parameters: {},
+                regexScripts: [],
+                bias: [
+                    ['{{char}}\\n', 20],
+                    ['a\\\\nb\\r', -5],
+                ],
+                blocks: [],
+                promptSettings: { sendChatAsSystem: false, sendName: false, assistantPrefill: '' },
+            },
+            settings: { userName: 'Mina', globalVariables: {} },
+            parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
+        } as unknown as Parameters<typeof compilePrompt>[0])
+
+        expect(result.bias).toEqual([
+            ['Aria\n', 20],
+            ['a\\\nb\r', -5],
+            ['Mina', -101],
+        ])
     })
 })

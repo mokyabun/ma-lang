@@ -79,6 +79,9 @@ export const PromptToggleSchema = z.object({
 
 export const RegexPhaseSchema = z.enum(['editinput', 'editprocess', 'editoutput', 'editdisplay'])
 
+// PocketRisu's `[string, value]` bias pair: -100..100, or -101 for a strong ban.
+export const BiasEntrySchema = z.tuple([z.string().max(100_000), z.number()])
+
 export const RegexScriptSchema = z.object({
     id: z.string().min(1),
     comment: z.string().max(10_000).default(''),
@@ -115,6 +118,7 @@ export const PromptPresetSchema = z.object({
     toggles: z.array(PromptToggleSchema).max(1_000).default([]),
     regexScripts: z.array(RegexScriptSchema).max(2_000).default([]),
     moduleIntegrations: z.array(z.string().max(200)).max(1_000).default([]),
+    bias: z.array(BiasEntrySchema).max(10_000).default([]),
     promptSettings: PromptSettingsSchema.default({
         assistantPrefill: '',
         postEndInnerFormat: '',

@@ -1,4 +1,10 @@
-import type { LuaScriptInput, PromptSettings, PromptToggle, RegexScript } from '@malang/shared'
+import type {
+    BiasEntry,
+    LuaScriptInput,
+    PromptSettings,
+    PromptToggle,
+    RegexScript,
+} from '@malang/shared'
 
 export function normalizeLuaTriggers(
     value: unknown,
@@ -168,6 +174,18 @@ export function parseModuleIntegrations(value: unknown): string[] {
               ),
           ]
         : []
+}
+
+export function parseBiasEntries(value: unknown): BiasEntry[] {
+    if (!Array.isArray(value)) return []
+    return value.flatMap((entry): BiasEntry[] =>
+        Array.isArray(entry) &&
+        typeof entry[0] === 'string' &&
+        typeof entry[1] === 'number' &&
+        Number.isFinite(entry[1])
+            ? [[entry[0], entry[1]]]
+            : [],
+    )
 }
 
 export function normalizePromptSettings(value: unknown): PromptSettings {

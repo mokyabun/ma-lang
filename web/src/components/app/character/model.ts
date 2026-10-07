@@ -19,6 +19,7 @@ export function draftFrom(character: Character): CharacterUpdate {
         regexScripts: character.regexScripts,
         moduleReferences: character.moduleReferences,
         defaultVariables: { ...character.defaultVariables },
+        bias: structuredClone(character.bias),
         luaScript: character.luaScript
             ? {
                   code: character.luaScript.code,

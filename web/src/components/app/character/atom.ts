@@ -106,6 +106,7 @@ export const createCharacterAtom = atom(null, async (get, set) => {
             regexScripts: [],
             moduleReferences: [],
             defaultVariables: {},
+            bias: [],
             luaScript: null,
         })
         set(charactersAtom, (current) => [character, ...current])

@@ -8,6 +8,7 @@ import type {
 import { FileArchive, Plus, Trash, UploadSimple } from '@phosphor-icons/react'
 import type { ChangeEvent, ReactNode, RefObject } from 'react'
 
+import { BiasEditor } from '@/components/app/settings/shared/bias-editor'
 import { SettingsGroup } from '@/components/app/settings/shared/settings-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -428,6 +429,11 @@ export function CharacterEditorSections({
                             }
                         />
                     </EditorField>
+                    <BiasEditor
+                        value={draft.bias ?? []}
+                        min={-100}
+                        onChange={(bias) => field('bias', bias)}
+                    />
                     <EditorField label="모듈 참조" note="한 줄에 하나씩 입력">
                         <Textarea
                             rows={5}

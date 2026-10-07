@@ -46,6 +46,7 @@ export interface NewCharacterRecord {
     regexScripts: Character['regexScripts']
     moduleReferences: string[]
     defaultVariables?: Record<string, string>
+    bias?: Character['bias']
     luaScript?: LuaScriptInput | null
     luaRawTriggers?: unknown[]
     lorebook: Array<Omit<LoreEntry, 'id'> & { id?: string; extensions?: Record<string, unknown> }>
@@ -92,6 +93,7 @@ export class CharacterRepository extends RepositoryBase {
                     regexScriptsJson: input.regexScripts,
                     moduleReferencesJson: input.moduleReferences,
                     defaultVariablesJson: input.defaultVariables || {},
+                    biasJson: input.bias || [],
                     ...newLuaColumns(input.luaScript),
                     luaRawTriggerJson: input.luaRawTriggers || [],
                     groupId: null,
@@ -167,6 +169,7 @@ export class CharacterRepository extends RepositoryBase {
             patch.moduleReferencesJson = update.moduleReferences
         if (update.defaultVariables !== undefined)
             patch.defaultVariablesJson = update.defaultVariables
+        if (update.bias !== undefined) patch.biasJson = update.bias
         if (update.luaScript !== undefined)
             Object.assign(patch, updateLuaColumns(current.luaScript, update.luaScript))
         if (update.loreSettings !== undefined) patch.loreSettingsJson = update.loreSettings
@@ -324,6 +327,7 @@ export class CharacterRepository extends RepositoryBase {
             regexScripts: row.regexScriptsJson,
             moduleReferences: row.moduleReferencesJson,
             defaultVariables: row.defaultVariablesJson,
+            bias: row.biasJson,
             luaScript: mapLuaScript(row),
             luaRawTriggers: row.luaRawTriggerJson,
             createdAt: iso(row.createdAt),

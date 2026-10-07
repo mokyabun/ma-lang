@@ -64,6 +64,7 @@ export class PromptService {
                 toggles: preset.toggles,
                 regexScripts: preset.regexScripts,
                 moduleIntegrations: preset.moduleIntegrations,
+                bias: preset.bias,
                 promptSettings: preset.promptSettings,
             },
             format,
@@ -141,6 +142,7 @@ function defaultPromptPresetInput(): PromptPresetInput {
         toggles: [],
         regexScripts: [],
         moduleIntegrations: [],
+        bias: [],
         blocks: [
             block('plain', {
                 type2: 'main',
@@ -168,6 +170,7 @@ function presetInput(preset: ReturnType<Store['promptPreset']['get']> & {}) {
         toggles: preset.toggles,
         regexScripts: preset.regexScripts,
         moduleIntegrations: preset.moduleIntegrations,
+        bias: preset.bias,
         promptSettings: preset.promptSettings,
     }
 }

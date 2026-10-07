@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { ApiErrorSchema, IdSchema, TimestampSchema } from './common'
 import { MessageSchema } from './conversations'
 import { EffectivePersonaSchema } from './personas'
-import { ModelRoleSchema, RegexPhaseSchema } from './prompts'
+import { BiasEntrySchema, ModelRoleSchema, RegexPhaseSchema } from './prompts'
 import { GenerationParametersSchema } from './providers'
 
 export const GenerationRequestSchema = z.discriminatedUnion('mode', [
@@ -89,6 +89,8 @@ export const PromptPreviewSchema = z.object({
         editdisplay: [],
     }),
     trimmedMessageIds: z.array(IdSchema),
+    /** Preset then character bias with CBS resolved, as PocketRisu sends it. */
+    bias: z.array(BiasEntrySchema).default([]),
     warnings: z.array(z.string()),
     persona: EffectivePersonaSchema.optional(),
     longTermMemory: z

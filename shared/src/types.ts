@@ -32,18 +32,19 @@ export type KnownPromptBlock = z.infer<typeof schemas.KnownPromptBlockSchema>
 export type PromptBlock = z.infer<typeof schemas.PromptBlockSchema>
 export type PromptToggle = z.infer<typeof schemas.PromptToggleSchema>
 export type RegexPhase = z.infer<typeof schemas.RegexPhaseSchema>
+export type BiasEntry = z.infer<typeof schemas.BiasEntrySchema>
 export type RegexScript = z.infer<typeof schemas.RegexScriptSchema>
 export type PromptSettings = z.infer<typeof schemas.PromptSettingsSchema>
 export type PromptPreset = z.infer<typeof schemas.PromptPresetSchema>
 type PromptPresetInputOutput = z.infer<typeof schemas.PromptPresetInputSchema>
 export type PromptPresetInput = Omit<
     PromptPresetInputOutput,
-    'toggles' | 'regexScripts' | 'moduleIntegrations' | 'promptSettings'
+    'toggles' | 'regexScripts' | 'moduleIntegrations' | 'bias' | 'promptSettings'
 > &
     Partial<
         Pick<
             PromptPresetInputOutput,
-            'toggles' | 'regexScripts' | 'moduleIntegrations' | 'promptSettings'
+            'toggles' | 'regexScripts' | 'moduleIntegrations' | 'bias' | 'promptSettings'
         >
     >
 export type ModulePrompt = z.infer<typeof schemas.ModulePromptSchema>

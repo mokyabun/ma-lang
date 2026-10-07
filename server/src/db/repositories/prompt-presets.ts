@@ -24,6 +24,7 @@ export class PromptPresetRepository extends RepositoryBase {
                 togglesJson: input.toggles || [],
                 regexScriptsJson: input.regexScripts || [],
                 moduleIntegrationsJson: input.moduleIntegrations || [],
+                biasJson: input.bias || [],
                 promptSettingsJson: { ...defaultPromptSettings, ...input.promptSettings },
                 warningsJson: warnings,
                 sourceJson: source,
@@ -46,6 +47,7 @@ export class PromptPresetRepository extends RepositoryBase {
                 togglesJson: input.toggles || [],
                 regexScriptsJson: input.regexScripts || [],
                 moduleIntegrationsJson: input.moduleIntegrations || [],
+                biasJson: input.bias || [],
                 promptSettingsJson: { ...defaultPromptSettings, ...input.promptSettings },
             })
             .where(eq(promptPresets.id, id))

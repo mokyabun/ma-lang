@@ -85,6 +85,10 @@ export class ChatTokenizer {
         private readonly countNames: boolean,
     ) {}
 
+    encode(text: string): ArrayLike<number> {
+        return this.encoder.encode(text)
+    }
+
     count(text: string): number {
         return this.encoder.encode(text).length
     }

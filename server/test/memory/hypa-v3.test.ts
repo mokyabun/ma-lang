@@ -86,6 +86,7 @@ describe('HypaMemory V3 prompt integration', () => {
                 lorebook: [],
                 loreSettings: {},
                 regexScripts: [],
+                bias: [],
             },
             conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
             messages: [
@@ -110,6 +111,7 @@ describe('HypaMemory V3 prompt integration', () => {
                 defaultVariables: {},
                 parameters: {},
                 regexScripts: [],
+                bias: [],
                 blocks: [
                     { id: 'chat', enabled: true, type: 'chat', rangeStart: 0, rangeEnd: 'end' },
                 ],

@@ -2033,6 +2033,43 @@ describe('Hono API and SQLite persistence', () => {
         expectExtendedFields(reimportedBody.character.lorebook[0]!)
     })
 
+    test('round-trips character bias through risuai.bias in card export/import', async () => {
+        cookie = await login(app, adminPassword)
+        const jsonHeaders = { cookie, 'content-type': 'application/json' }
+        const created = await app.request('/api/v1/characters', {
+            method: 'POST',
+            headers: jsonHeaders,
+            body: JSON.stringify({ name: 'Bias Test', bias: [['{{user}}', -101]] }),
+        })
+        const character = (await created.json()) as { id: string; bias: unknown }
+        expect(character.bias).toEqual([['{{user}}', -101]])
+
+        const patched = await app.request(`/api/v1/characters/${character.id}`, {
+            method: 'PATCH',
+            headers: jsonHeaders,
+            body: JSON.stringify({ bias: [['dragon', 30]] }),
+        })
+        expect(((await patched.json()) as { bias: unknown }).bias).toEqual([['dragon', 30]])
+
+        const exported = await app.request(
+            `/api/v1/characters/${character.id}/export?spec=v3&format=json`,
+            { headers: { cookie } },
+        )
+        const cardText = await exported.text()
+        const card = JSON.parse(cardText) as {
+            data: { extensions: { risuai: { bias: unknown } } }
+        }
+        expect(card.data.extensions.risuai.bias).toEqual([['dragon', 30]])
+
+        const reimported = await app.request('/api/v1/characters/import', {
+            method: 'POST',
+            headers: { cookie, 'content-type': 'application/json', 'x-filename': 'bias.json' },
+            body: cardText,
+        })
+        const reimportedBody = (await reimported.json()) as { character: { bias: unknown } }
+        expect(reimportedBody.character.bias).toEqual([['dragon', 30]])
+    })
+
     test('round-trips a fully-populated lorebook entry through prompt module updates', async () => {
         cookie = await login(app, adminPassword)
         const jsonHeaders = { cookie, 'content-type': 'application/json' }

@@ -1,5 +1,6 @@
 import type { CompiledMessage, GenerationParameters } from '@malang/shared'
 
+import { type GenerationBias, openAILogitBias, sendsOpenAILogitBias } from './bias'
 import { endpoint, jsonObject, parseSse } from './http-stream'
 import {
     checkedFetch,
@@ -82,6 +83,7 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
             messages: request.messages,
             stream: true,
             ...openAIParameters(request.parameters),
+            ...logitBiasBody(config, request.bias),
             ...providerBody(config),
         }
         request.onRequest?.({
@@ -276,6 +278,15 @@ function openAIParameters(parameters: GenerationParameters) {
         max_tokens: parameters.maxOutputTokens,
         stop: parameters.stopSequences,
     }
+}
+
+function logitBiasBody(
+    config: RuntimeProviderConfig,
+    bias: GenerationBias | undefined,
+): { logit_bias?: Record<number, number> } {
+    if (!bias || !sendsOpenAILogitBias(config)) return {}
+    const logitBias = openAILogitBias(bias)
+    return Object.keys(logitBias).length ? { logit_bias: logitBias } : {}
 }
 
 function providerBody(config: RuntimeProviderConfig): Record<string, unknown> {

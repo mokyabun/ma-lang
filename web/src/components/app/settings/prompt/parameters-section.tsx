@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 
+import { BiasEditor } from '../shared/bias-editor'
 import { splitLines } from '../shared/collections'
 import { ParameterRow } from './parameter-row'
 import { PresetNumberField } from './preset-number-field'
@@ -179,6 +180,14 @@ export function PresetParametersSection({
                     }
                 />
             </Label>
+            <div className="mt-6">
+                <BiasEditor
+                    value={value.bias || []}
+                    min={-101}
+                    transferable
+                    onChange={(bias) => onChange({ ...value, bias })}
+                />
+            </div>
         </TabsContent>
     )
 }
