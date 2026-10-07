@@ -25,6 +25,8 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { activePromptToggles } from '@/lib/prompt-toggles'
 
+import { ContinuityPanel } from '../illustration/continuity-panel'
+import { ConversationIllustrationPanel } from '../illustration/conversation-illustration-panel'
 import { ModuleActivationControl, PromptToggleControls } from './conversation-prompt-controls'
 
 export function ChatSettingsDialog({
@@ -131,6 +133,7 @@ export function ChatSettingsDialog({
                         <TabsTrigger value="chat">채팅</TabsTrigger>
                         <TabsTrigger value="model">모델</TabsTrigger>
                         <TabsTrigger value="module">모듈</TabsTrigger>
+                        <TabsTrigger value="illustration">삽화</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="chat" className="min-h-0 overflow-y-auto p-5">
@@ -479,6 +482,24 @@ export function ChatSettingsDialog({
                                     <EmptySetting>사용할 수 있는 모듈이 없습니다.</EmptySetting>
                                 )}
                             </SettingsSection>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="illustration" className="min-h-0 overflow-y-auto p-5">
+                        <div className="mx-auto grid max-w-2xl gap-6">
+                            {conversation ? (
+                                <>
+                                    <ConversationIllustrationPanel
+                                        conversationId={conversation.id}
+                                        modelPresets={modelPresets}
+                                    />
+                                    <SettingsSection title="연속성">
+                                        <ContinuityPanel conversationId={conversation.id} />
+                                    </SettingsSection>
+                                </>
+                            ) : (
+                                <EmptySetting>대화를 연 뒤 삽화를 설정할 수 있습니다.</EmptySetting>
+                            )}
                         </div>
                     </TabsContent>
                 </Tabs>

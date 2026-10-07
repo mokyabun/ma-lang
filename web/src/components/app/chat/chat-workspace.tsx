@@ -6,7 +6,11 @@ import { useEffect } from 'react'
 import { api, assetUrl } from '@/lib/api'
 import { type BackgroundLayer, resolveBackgroundEmbedding } from '@/lib/background-embedding'
 import { activePromptToggles } from '@/lib/prompt-toggles'
-import { connectRuntimeEvents } from '@/lib/runtime-events'
+import {
+    connectRuntimeEvents,
+    subscribeRuntimeConnection,
+    subscribeRuntimeEvents,
+} from '@/lib/runtime-events'
 
 import {
     promptPresetsAtom,
@@ -47,6 +51,7 @@ import { ChatHeader } from './chat-header'
 import { ChatInspector } from './chat-inspector'
 import { ChatSidebar } from './chat-sidebar'
 import { Composer, MessageTranscript } from './conversation-view'
+import { applyIllustrationEventAtom, loadIllustrationsAtom } from './illustration-atom'
 import { useConversationDelete } from './use-conversation-delete'
 
 export function ChatWorkspace({
@@ -72,6 +77,8 @@ export function ChatWorkspace({
     const hasStreamingMessage = useAtomValue(hasStreamingMessageAtom)
     const [inspectorOpen, setInspectorOpen] = useAtom(inspectorOpenAtom)
     const loadConversation = useSetAtom(loadConversationAtom)
+    const loadIllustrations = useSetAtom(loadIllustrationsAtom)
+    const applyIllustrationEvent = useSetAtom(applyIllustrationEventAtom)
     const loadOlderMessages = useSetAtom(loadOlderMessagesAtom)
     const updateConversation = useSetAtom(updateConversationAtom)
     const updatePromptToggleValues = useSetAtom(updatePromptToggleValuesAtom)
@@ -126,6 +133,18 @@ export function ChatWorkspace({
         if (!conversationId) return
         queueMicrotask(() => void loadConversation(conversationId))
     }, [conversationId, loadConversation])
+
+    useEffect(() => {
+        if (!conversationId) return
+        const load = () => void loadIllustrations(conversationId)
+        queueMicrotask(load)
+        const unsubscribeEvents = subscribeRuntimeEvents(applyIllustrationEvent)
+        const unsubscribeConnection = subscribeRuntimeConnection(load)
+        return () => {
+            unsubscribeEvents()
+            unsubscribeConnection()
+        }
+    }, [applyIllustrationEvent, conversationId, loadIllustrations])
 
     useEffect(() => {
         if (!conversationId || !hasStreamingMessage) return

@@ -465,6 +465,43 @@
         font-size: 1.25rem;
     }
 
+    .chattext .malang-illustration {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        margin: 1rem auto;
+    }
+
+    .chattext .malang-illustration-image {
+        display: block;
+        max-width: min(100%, 40rem);
+        max-height: min(36rem, 70vh);
+        border-radius: calc(var(--radius) + 0.25rem);
+        object-fit: contain;
+        animation: risu-fade-in 0.3s ease-out;
+    }
+
+    .chattext :where(.malang-illustration-pending, .malang-illustration-failed) {
+        max-width: 20rem;
+        min-height: 160px;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 0.25rem);
+        background: color-mix(in oklab, var(--muted) 35%, transparent);
+        color: var(--muted-foreground);
+        font-size: 0.875rem;
+    }
+
+    .chattext .malang-illustration-pending {
+        animation: malang-illustration-pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes malang-illustration-pulse {
+        50% {
+            opacity: 0.45;
+        }
+    }
+
     .chattext .risu-inlay-missing {
         display: flex;
         width: 100%;

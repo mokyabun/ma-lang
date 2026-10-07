@@ -28,6 +28,12 @@ describe('safe template engine', () => {
         expect(result.text).toContain('## Response Template')
         expect(result.warnings).toEqual([])
     })
+    test('keeps illustration tokens verbatim without a warning', () => {
+        const token = '{{illustration::11111111-1111-4111-8111-111111111111}}'
+        const result = renderTemplate(`a\n\n${token}\n\nb`, context)
+        expect(result.text).toBe(`a\n\n${token}\n\nb`)
+        expect(result.warnings).toEqual([])
+    })
     test('renders variables and nested condition blocks', () => {
         const result = renderTemplate(
             '{{#if {{not_equal::{{user}}::}}}}Hi {{user}} {{#when::{{and::{{greater::{{getvar::affinity}}::5}}::{{toggle::secret}}}}}}trusted{{:else}}guest{{/when}}{{:else}}unknown{{/if}}',

@@ -9,9 +9,12 @@ import {
     createCharacterDomain,
     createConversationDomain,
     createConversationGenerationDomain,
+    createConversationIllustrationDomain,
     createConversationLuaDomain,
     createDebugDomain,
     createGenerationDomain,
+    createIllustrationDomain,
+    createJobDomain,
     createModelPresetDomain,
     createModelChainDomain,
     createPersonaDomain,
@@ -51,8 +54,11 @@ function routeApi(app: Hono<AppEnv>, context: AppContext) {
         .route('/api/v1/conversations', createConversationDomain(context))
         .route('/api/v1/conversations', createConversationGenerationDomain(context))
         .route('/api/v1/conversations', createConversationLuaDomain(context))
+        .route('/api/v1/conversations', createConversationIllustrationDomain(context))
         .route('/api/v1/generations', createGenerationDomain(context))
         .route('/api/v1/runtime', createRuntimeDomain(context))
+        .route('/api/v1/jobs', createJobDomain(context))
+        .route('/api/v1/illustrations', createIllustrationDomain(context))
 }
 
 export function createApp(context: AppContext) {

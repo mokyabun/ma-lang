@@ -148,3 +148,51 @@ export type ImportEvent<T = unknown> =
     | { type: 'import.progress'; stage: 'assets'; done: number; total: number }
     | { type: 'import.completed'; status: number; result: T }
     | { type: 'import.failed'; status: number; error: ApiError }
+export type NovelAIImageParams = z.infer<typeof schemas.NovelAIImageParamsSchema>
+export type NovelAISampler = z.infer<typeof schemas.NovelAISamplerSchema>
+export type NovelAINoiseSchedule = z.infer<typeof schemas.NovelAINoiseScheduleSchema>
+export type IllustrationSettings = z.infer<typeof schemas.IllustrationSettingsSchema>
+export type IllustrationSettingsPatch = z.infer<typeof schemas.IllustrationSettingsPatchSchema>
+export type IllustrationTestRequest = z.input<typeof schemas.IllustrationTestRequestSchema>
+export type IllustrationTestResult = z.infer<typeof schemas.IllustrationTestResultSchema>
+export type BackgroundJobStatus = z.infer<typeof schemas.BackgroundJobStatusSchema>
+export type BackgroundJobError = z.infer<typeof schemas.BackgroundJobErrorSchema>
+export type BackgroundJob = z.infer<typeof schemas.BackgroundJobSchema>
+export type RuntimeEvent = z.infer<typeof schemas.RuntimeEventSchema>
+export type IllustrationMode = z.infer<typeof schemas.IllustrationModeSchema>
+export type ContinuityTracking = z.infer<typeof schemas.ContinuityTrackingSchema>
+export type IllustrationCount = z.infer<typeof schemas.IllustrationCountSchema>
+export type ImageSizePreset = z.infer<typeof schemas.ImageSizePresetSchema>
+export type IllustrationStyleParams = z.infer<typeof schemas.IllustrationStyleParamsSchema>
+export type IllustrationStyleInput = z.infer<typeof schemas.IllustrationStyleInputSchema>
+export type IllustrationStyle = z.infer<typeof schemas.IllustrationStyleSchema>
+export type IllustrationStyleTestRequest = z.input<
+    typeof schemas.IllustrationStyleTestRequestSchema
+>
+export type IllustrationOutfitInput = z.infer<typeof schemas.IllustrationOutfitInputSchema>
+export type IllustrationOutfit = z.infer<typeof schemas.IllustrationOutfitSchema>
+export type IllustrationActorInput = z.infer<typeof schemas.IllustrationActorInputSchema>
+export type IllustrationActorOwner = z.infer<typeof schemas.IllustrationActorOwnerSchema>
+export type IllustrationActorCreate = z.infer<typeof schemas.IllustrationActorCreateSchema>
+export type IllustrationActor = z.infer<typeof schemas.IllustrationActorSchema>
+export type ConversationIllustrationSettingsInput = z.infer<
+    typeof schemas.ConversationIllustrationSettingsInputSchema
+>
+export type ConversationIllustrationSettings = z.infer<
+    typeof schemas.ConversationIllustrationSettingsSchema
+>
+export type MessageIllustrationStatus = z.infer<typeof schemas.MessageIllustrationStatusSchema>
+export type MessageIllustration = z.infer<typeof schemas.MessageIllustrationSchema>
+export type IllustrateMessageRequest = z.infer<typeof schemas.IllustrateMessageRequestSchema>
+export type IllustrationStateKind = z.infer<typeof schemas.IllustrationStateKindSchema>
+export type IllustrationStateDefinitionInput = z.infer<
+    typeof schemas.IllustrationStateDefinitionInputSchema
+>
+export type IllustrationStateDefinitionCreate = z.infer<
+    typeof schemas.IllustrationStateDefinitionCreateSchema
+>
+export type IllustrationStateDefinition = z.infer<typeof schemas.IllustrationStateDefinitionSchema>
+export type IllustrationStateValue = z.infer<typeof schemas.IllustrationStateValueSchema>
+export type IllustrationState = z.infer<typeof schemas.IllustrationStateSchema>
+export type ConversationContinuity = z.infer<typeof schemas.ConversationContinuitySchema>
+export type ContinuityUpdate = z.infer<typeof schemas.ContinuityUpdateSchema>

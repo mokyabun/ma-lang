@@ -1,4 +1,4 @@
-import type { CharacterAsset, ModuleAsset } from '@malang/shared'
+import { type CharacterAsset, illustrationTokenPattern, type ModuleAsset } from '@malang/shared'
 
 import { assetUrl } from './api'
 
@@ -6,6 +6,13 @@ export type MessageImageAsset = Pick<
     CharacterAsset | ModuleAsset,
     'assetId' | 'extension' | 'mimeType' | 'name' | 'sourceUri' | 'type'
 >
+
+export interface IllustrationView {
+    status: 'pending' | 'complete' | 'failed'
+    assetId: string | null
+}
+
+const NO_ILLUSTRATIONS: ReadonlyMap<string, IllustrationView> = new Map()
 
 const EMOTION_TAG = /<emotion\s*=\s*["']([^"']+)["']\s*\/?\s*>/gi
 const RISU_IMAGE_TAG = /<img\s*=\s*["']([^"']+)["']\s*\/?\s*>/gi
@@ -19,11 +26,15 @@ export function expandMessageImages(
     value: string,
     assets: MessageImageAsset[],
     seed: string,
+    illustrations: ReadonlyMap<string, IllustrationView> = NO_ILLUSTRATIONS,
 ): string {
     const imageAssets = assets.filter((asset) => asset.mimeType.startsWith('image/'))
 
     return (
         value
+            .replace(illustrationTokenPattern(), (_full, id: string) =>
+                illustrationMarkup(id, illustrations.get(id)),
+            )
             // These shorthands are Malang extensions; PocketRisu shows an unresolved one as text.
             .replace(EMOTION_TAG, (full, rawName: string) => {
                 const asset = findImageAsset(imageAssets, rawName, seed)
@@ -66,6 +77,18 @@ export function expandMessageImages(
                 },
             )
     )
+}
+
+// An id the caller has not loaded yet renders as pending, not missing.
+function illustrationMarkup(id: string, view: IllustrationView | undefined): string {
+    const idAttribute = `data-illustration-id="${escapeAttribute(id)}"`
+    if (view?.status === 'complete' && view.assetId) {
+        return `<div class="malang-illustration" ${idAttribute}><img class="malang-illustration-image" src="${assetUrl(view.assetId)}" alt="" loading="lazy" decoding="async"></div>`
+    }
+    if (view?.status === 'failed') {
+        return `<div class="malang-illustration malang-illustration-failed" ${idAttribute} data-illustration-status="failed">삽화를 만들지 못했습니다</div>`
+    }
+    return `<div class="malang-illustration malang-illustration-pending" ${idAttribute} data-illustration-status="pending" aria-label="삽화 생성 중"></div>`
 }
 
 function resolveRelativeImageSource(

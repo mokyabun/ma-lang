@@ -6,6 +6,10 @@ import { bundledFilePath } from '@/utils'
 import InitialMigration from './migrations/0000_initial.sql' with { type: 'file' }
 import AddBiasMigration from './migrations/0001_add_bias.sql' with { type: 'file' }
 import BackfillBiasMigration from './migrations/0002_backfill_bias.sql' with { type: 'file' }
+import AddBackgroundJobsMigration from './migrations/0003_add_background_jobs_and_illustration_settings.sql' with { type: 'file' }
+import AddIllustrationStylesActorsMigration from './migrations/0004_add_illustration_styles_actors.sql' with { type: 'file' }
+import AddMessageIllustrationsMigration from './migrations/0005_add_message_illustrations.sql' with { type: 'file' }
+import AddIllustrationContinuityMigration from './migrations/0006_add_illustration_continuity.sql' with { type: 'file' }
 import journal from './migrations/meta/_journal.json'
 
 // Bundled builds embed only static imports: register each generated migration here.
@@ -13,6 +17,10 @@ const migrationFiles: Record<string, string> = {
     '0000_initial': InitialMigration,
     '0001_add_bias': AddBiasMigration,
     '0002_backfill_bias': BackfillBiasMigration,
+    '0003_add_background_jobs_and_illustration_settings': AddBackgroundJobsMigration,
+    '0004_add_illustration_styles_actors': AddIllustrationStylesActorsMigration,
+    '0005_add_message_illustrations': AddMessageIllustrationsMigration,
+    '0006_add_illustration_continuity': AddIllustrationContinuityMigration,
 }
 
 const migrations = journal.entries.map((entry) => {

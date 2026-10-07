@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useDebouncedSave } from '@/lib/use-debounced-save'
 
+import { PersonaActor } from '../../illustration/persona-actor'
 import { removePersonaAvatarAtom, setPersonaAvatarAtom, updatePersonaAtom } from './atom'
 import { personaDraftFrom } from './model'
 import { PersonaAvatar } from './persona-avatar'
@@ -97,6 +98,7 @@ export function PersonaDetailForm({
                     모델에 전송되지 않습니다.
                 </span>
             </Label>
+            <PersonaActor persona={persona} />
             <Button variant="destructive" onClick={onDelete}>
                 <Trash aria-hidden="true" /> 삭제
             </Button>

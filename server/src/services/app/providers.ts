@@ -80,7 +80,7 @@ export class ProviderService {
         if (!config) return null
         const credentialType =
             config.credentialType ?? (config.provider === 'vertex' ? 'adc' : 'none')
-        const configured = this.vault.hasSecret()
+        const configured = this.vault.hasSecret('provider')
         return {
             ...config,
             credentialType,
@@ -139,7 +139,7 @@ export class ProviderService {
         try {
             const bundle = await this.readCredentialBundle()
             bundle.credentials[row.id] = secret
-            await this.vault.set(JSON.stringify(bundle))
+            await this.vault.set('provider', JSON.stringify(bundle))
         } catch (error) {
             this.store.modelApiKey.delete(row.id)
             throw error
@@ -163,7 +163,7 @@ export class ProviderService {
         if (!bundle.credentials[id]) {
             throw new ProviderConfigurationError('저장된 인증 정보를 찾을 수 없습니다.')
         }
-        await this.vault.set(JSON.stringify(bundle))
+        await this.vault.set('provider', JSON.stringify(bundle))
         const row = this.store.modelApiKey.update(id, {
             name: input.name,
             provider: input.provider,
@@ -178,8 +178,9 @@ export class ProviderService {
         const result = this.store.modelApiKey.delete(id)
         if (result !== 'deleted') return result
         delete bundle.credentials[id]
-        if (Object.keys(bundle.credentials).length) await this.vault.set(JSON.stringify(bundle))
-        else this.vault.clear()
+        if (Object.keys(bundle.credentials).length)
+            await this.vault.set('provider', JSON.stringify(bundle))
+        else this.vault.clear('provider')
         return result
     }
 
@@ -191,13 +192,14 @@ export class ProviderService {
             (input.provider === 'vertex' ? 'adc' : 'none')
         let projectId = input.provider === 'vertex' ? input.projectId : undefined
         if (input.clearCredentials || input.clearApiKey) {
-            this.vault.clear()
+            this.vault.clear('provider')
             credentialType = input.provider === 'vertex' ? 'adc' : 'none'
         }
         if (input.provider === 'vertex') {
             const currentCredentialType =
                 current?.provider === 'vertex'
-                    ? (current.credentialType ?? (this.vault.hasSecret() ? 'apiKey' : 'adc'))
+                    ? (current.credentialType ??
+                      (this.vault.hasSecret('provider') ? 'apiKey' : 'adc'))
                     : 'adc'
             const replacesCredential = Boolean(input.serviceAccountJson || input.apiKey)
             const clearsCredential = input.clearCredentials || input.clearApiKey
@@ -206,6 +208,7 @@ export class ProviderService {
             } else if (input.serviceAccountJson) {
                 const serviceAccount = parseServiceAccount(input.serviceAccountJson)
                 await this.vault.set(
+                    'provider',
                     JSON.stringify({
                         version: 2,
                         type: 'serviceAccount',
@@ -217,6 +220,7 @@ export class ProviderService {
                 projectId ||= serviceAccount.project_id
             } else if (input.apiKey) {
                 await this.vault.set(
+                    'provider',
                     JSON.stringify({
                         version: 2,
                         type: 'apiKey',
@@ -240,6 +244,7 @@ export class ProviderService {
             }
         } else if (input.provider === 'aws' && input.awsSecretAccessKey) {
             await this.vault.set(
+                'provider',
                 JSON.stringify({
                     version: 2,
                     type: 'aws',
@@ -251,6 +256,7 @@ export class ProviderService {
             credentialType = 'aws'
         } else if (input.apiKey) {
             await this.vault.set(
+                'provider',
                 JSON.stringify({
                     version: 2,
                     type: 'apiKey',
@@ -354,7 +360,7 @@ export class ProviderService {
     }
 
     private async resolveConfig(config: ProviderConfig): Promise<RuntimeProviderConfig> {
-        const secret = await this.vault.get()
+        const secret = await this.vault.get('provider')
         if (!secret) return config
         const parsed = parseProviderSecret(secret)
         if (!parsed.provider && config.provider !== 'vertex') return config
@@ -420,7 +426,7 @@ export class ProviderService {
     }
 
     private async readCredentialBundle(): Promise<CredentialBundle> {
-        const value = await this.vault.get()
+        const value = await this.vault.get('provider')
         if (!value) return { version: 3, credentials: {} }
         try {
             const decoded = CredentialBundleSchema.safeParse(JSON.parse(value))

@@ -68,3 +68,36 @@ describe('message image expansion', () => {
         expect(rendered).toContain('](</api/v1/assets/22222222-2222-4222-8222-222222222222>)')
     })
 })
+
+describe('illustration tokens', () => {
+    const id = '33333333-3333-4333-8333-333333333333'
+    const token = `{{illustration::${id}}}`
+
+    test('render as a pending placeholder until their state is known', () => {
+        const rendered = expandMessageImages(`a\n\n${token}\n\nb`, [], 'seed')
+        expect(rendered).toContain(`data-illustration-id="${id}"`)
+        expect(rendered).toContain('data-illustration-status="pending"')
+        expect(rendered).not.toContain('{{illustration')
+    })
+
+    test('render the active revision image once complete', () => {
+        const rendered = expandMessageImages(
+            token,
+            [],
+            'seed',
+            new Map([[id, { status: 'complete', assetId: assets[0]!.assetId }]]),
+        )
+        expect(rendered).toContain(`src="/api/v1/assets/${assets[0]!.assetId}"`)
+        expect(rendered).toContain('malang-illustration-image')
+    })
+
+    test('render a failure marker', () => {
+        const rendered = expandMessageImages(
+            token,
+            [],
+            'seed',
+            new Map([[id, { status: 'failed', assetId: null }]]),
+        )
+        expect(rendered).toContain('data-illustration-status="failed"')
+    })
+})

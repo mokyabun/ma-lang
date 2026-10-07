@@ -210,21 +210,21 @@ export function createConversationDomain(context: AppContext) {
             if (!message || message.conversationId !== c.req.param('id')) {
                 throw new NotFoundError('Message not found')
             }
-            return c.json({
-                deleted: context.store.message.truncate(
-                    message.conversationId,
-                    message.position + 1,
-                ),
-            })
+            const deleted = context.store.message.truncate(
+                message.conversationId,
+                message.position + 1,
+            )
+            context.illustrationPipeline.handleMessagesRemoved(message.conversationId)
+            return c.json({ deleted })
         })
         .delete('/:id/messages/:messageId/from', (c) => {
             const message = context.store.message.get(c.req.param('messageId'))
             if (!message || message.conversationId !== c.req.param('id')) {
                 throw new NotFoundError('Message not found')
             }
-            return c.json({
-                deleted: context.store.message.truncate(message.conversationId, message.position),
-            })
+            const deleted = context.store.message.truncate(message.conversationId, message.position)
+            context.illustrationPipeline.handleMessagesRemoved(message.conversationId)
+            return c.json({ deleted })
         })
         .delete('/:id/messages/:messageId', (c) => {
             const message = context.store.message.get(c.req.param('messageId'))
@@ -232,6 +232,7 @@ export function createConversationDomain(context: AppContext) {
                 throw new NotFoundError('Message not found')
             }
             context.store.message.delete(message.id)
+            context.illustrationPipeline.handleMessagesRemoved(message.conversationId)
             return c.body(null, 204)
         })
         .get('/:id/messages/:messageId/generations', (c) => {

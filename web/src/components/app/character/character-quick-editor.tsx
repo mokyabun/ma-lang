@@ -13,6 +13,7 @@ import {
     DownloadSimple,
     FileArchive,
     ImageSquare,
+    PaintBrush,
     Quotes,
     Trash,
     UserCircle,
@@ -33,6 +34,7 @@ import {
 import { characterExportUrl, characterPackageExportUrl } from '@/lib/api'
 import { useDebouncedSave } from '@/lib/use-debounced-save'
 
+import { CharacterActors } from '../illustration/character-actors'
 import { personaListAtom, selectedPersonaIdAtom, selectPersonaAtom } from '../settings/persona/atom'
 import type { CharacterEditorSection } from '../workspace/types'
 import { CharacterAvatar } from './character-avatar'
@@ -76,6 +78,7 @@ export function CharacterQuickEditor({
         { id: 'greetings' as const, label: '첫 대화', icon: Quotes },
         { id: 'lorebook' as const, label: '로어북', icon: BookOpenText },
         { id: 'prompt' as const, label: '프롬프트', icon: BracketsCurly },
+        { id: 'illustration' as const, label: '삽화', icon: PaintBrush },
         { id: 'advanced' as const, label: '고급 설정', icon: Waveform },
     ]
 
@@ -144,7 +147,7 @@ export function CharacterQuickEditor({
             </header>
 
             <div
-                className="row-start-2 flex min-h-0 flex-col gap-1 border-r border-sidebar-border bg-sidebar p-3 max-[1024px]:px-2 max-sm:row-start-2 max-sm:grid max-sm:grid-cols-6 max-sm:border-b max-sm:border-r-0 max-sm:p-0"
+                className="row-start-2 flex min-h-0 flex-col gap-1 border-r border-sidebar-border bg-sidebar p-3 max-[1024px]:px-2 max-sm:row-start-2 max-sm:grid max-sm:grid-cols-7 max-sm:border-b max-sm:border-r-0 max-sm:p-0"
                 role="tablist"
                 aria-label="캐릭터 설정 영역"
             >
@@ -200,6 +203,10 @@ export function CharacterQuickEditor({
                         regexScripts={regexScripts}
                         updateRegex={updateRegex}
                     />
+
+                    {section === 'illustration' ? (
+                        <CharacterActors character={character} lorebook={lorebook} />
+                    ) : null}
 
                     {section === 'advanced' ? (
                         <div className="mt-10 border-t border-border pt-5">

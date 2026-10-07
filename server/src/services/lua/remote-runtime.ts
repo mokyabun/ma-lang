@@ -1,6 +1,7 @@
 import type { LuaRemoteCommandResult } from '@malang/shared'
 
 import type { LuaRemoteCommandRow, Store } from '@/db'
+import type { RuntimeEventHub } from '@/services/app/runtime-events'
 
 export interface RuntimeCommand {
     type: 'runtime.command'
@@ -26,38 +27,19 @@ export class LuaRemoteCommandError extends Error {
 }
 
 export class RemoteRuntime {
-    private readonly clients = new Map<string, Set<ReadableStreamDefaultController<Uint8Array>>>()
     private readonly pending = new Map<string, PendingCommand>()
-    private readonly encoder = new TextEncoder()
 
-    constructor(private readonly store: Store) {}
-
-    subscribe(clientInstanceId: string): ReadableStream<Uint8Array> {
-        let controllerRef: ReadableStreamDefaultController<Uint8Array> | undefined
-        return new ReadableStream({
-            start: (controller) => {
-                controllerRef = controller
-                const clients = this.clients.get(clientInstanceId) ?? new Set()
-                clients.add(controller)
-                this.clients.set(clientInstanceId, clients)
-                controller.enqueue(this.encoder.encode(': connected\n\n'))
-                const rows = this.store.luaRemoteCommand.listPending(clientInstanceId)
-                for (const row of rows) this.send(controller, this.rowCommand(row))
-            },
-            cancel: () => {
-                if (!controllerRef) return
-                const clients = this.clients.get(clientInstanceId)
-                clients?.delete(controllerRef)
-                if (clients?.size) return
-                this.clients.delete(clientInstanceId)
-                for (const [id, pending] of this.pending) {
-                    if (pending.clientInstanceId !== clientInstanceId) continue
-                    clearTimeout(pending.timer)
-                    pending.reject(new LuaRemoteCommandError('The initiating client disconnected'))
-                    this.pending.delete(id)
-                    this.failCommand(id, 'The initiating client disconnected')
+    constructor(
+        private readonly store: Store,
+        private readonly hub: RuntimeEventHub,
+    ) {
+        hub.register({
+            connected: (clientInstanceId, send) => {
+                for (const row of this.store.luaRemoteCommand.listPending(clientInstanceId)) {
+                    send(commandMessage(this.rowCommand(row)))
                 }
             },
+            disconnected: (clientInstanceId) => this.abandon(clientInstanceId),
         })
     }
 
@@ -96,11 +78,9 @@ export class RemoteRuntime {
             blocking: input.blocking,
             expiresAt: new Date(expiresAt).toISOString(),
         }
-        for (const controller of this.clients.get(input.clientInstanceId) ?? []) {
-            this.send(controller, command)
-        }
+        this.hub.sendTo(input.clientInstanceId, commandMessage(command))
         if (!input.blocking) return Promise.resolve(null)
-        if (!this.clients.get(input.clientInstanceId)?.size) {
+        if (!this.hub.isConnected(input.clientInstanceId)) {
             this.failCommand(id, 'The initiating client is not connected')
             return Promise.reject(
                 new LuaRemoteCommandError('The initiating client is not connected'),
@@ -145,6 +125,16 @@ export class RemoteRuntime {
         return 'ok'
     }
 
+    private abandon(clientInstanceId: string) {
+        for (const [id, pending] of this.pending) {
+            if (pending.clientInstanceId !== clientInstanceId) continue
+            clearTimeout(pending.timer)
+            pending.reject(new LuaRemoteCommandError('The initiating client disconnected'))
+            this.pending.delete(id)
+            this.failCommand(id, 'The initiating client disconnected')
+        }
+    }
+
     private failCommand(id: string, error: string) {
         this.store.luaRemoteCommand.settle(id, 'failed', { error })
     }
@@ -159,18 +149,10 @@ export class RemoteRuntime {
             expiresAt: new Date(row.expires_at).toISOString(),
         }
     }
+}
 
-    private send(controller: ReadableStreamDefaultController<Uint8Array>, command: RuntimeCommand) {
-        try {
-            controller.enqueue(
-                this.encoder.encode(
-                    `id: ${command.commandId}\ndata: ${JSON.stringify(command)}\n\n`,
-                ),
-            )
-        } catch {
-            // Stream cancellation performs connection cleanup.
-        }
-    }
+function commandMessage(command: RuntimeCommand) {
+    return { id: command.commandId, data: command }
 }
 
 function parseJson<T>(value: string | null, fallback: T): T {

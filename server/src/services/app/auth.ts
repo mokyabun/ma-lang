@@ -63,7 +63,7 @@ export class AuthService {
             adminId,
             await Bun.password.hash(newPassword, { algorithm: 'argon2id' }),
             rotation.salt,
-            rotation.providerSecret,
+            rotation.secrets,
         )
         this.vault.completeRotation(rotation)
         return true

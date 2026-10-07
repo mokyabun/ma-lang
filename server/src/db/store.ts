@@ -1,18 +1,27 @@
 import type { DatabaseHandle } from './db'
 import { AdminRepository } from './repositories/admin'
 import { AssetRepository } from './repositories/assets'
+import { BackgroundJobRepository } from './repositories/background-jobs'
 import { CharacterAssetRepository } from './repositories/character-assets'
 import { CharacterGroupRepository } from './repositories/character-groups'
 import { CharacterLoreRepository } from './repositories/character-lore'
 import { CharacterOrganizationRepository } from './repositories/character-organization'
 import { CharacterRepository } from './repositories/characters'
 import { ConversationGroupRepository } from './repositories/conversation-groups'
+import { ConversationIllustrationSettingsRepository } from './repositories/conversation-illustration-settings'
 import { ConversationLoreRepository } from './repositories/conversation-lore'
 import { ConversationModuleRepository } from './repositories/conversation-modules'
 import { ConversationOrganizationRepository } from './repositories/conversation-organization'
 import { ConversationRepository } from './repositories/conversations'
 import { CredentialRotationRepository } from './repositories/credential-rotation'
 import { GenerationRepository } from './repositories/generations'
+import { IllustrationActorRepository } from './repositories/illustration-actors'
+import {
+    IllustrationSnapshotRepository,
+    IllustrationStateDefinitionRepository,
+} from './repositories/illustration-continuity'
+import { IllustrationSettingsRepository } from './repositories/illustration-settings'
+import { IllustrationStyleRepository } from './repositories/illustration-styles'
 import { LuaDisplayBatchRepository } from './repositories/lua-display-batches'
 import { LuaRemoteCommandRepository } from './repositories/lua-remote-commands'
 import { LuaRunRepository } from './repositories/lua-runs'
@@ -20,6 +29,7 @@ import { LuaStateRepository } from './repositories/lua-states'
 import { MemoryMetricsRepository } from './repositories/memory-metrics'
 import { MemorySettingsRepository } from './repositories/memory-settings'
 import { MemorySummaryRepository } from './repositories/memory-summaries'
+import { MessageIllustrationRepository } from './repositories/message-illustrations'
 import { MessageRepository } from './repositories/messages'
 import { ModelApiKeyRepository } from './repositories/model-api-keys'
 import { ModelChainMemoryRepository } from './repositories/model-chain-memory'
@@ -44,6 +54,14 @@ export {
 } from './repositories/characters'
 export type { NewConversationRecord } from './repositories/conversations'
 export type { AssetRecord } from './repositories/assets'
+export type { BackgroundJobRecord, NewBackgroundJob } from './repositories/background-jobs'
+export type { StateSnapshotRecord } from './repositories/illustration-continuity'
+export type { IllustrationSettingsRecord } from './repositories/illustration-settings'
+export type {
+    MessageIllustrationRecord,
+    NewMessageIllustration,
+} from './repositories/message-illustrations'
+export type { SecretEnvelopes, SecretSlot } from './repositories/secret-storage'
 export type { LuaRemoteCommandRow } from './repositories/lua-remote-commands'
 export type { PromptModuleAssetRecord } from './repositories/prompt-module-assets'
 export type { MemorySummaryRecord, SparseVector } from './repositories/memory-summaries'
@@ -84,6 +102,14 @@ export class Store {
     readonly luaState: LuaStateRepository
     readonly luaDisplayBatch: LuaDisplayBatchRepository
     readonly luaRemoteCommand: LuaRemoteCommandRepository
+    readonly backgroundJob: BackgroundJobRepository
+    readonly illustrationSettings: IllustrationSettingsRepository
+    readonly illustrationStyle: IllustrationStyleRepository
+    readonly illustrationActor: IllustrationActorRepository
+    readonly conversationIllustrationSettings: ConversationIllustrationSettingsRepository
+    readonly messageIllustration: MessageIllustrationRepository
+    readonly illustrationStateDefinition: IllustrationStateDefinitionRepository
+    readonly illustrationSnapshot: IllustrationSnapshotRepository
 
     constructor(private readonly handle: DatabaseHandle) {
         this.admin = new AdminRepository(handle)
@@ -121,6 +147,16 @@ export class Store {
         this.luaState = new LuaStateRepository(handle)
         this.luaDisplayBatch = new LuaDisplayBatchRepository(handle)
         this.luaRemoteCommand = new LuaRemoteCommandRepository(handle)
+        this.backgroundJob = new BackgroundJobRepository(handle)
+        this.illustrationSettings = new IllustrationSettingsRepository(handle)
+        this.illustrationStyle = new IllustrationStyleRepository(handle)
+        this.illustrationActor = new IllustrationActorRepository(handle)
+        this.conversationIllustrationSettings = new ConversationIllustrationSettingsRepository(
+            handle,
+        )
+        this.messageIllustration = new MessageIllustrationRepository(handle)
+        this.illustrationStateDefinition = new IllustrationStateDefinitionRepository(handle)
+        this.illustrationSnapshot = new IllustrationSnapshotRepository(handle)
     }
 
     /** Runs `fn` atomically; nested calls become savepoints. */

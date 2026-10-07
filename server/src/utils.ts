@@ -22,6 +22,14 @@ export function jsonValidator<T extends ZodType>(schema: T) {
     })
 }
 
+export function queryValidator<T extends ZodType>(schema: T) {
+    return zValidator('query', schema, (result) => {
+        if (!result.success) {
+            throw new ValidationError('Query validation failed', validationDetails(result.error))
+        }
+    })
+}
+
 export async function readImportFile(
     c: Context<AppEnv>,
     maxBytes: number,

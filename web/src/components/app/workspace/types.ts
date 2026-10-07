@@ -4,6 +4,7 @@ export type CharacterEditorSection =
     | 'greetings'
     | 'lorebook'
     | 'prompt'
+    | 'illustration'
     | 'advanced'
 
 export type WorkspacePage =

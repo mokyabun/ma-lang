@@ -4,6 +4,7 @@ import type {
     LongTermMemoryState,
     Message,
 } from '@malang/shared'
+import { stripIllustrationTokens } from '@malang/shared'
 import type { Logger } from 'pino'
 
 import type { MemorySummaryRecord, SparseVector, Store } from '@/db'
@@ -386,7 +387,7 @@ export function selectMemorySummaries(
 }
 
 function sanitize(text: string): string {
-    return text.replace(/\{\{inlay::[^}]+}}/g, '[Image]')
+    return stripIllustrationTokens(text).replace(/\{\{inlay::[^}]+}}/g, '[Image]')
 }
 
 function splitSummaryText(text: string, separator = '\\n\\n'): string[] {

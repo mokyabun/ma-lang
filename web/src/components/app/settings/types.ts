@@ -14,6 +14,8 @@ export const SETTINGS_SECTIONS = [
     'persona',
     'prompts',
     'modules',
+    'illustration',
+    'illustration-styles',
     'system',
 ] as const
 

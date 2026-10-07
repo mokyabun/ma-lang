@@ -44,8 +44,17 @@ import { encodeSse, logGeneration, reconnectGeneration, replayGeneration } from 
 export class GenerationConflictError extends ConflictError {}
 export class GenerationNotConfiguredError extends ValidationError {}
 
+export interface GenerationCompletedEvent {
+    conversationId: string
+    messageId: string
+    generationId: string
+    mode: GenerationRequest['mode']
+}
+
 export class GenerationService {
     private readonly active = new Map<string, AbortController>()
+    private readonly completedListeners: Array<(event: GenerationCompletedEvent) => void> = []
+    private readonly regeneratingListeners: Array<(messageId: string) => void> = []
 
     constructor(
         private readonly store: Store,
@@ -55,6 +64,16 @@ export class GenerationService {
         private readonly memory: HypaMemoryV3Service,
         private readonly log: Logger,
     ) {}
+
+    /** Runs after a response is stored; failed or cancelled generations never notify. */
+    onCompleted(listener: (event: GenerationCompletedEvent) => void): void {
+        this.completedListeners.push(listener)
+    }
+
+    /** Runs before a regeneration replaces a message's text. */
+    onRegenerating(listener: (messageId: string) => void): void {
+        this.regeneratingListeners.push(listener)
+    }
 
     /** Promotes a completed generation run's output to be the message's content. */
     selectOutput(messageId: string, generationId: string) {
@@ -258,6 +277,14 @@ export class GenerationService {
             throw error
         }
 
+        if (targetMessage) {
+            for (const listener of this.regeneratingListeners) {
+                this.notify(
+                    () => listener(targetMessage.id),
+                    'generation.regenerating_listener_failed',
+                )
+            }
+        }
         const streamingMessage = continued
             ? this.store.message.update(continued.id, { status: 'streaming' })
             : targetMessage
@@ -435,6 +462,18 @@ export class GenerationService {
                         startedAt,
                         'complete',
                     )
+                    for (const listener of this.completedListeners) {
+                        this.notify(
+                            () =>
+                                listener({
+                                    conversationId,
+                                    messageId: completed!.id,
+                                    generationId,
+                                    mode: request.mode,
+                                }),
+                            'generation.completed_listener_failed',
+                        )
+                    }
                     send({
                         type: 'message.snapshot',
                         generationId,
@@ -499,6 +538,15 @@ export class GenerationService {
         })
 
         return { generationId, stream }
+    }
+
+    // A listener failure must not fail the generation that already succeeded.
+    private notify(run: () => void, event: string): void {
+        try {
+            run()
+        } catch (error) {
+            this.log.error({ event, err: error }, 'Generation listener failed')
+        }
     }
 
     cancel(generationId: string): boolean {

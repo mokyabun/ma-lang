@@ -1,3 +1,5 @@
+import { type RuntimeEvent, RuntimeEventSchema } from '@malang/shared'
+
 import { api, API_BASE, getClientInstanceId } from './api'
 
 interface RuntimeCommand {
@@ -10,6 +12,20 @@ interface RuntimeCommand {
 
 const handled = new Set<string>()
 const commandResults = new Map<string, { result: unknown; error?: string }>()
+const eventListeners = new Set<(event: RuntimeEvent) => void>()
+const connectListeners = new Set<() => void>()
+
+/** Events are best-effort: a tab that reconnects re-reads current state over REST. */
+export function subscribeRuntimeEvents(listener: (event: RuntimeEvent) => void) {
+    eventListeners.add(listener)
+    return () => void eventListeners.delete(listener)
+}
+
+/** Runs on every (re)connection, so state missed while disconnected can be reloaded. */
+export function subscribeRuntimeConnection(listener: () => void) {
+    connectListeners.add(listener)
+    return () => void connectListeners.delete(listener)
+}
 
 export function connectRuntimeEvents(onReload: () => void | Promise<void>) {
     const clientInstanceId = getClientInstanceId()
@@ -17,8 +33,16 @@ export function connectRuntimeEvents(onReload: () => void | Promise<void>) {
         `${API_BASE}/runtime/events?clientInstanceId=${encodeURIComponent(clientInstanceId)}`,
         { withCredentials: true },
     )
+    source.onopen = () => {
+        for (const listener of connectListeners) listener()
+    }
     source.onmessage = (event) => {
-        const command = JSON.parse(event.data) as RuntimeCommand
+        const message = JSON.parse(event.data) as { type?: string }
+        if (message.type === 'runtime.event') {
+            dispatchRuntimeEvent(message)
+            return
+        }
+        const command = message as RuntimeCommand
         if (handled.has(command.commandId)) {
             const saved = commandResults.get(command.commandId)
             if (saved)
@@ -37,6 +61,12 @@ export function connectRuntimeEvents(onReload: () => void | Promise<void>) {
         void handleCommand(command, clientInstanceId, onReload)
     }
     return () => source.close()
+}
+
+function dispatchRuntimeEvent(message: unknown) {
+    const parsed = RuntimeEventSchema.safeParse(message)
+    if (!parsed.success) return
+    for (const listener of eventListeners) listener(parsed.data)
 }
 
 async function handleCommand(

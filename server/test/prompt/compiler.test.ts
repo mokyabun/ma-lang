@@ -469,3 +469,64 @@ describe('PocketRisu bias', () => {
         ])
     })
 })
+
+describe('illustration tokens', () => {
+    test('never reach the provider prompt', async () => {
+        const token = '{{illustration::11111111-1111-4111-8111-111111111111}}'
+        const result = await compilePrompt({
+            character: {
+                id: 'character',
+                name: 'Aria',
+                description: '',
+                personality: '',
+                scenario: '',
+                firstMessage: `Hi there\n\n${token}`,
+                exampleMessage: '',
+                systemPrompt: '',
+                postHistoryInstructions: '',
+                lorebook: [],
+                loreSettings: {},
+                regexScripts: [],
+                bias: [],
+            },
+            conversation: { id: 'conversation', variables: {}, toggles: {}, authorNote: '' },
+            messages: [
+                {
+                    id: 'greet',
+                    role: 'assistant',
+                    content: `Hi there\n\n${token}`,
+                    createdAt: '2024-01-01',
+                },
+                { id: 'u1', role: 'user', content: 'Hello', createdAt: '2024-01-02' },
+                {
+                    id: 'a1',
+                    role: 'assistant',
+                    content: `First.\n\n${token}\n\nSecond.`,
+                    createdAt: '2024-01-03',
+                },
+            ],
+            preset: {
+                warnings: [],
+                toggles: [],
+                defaultVariables: {},
+                parameters: {},
+                regexScripts: [],
+                bias: [],
+                blocks: [
+                    { id: 'chat', enabled: true, type: 'chat', rangeStart: 0, rangeEnd: 'end' },
+                ],
+                promptSettings: { sendChatAsSystem: false, sendName: false, assistantPrefill: '' },
+            },
+            settings: { userName: 'Mina', globalVariables: {} },
+            parameters: { maxContextTokens: 8192, maxOutputTokens: 512 },
+            tokenizer: testTokenizer,
+        } as unknown as Parameters<typeof compilePrompt>[0])
+
+        expect(result.messages).toEqual([
+            { role: 'system', content: '[Start a new chat]' },
+            { role: 'assistant', content: 'Hi there' },
+            { role: 'user', content: 'Hello' },
+            { role: 'assistant', content: 'First.\n\nSecond.' },
+        ])
+    })
+})

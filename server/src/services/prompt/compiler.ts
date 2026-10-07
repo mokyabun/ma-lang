@@ -11,6 +11,7 @@ import type {
     PromptPreset,
     PromptPreview,
 } from '@malang/shared'
+import { stripIllustrationTokens } from '@malang/shared'
 
 import type { CharacterRecord } from '@/db'
 import { AppError } from '@/errors/app-error'
@@ -460,15 +461,17 @@ export async function compilePrompt(input: {
         if (greeting && !summarized.has(greeting.id)) {
             const chat: RisuChat = {
                 role: 'assistant',
-                content: await processScripts({
-                    scripts: regexScripts,
-                    data: parse(firstMessage),
-                    mode: 'editprocess',
-                    chatId: -1,
-                    parse: (text) => parse(text),
-                    sandbox,
-                    warnings,
-                }),
+                content: stripIllustrationTokens(
+                    await processScripts({
+                        scripts: regexScripts,
+                        data: parse(firstMessage),
+                        mode: 'editprocess',
+                        chatId: -1,
+                        parse: (text) => parse(text),
+                        sandbox,
+                        warnings,
+                    }),
+                ),
                 sourceMessageId: greeting.id,
             }
             if (promptSettings.sendName) {
@@ -493,6 +496,7 @@ export async function compilePrompt(input: {
             })
             // Inlay tags become multimodal attachments; their text is always dropped.
             formatedChat = formatedChat.replace(/{{(inlay|inlayed|inlayeddata)::(.+?)}}/g, '')
+            formatedChat = stripIllustrationTokens(formatedChat)
             if (promptSettings.sendName) {
                 const form =
                     promptSettings.groupTemplate ||

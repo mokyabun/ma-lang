@@ -21,6 +21,18 @@ beforeAll(async () => {
 })
 
 describe('PocketRisu-compatible message sanitizer', () => {
+    test('keeps illustration placeholders and their Malang classes', async () => {
+        const { expandMessageImages } = await import('./message-images')
+        const id = '33333333-3333-4333-8333-333333333333'
+        const output = renderMessageHtml(
+            expandMessageImages(`Before.\n\n{{illustration::${id}}}\n\nAfter.`, [], 'seed'),
+        )
+        expect(output).toContain(`data-illustration-id="${id}"`)
+        expect(output).toContain('data-illustration-status="pending"')
+        expect(output).toContain('class="malang-illustration malang-illustration-pending"')
+        expect(output).toContain('After.')
+    })
+
     test('keeps safe controls, Lua routing attributes, scoped CSS, and prefixed classes', () => {
         const output = sanitizeMessageHtml(`
             <style>.panel, .bar > label { width: 50%; }</style>

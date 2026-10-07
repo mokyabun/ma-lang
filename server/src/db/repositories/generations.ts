@@ -210,6 +210,23 @@ export class GenerationRepository extends RepositoryBase {
             .map(mapGenerationRun)
     }
 
+    /** The completed run whose output the message currently shows, if any. */
+    currentRun(messageId: string, content: string) {
+        return (
+            this.listByMessage(messageId)
+                .filter((run) => run.status === 'complete')
+                .findLast((run) => (run.processedOutputText || run.outputText) === content) ?? null
+        )
+    }
+
+    setProcessedOutput(id: string, processedOutputText: string): void {
+        this.db
+            .update(generationRuns)
+            .set({ processedOutputText })
+            .where(eq(generationRuns.id, id))
+            .run()
+    }
+
     completedOutput(messageId: string, generationId: string): string | null {
         const run = this.db
             .select()

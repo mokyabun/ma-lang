@@ -24,7 +24,7 @@ export function createRuntimeDomain(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/events', (c) => {
             const clientInstanceId = z.uuid().parse(c.req.query('clientInstanceId'))
-            return new Response(context.lua.remote.subscribe(clientInstanceId), {
+            return new Response(context.events.subscribe(clientInstanceId), {
                 headers: {
                     'content-type': 'text/event-stream; charset=utf-8',
                     'cache-control': 'no-cache, no-transform',

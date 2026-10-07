@@ -1,5 +1,27 @@
 import type {
     ApiError,
+    BackgroundJob,
+    ContinuityUpdate,
+    ConversationContinuity,
+    ConversationIllustrationSettings,
+    ConversationIllustrationSettingsInput,
+    IllustrationActor,
+    IllustrationActorCreate,
+    IllustrationActorInput,
+    IllustrationActorOwner,
+    IllustrationSettings,
+    IllustrationOutfit,
+    IllustrationStateDefinition,
+    IllustrationStateDefinitionCreate,
+    IllustrationStateDefinitionInput,
+    IllustrationStyle,
+    IllustrationStyleInput,
+    IllustrationStyleTestRequest,
+    IllustrationSettingsPatch,
+    IllustrationTestRequest,
+    IllustrationTestResult,
+    IllustrationCount,
+    MessageIllustration,
     ImportEvent,
     AppSettings,
     Character,
@@ -215,6 +237,115 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(input),
         }),
+    activeJobs: (filter: { conversationId?: string; messageId?: string } = {}) =>
+        request<{ jobs: BackgroundJob[] }>(`/jobs?${new URLSearchParams(filter)}`),
+    cancelJob: (jobId: string) =>
+        request<BackgroundJob>(`/jobs/${jobId}/cancel`, { method: 'POST' }),
+    retryJob: (jobId: string) => request<BackgroundJob>(`/jobs/${jobId}/retry`, { method: 'POST' }),
+    illustrationSettings: () => request<IllustrationSettings>('/illustrations/settings'),
+    updateIllustrationSettings: (input: IllustrationSettingsPatch) =>
+        request<IllustrationSettings>('/illustrations/settings', {
+            method: 'PATCH',
+            body: JSON.stringify(input),
+        }),
+    testIllustration: (input: IllustrationTestRequest, signal?: AbortSignal) =>
+        request<IllustrationTestResult>('/illustrations/test', {
+            method: 'POST',
+            body: JSON.stringify(input),
+            signal,
+        }),
+    illustrationStyles: () => request<{ styles: IllustrationStyle[] }>('/illustrations/styles'),
+    createIllustrationStyle: (input: IllustrationStyleInput) =>
+        request<IllustrationStyle>('/illustrations/styles', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        }),
+    updateIllustrationStyle: (styleId: string, input: IllustrationStyleInput) =>
+        request<IllustrationStyle>(`/illustrations/styles/${styleId}`, {
+            method: 'PUT',
+            body: JSON.stringify(input),
+        }),
+    deleteIllustrationStyle: (styleId: string) =>
+        request<void>(`/illustrations/styles/${styleId}`, { method: 'DELETE' }),
+    testIllustrationStyle: (
+        styleId: string,
+        input: IllustrationStyleTestRequest,
+        signal?: AbortSignal,
+    ) =>
+        request<IllustrationTestResult>(`/illustrations/styles/${styleId}/test`, {
+            method: 'POST',
+            body: JSON.stringify(input),
+            signal,
+        }),
+    illustrationActors: (owner: IllustrationActorOwner) =>
+        request<{ actors: IllustrationActor[] }>(
+            `/illustrations/actors?${new URLSearchParams(owner)}`,
+        ),
+    createIllustrationActor: (input: IllustrationActorCreate) =>
+        request<IllustrationActor>('/illustrations/actors', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        }),
+    updateIllustrationActor: (actorId: string, input: IllustrationActorInput) =>
+        request<IllustrationActor>(`/illustrations/actors/${actorId}`, {
+            method: 'PUT',
+            body: JSON.stringify(input),
+        }),
+    deleteIllustrationActor: (actorId: string) =>
+        request<void>(`/illustrations/actors/${actorId}`, { method: 'DELETE' }),
+    conversationIllustrations: (conversationId: string) =>
+        request<{ illustrations: MessageIllustration[] }>(
+            `/conversations/${conversationId}/illustrations`,
+        ),
+    illustrateMessage: (conversationId: string, messageId: string, count?: IllustrationCount) =>
+        request<BackgroundJob>(
+            `/conversations/${conversationId}/messages/${messageId}/illustrations`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ count }),
+            },
+        ),
+    retryIllustration: (illustrationId: string) =>
+        request<BackgroundJob>(`/illustrations/items/${illustrationId}/retry`, { method: 'POST' }),
+    stateDefinitions: (characterId: string | null) =>
+        request<{ definitions: IllustrationStateDefinition[] }>(
+            `/illustrations/state-definitions${characterId ? `?characterId=${characterId}` : ''}`,
+        ),
+    createStateDefinition: (input: IllustrationStateDefinitionCreate) =>
+        request<IllustrationStateDefinition>('/illustrations/state-definitions', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        }),
+    updateStateDefinition: (definitionId: string, input: IllustrationStateDefinitionInput) =>
+        request<IllustrationStateDefinition>(`/illustrations/state-definitions/${definitionId}`, {
+            method: 'PUT',
+            body: JSON.stringify(input),
+        }),
+    deleteStateDefinition: (definitionId: string) =>
+        request<void>(`/illustrations/state-definitions/${definitionId}`, { method: 'DELETE' }),
+    continuity: (conversationId: string) =>
+        request<ConversationContinuity>(`/conversations/${conversationId}/continuity`),
+    saveContinuity: (conversationId: string, input: ContinuityUpdate) =>
+        request<ConversationContinuity>(`/conversations/${conversationId}/continuity`, {
+            method: 'PUT',
+            body: JSON.stringify(input),
+        }),
+    promoteOutfit: (outfitId: string) =>
+        request<IllustrationOutfit>(`/illustrations/outfits/${outfitId}/promote`, {
+            method: 'POST',
+        }),
+    conversationIllustrationSettings: (conversationId: string) =>
+        request<ConversationIllustrationSettings>(
+            `/conversations/${conversationId}/illustration-settings`,
+        ),
+    saveConversationIllustrationSettings: (
+        conversationId: string,
+        input: ConversationIllustrationSettingsInput,
+    ) =>
+        request<ConversationIllustrationSettings>(
+            `/conversations/${conversationId}/illustration-settings`,
+            { method: 'PUT', body: JSON.stringify(input) },
+        ),
     createCharacterGroup: (name: string) =>
         request<CharacterGroup>('/characters/groups', {
             method: 'POST',

@@ -1,10 +1,11 @@
-import type {
-    Character,
-    CharacterAsset,
-    GenerationRun,
-    Message,
-    ModuleAsset,
-    Persona,
+import {
+    type Character,
+    type CharacterAsset,
+    type GenerationRun,
+    illustrationTokenIds,
+    type Message,
+    type ModuleAsset,
+    type Persona,
 } from '@malang/shared'
 import {
     ArrowClockwise,
@@ -19,6 +20,7 @@ import {
     X,
 } from '@phosphor-icons/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useAtomValue } from 'jotai'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import {
@@ -34,6 +36,7 @@ import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Textarea } from '@/components/ui/textarea'
 import { api, getClientInstanceId } from '@/lib/api'
+import type { IllustrationView } from '@/lib/message-images'
 import { resolveInlayPlaceholders } from '@/lib/pocketrisu/inlays'
 import { renderMessageContentHtml } from '@/lib/render-message-content'
 import { cn } from '@/lib/utils'
@@ -41,6 +44,8 @@ import { cn } from '@/lib/utils'
 import { CharacterAvatar } from '../character/character-avatar'
 import { PersonaAvatar } from '../settings/persona/persona-avatar'
 import { formatClock, statusLabel } from './format'
+import { illustrationViewsAtom } from './illustration-atom'
+import { MessageIllustrationTool } from './message-illustration-tool'
 
 interface TranscriptScrollSnapshot {
     top: number
@@ -434,6 +439,7 @@ export function MessageTranscript({
                                     (message.role === 'assistant' &&
                                         message.position === 0) ? null : (
                                         <MessageTools
+                                            conversationId={conversationId}
                                             message={message}
                                             isLast={index === messages.length - 1}
                                             onRegenerate={onRegenerate}
@@ -477,6 +483,17 @@ function rememberTranscriptScroll(
     }
 }
 
+/** This message's illustrations; other messages' updates keep the same map. */
+function useMessageIllustrations(source: string): ReadonlyMap<string, IllustrationView> {
+    const all = useAtomValue(illustrationViewsAtom)
+    const entries = illustrationTokenIds(source).flatMap((id) => {
+        const view = all.get(id)
+        return view ? [[id, view] as const] : []
+    })
+    const key = JSON.stringify(entries)
+    return useMemo(() => new Map<string, IllustrationView>(JSON.parse(key)), [key])
+}
+
 function MessageContent({
     message,
     imageAssets,
@@ -484,14 +501,11 @@ function MessageContent({
     message: Message
     imageAssets: Array<CharacterAsset | ModuleAsset>
 }) {
+    const source = message.displayContent ?? message.content
+    const illustrations = useMessageIllustrations(source)
     const renderedContent = useMemo(
-        () =>
-            renderMessageContentHtml(
-                message.displayContent ?? message.content,
-                imageAssets,
-                message.id,
-            ),
-        [imageAssets, message.content, message.displayContent, message.id],
+        () => renderMessageContentHtml(source, imageAssets, message.id, illustrations),
+        [illustrations, imageAssets, message.id, source],
     )
     const contentRef = useRef<HTMLDivElement>(null)
     useLayoutEffect(() => {
@@ -703,6 +717,7 @@ function canContinue(messages: Message[]): boolean {
 }
 
 function MessageTools({
+    conversationId,
     message,
     isLast,
     onRegenerate,
@@ -714,6 +729,7 @@ function MessageTools({
     onVersions,
     onSelectVersion,
 }: {
+    conversationId: string
     message: Message
     isLast: boolean
     onRegenerate: () => void
@@ -765,6 +781,9 @@ function MessageTools({
             >
                 <Trash />
             </Button>
+            {message.role === 'assistant' ? (
+                <MessageIllustrationTool conversationId={conversationId} message={message} />
+            ) : null}
             {message.role === 'assistant' ? (
                 <Button
                     variant="ghost"

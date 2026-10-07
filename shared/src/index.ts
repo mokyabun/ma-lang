@@ -1,3 +1,5 @@
 export * from './model-chain-graph'
+export * from './illustration-token'
+export * from './illustration-instruction'
 export * from './schemas'
 export * from './types'

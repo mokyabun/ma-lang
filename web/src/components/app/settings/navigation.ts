@@ -5,6 +5,8 @@ import {
     PuzzlePiece,
     Robot,
     FlowArrow,
+    ImageSquare,
+    PaintBrush,
     UserCircle,
 } from '@phosphor-icons/react'
 
@@ -41,5 +43,7 @@ export const SETTINGS_NAV: Array<{
         icon: BracketsCurly,
     },
     { section: 'modules', label: '모듈', icon: PuzzlePiece },
+    { section: 'illustration', label: '삽화', icon: ImageSquare },
+    { section: 'illustration-styles', label: '삽화 스타일', icon: PaintBrush },
     { section: 'system', label: '시스템', icon: HardDrives },
 ]

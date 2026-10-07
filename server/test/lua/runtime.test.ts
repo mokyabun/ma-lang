@@ -137,7 +137,7 @@ describe('PocketRisu Lua runtime', () => {
 
     test('round-trips a blocking alert only through the initiating tab', async () => {
         const clientInstanceId = crypto.randomUUID()
-        const stream = context.lua.remote.subscribe(clientInstanceId)
+        const stream = context.events.subscribe(clientInstanceId)
         const reader = stream.getReader()
         await reader.read() // connection comment
         const invocation = context.lua.trigger(conversationId, {

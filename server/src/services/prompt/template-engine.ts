@@ -669,6 +669,8 @@ function evaluateCbsExpression(
                 .map((asset) => asset.name),
         )
     }
+    // Malang's illustration token stays verbatim: the web renders it, prompts strip it.
+    if (name === 'illustration') return null
     if (name === 'chardisplayasset')
         return makeRisuArray((context.assets || []).map((asset) => asset.name))
     if (

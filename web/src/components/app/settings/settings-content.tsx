@@ -1,3 +1,5 @@
+import { IllustrationSection } from './illustration/illustration-section'
+import { IllustrationStylesSection } from './illustration/illustration-styles-section'
 import { ModelChainSection } from './model-chains/model-chain-section'
 import { ModelPresetSection } from './model-presets/model-preset-section'
 import { ModulesSection } from './modules/modules-section'
@@ -47,6 +49,10 @@ export function SettingsContent({ section, ...props }: SettingsPanelProps) {
                     onChanged={(presets) => props.onPromptsChanged(presets, props.modules)}
                 />
             )
+        case 'illustration':
+            return <IllustrationSection modelPresets={props.modelPresets} />
+        case 'illustration-styles':
+            return <IllustrationStylesSection />
         case 'modules':
             return (
                 <ModulesSection

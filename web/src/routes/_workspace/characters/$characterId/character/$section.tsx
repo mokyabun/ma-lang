@@ -9,6 +9,7 @@ const sections = new Set<CharacterEditorSection>([
     'greetings',
     'lorebook',
     'prompt',
+    'illustration',
     'advanced',
 ])
 

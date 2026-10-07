@@ -21,6 +21,7 @@ import { effectivePromptPresetId } from '../app/conversations'
 import { conversationModuleStates } from '../app/modules'
 import type { PersonaService } from '../app/personas'
 import type { ProviderService } from '../app/providers'
+import type { RuntimeEventHub } from '../app/runtime-events'
 import { LuaRemoteCommandError, RemoteRuntime } from './remote-runtime'
 import { MiniLmSimilarity } from './similarity'
 
@@ -102,8 +103,9 @@ export class LuaRuntime {
         private readonly providers: ProviderService,
         private readonly personas: PersonaService,
         private readonly log: Logger,
+        events: RuntimeEventHub,
     ) {
-        this.remote = new RemoteRuntime(store)
+        this.remote = new RemoteRuntime(store, events)
         store.luaRun.recoverInterrupted()
     }
 

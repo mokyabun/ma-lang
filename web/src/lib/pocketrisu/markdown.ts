@@ -118,6 +118,8 @@ const trimPurifyConfig: Config = {
         'data-inlay-id',
         'data-inlay-type',
         'data-inlay-pending',
+        'data-illustration-id',
+        'data-illustration-status',
     ],
 }
 

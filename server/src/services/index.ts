@@ -14,9 +14,19 @@ import { PromptModuleService } from './app/modules'
 import { PersonaService } from './app/personas'
 import { PromptService } from './app/prompts'
 import { ProviderService } from './app/providers'
+import { RuntimeEventHub } from './app/runtime-events'
 import { SecretVault } from './app/secret-vault'
 import { SystemLogService } from './app/system-logs'
+import {
+    ANALYSIS_LANE,
+    ContinuityService,
+    IllustrationCatalogService,
+    IllustrationPipeline,
+    IllustrationService,
+    NOVELAI_LANE,
+} from './illustration'
 import { UploadStore } from './import/uploads'
+import { JobRunner } from './jobs'
 import { LuaRuntime } from './lua'
 import { HypaMemoryV3Service } from './memory'
 
@@ -41,6 +51,12 @@ export interface AppContext {
     generations: GenerationService
     lua: LuaRuntime
     memory: HypaMemoryV3Service
+    events: RuntimeEventHub
+    jobs: JobRunner
+    illustrations: IllustrationService
+    illustrationCatalog: IllustrationCatalogService
+    illustrationPipeline: IllustrationPipeline
+    continuity: ContinuityService
     backups: BackupService
     systemLogs: SystemLogService
     logger: Logger
@@ -72,13 +88,46 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
     )
     const providers = new ProviderService(store, vault)
     const personas = new PersonaService(store, assetStore)
-    const lua = new LuaRuntime(store, providers, personas, logger.child({ module: 'lua-runtime' }))
+    const events = new RuntimeEventHub()
+    const lua = new LuaRuntime(
+        store,
+        providers,
+        personas,
+        logger.child({ module: 'lua-runtime' }),
+        events,
+    )
+    const jobs = new JobRunner(store, events, logger.child({ module: 'jobs' }), {
+        lanes: { [NOVELAI_LANE]: 1, [ANALYSIS_LANE]: 2 },
+    })
+    const illustrations = new IllustrationService(store, vault, jobs)
     const memory = new HypaMemoryV3Service(
         store,
         providers,
         logger.child({ module: 'hypa-memory-v3' }),
     )
+    const generations = new GenerationService(
+        store,
+        providers,
+        personas,
+        lua,
+        memory,
+        logger.child({ module: 'generation-service' }),
+    )
+    const continuity = new ContinuityService(store, events)
+    const illustrationPipeline = new IllustrationPipeline(
+        store,
+        providers,
+        illustrations,
+        continuity,
+        jobs,
+        assetStore,
+        events,
+        logger.child({ module: 'illustrations' }),
+    )
+    generations.onCompleted((event) => illustrationPipeline.handleCompleted(event))
+    generations.onRegenerating((messageId) => illustrationPipeline.handleRegenerating(messageId))
     backups.start()
+    jobs.start()
     return {
         config,
         database,
@@ -94,18 +143,18 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
         providers,
         lua,
         memory,
+        events,
+        jobs,
+        illustrations,
+        illustrationCatalog: new IllustrationCatalogService(store),
+        illustrationPipeline,
+        continuity,
         backups,
         systemLogs,
-        generations: new GenerationService(
-            store,
-            providers,
-            personas,
-            lua,
-            memory,
-            logger.child({ module: 'generation-service' }),
-        ),
+        generations,
         logger,
         close: () => {
+            jobs.close()
             backups.close()
             systemLogs.close()
             lua.close()
