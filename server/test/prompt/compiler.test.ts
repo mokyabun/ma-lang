@@ -404,6 +404,16 @@ describe('RisuAI-compatible sendName / sendChatAsSystem formatting', () => {
         ).not.toContain('[Start a new chat]')
     })
 
+    // sendChat pushes it onto postEverything, which a template without that card appends last.
+    test('ends a continued GPT/Claude prompt with the continue instruction', async () => {
+        const input = baseInput()
+        input.continueInstruction = true
+        expect((await compilePrompt(input)).messages.at(-1)).toEqual({
+            role: 'system',
+            content: '[Continue the last response]',
+        })
+    })
+
     test('trimStartNewChat suppresses the PocketRisu marker', async () => {
         const input = baseInput()
         input.includeStartNewChat = true

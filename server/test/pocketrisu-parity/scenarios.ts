@@ -802,6 +802,26 @@ export const promptScenarios: Record<string, PromptScenario> = {
         context: { maxContext: 420, maxResponse: 100 },
     },
 
+    'continue-last-response': {
+        preset: preset(),
+        character: card(),
+        user,
+        chat: { messages: shortChat.messages.slice(0, 2) },
+        continue: true,
+    },
+
+    'continue-korean-history-trimming': {
+        preset: preset(),
+        character: card({
+            description: '{{char}}는 동네 카페의 바리스타로, {{user}}와 오래 알고 지냈다.',
+            first_mes: '어서 와, {{user}}. 오늘도 늘 마시던 걸로?',
+        }),
+        user: { name: '민수' },
+        chat: koreanChat,
+        context: { maxContext: 300, maxResponse: 100 },
+        continue: true,
+    },
+
     'korean-lorebook-token-budget': {
         preset: preset(),
         character: card({

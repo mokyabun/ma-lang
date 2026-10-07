@@ -18,6 +18,11 @@ export const GenerationRequestSchema = z.discriminatedUnion('mode', [
         idempotencyKey: z.string().min(8).max(200),
         clientInstanceId: z.uuid().optional(),
     }),
+    z.object({
+        mode: z.literal('continue'),
+        idempotencyKey: z.string().min(8).max(200),
+        clientInstanceId: z.uuid().optional(),
+    }),
 ])
 
 const LuaTriggerCommonSchema = z.object({

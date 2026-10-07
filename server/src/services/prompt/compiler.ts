@@ -136,6 +136,8 @@ export async function compilePrompt(input: {
     includeStartNewChat?: boolean
     /** PocketRisu merges consecutive system turns only for GPT/Claude-family models. */
     mergeSystemMessages?: boolean
+    /** Continuing the last reply; PocketRisu instructs only GPT/Claude-family models to do so. */
+    continueInstruction?: boolean
     longTermMemory?: {
         enabled: boolean
         content: string
@@ -577,6 +579,14 @@ export async function compilePrompt(input: {
                     ? depthPrompt.depth
                     : unformated.chats.length - depthPrompt.depth
             unformated.chats.splice(depth, 0, chat)
+        }
+
+        // Added after the history budget, so PocketRisu only counts it in the token recheck.
+        if (input.continueInstruction) {
+            unformated.postEverything.push({
+                role: 'system',
+                content: '[Continue the last response]',
+            })
         }
 
         let formated: RisuChat[] = []

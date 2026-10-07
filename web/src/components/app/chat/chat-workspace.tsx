@@ -209,7 +209,13 @@ export function ChatWorkspace({
                                 onRegenerate={() =>
                                     void generateReply({
                                         conversationId: conversation.id,
-                                        regenerate: true,
+                                        mode: 'regenerate',
+                                    })
+                                }
+                                onContinue={() =>
+                                    void generateReply({
+                                        conversationId: conversation.id,
+                                        mode: 'continue',
                                     })
                                 }
                                 onLuaTriggered={() =>

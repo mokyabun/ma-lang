@@ -13,6 +13,7 @@ import {
     Check,
     ClockCounterClockwise,
     Copy,
+    FastForward,
     PencilSimple,
     Trash,
     X,
@@ -63,6 +64,7 @@ export function MessageTranscript({
     greetingIndex,
     greetingCount,
     onRegenerate,
+    onContinue,
     onSelectGreeting,
     onEdit,
     onDelete,
@@ -83,6 +85,7 @@ export function MessageTranscript({
     greetingIndex: number
     greetingCount: number
     onRegenerate: () => void
+    onContinue: () => void
     onSelectGreeting: (greetingIndex: number) => Promise<void>
     onEdit: (message: Message, content: string) => Promise<void>
     onDelete: (message: Message, scope: 'only' | 'from') => Promise<void>
@@ -98,6 +101,7 @@ export function MessageTranscript({
     const pendingPrependRef = useRef<{ scrollTop: number; totalSize: number } | null>(null)
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
     const hasUserMessage = messages.some((message) => message.role === 'user')
+    const continuable = canContinue(messages)
     const canSelectGreeting = !hasUserMessage && greetingCount > 1
     const firstMessageId = messages[0]?.id
     // TanStack Virtual intentionally exposes an imperative instance that React Compiler skips.
@@ -412,6 +416,8 @@ export function MessageTranscript({
                                             message={message}
                                             isLast={index === messages.length - 1}
                                             onRegenerate={onRegenerate}
+                                            canContinue={continuable}
+                                            onContinue={onContinue}
                                             onStartEdit={() => changeEditingMessage(message.id)}
                                             deleteCount={messages.length - index}
                                             onDelete={onDelete}
@@ -662,10 +668,20 @@ function GreetingNavigator({
     )
 }
 
+/** The server's continue guard: two chat turns past the greeting, ending on the character. */
+function canContinue(messages: Message[]): boolean {
+    const stored = messages.filter((message) => message.status !== 'failed')
+    const chat = stored[0]?.role === 'assistant' ? stored.slice(1) : stored
+    const last = chat.at(-1)
+    return chat.length >= 2 && last?.role === 'assistant' && last === messages.at(-1)
+}
+
 function MessageTools({
     message,
     isLast,
     onRegenerate,
+    canContinue,
+    onContinue,
     onStartEdit,
     deleteCount,
     onDelete,
@@ -675,6 +691,8 @@ function MessageTools({
     message: Message
     isLast: boolean
     onRegenerate: () => void
+    canContinue: boolean
+    onContinue: () => void
     onStartEdit: () => void
     deleteCount: number
     onDelete: (message: Message, scope: 'only' | 'from') => Promise<void>
@@ -742,6 +760,18 @@ function MessageTools({
                     title="다시 쓰기"
                 >
                     <ArrowClockwise />
+                </Button>
+            ) : null}
+            {message.role === 'assistant' && isLast ? (
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onContinue}
+                    disabled={!canContinue || message.status === 'streaming'}
+                    aria-label="응답 계속하기"
+                    title="응답 계속하기"
+                >
+                    <FastForward />
                 </Button>
             ) : null}
             <MessageDeleteDialog

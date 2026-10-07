@@ -2,6 +2,7 @@ import type {
     Conversation,
     ConversationModuleState,
     GenerationEvent,
+    GenerationRequest,
     Message,
 } from '@malang/shared'
 import { atom } from 'jotai'
@@ -299,8 +300,12 @@ export const generateReplyAtom = atom(
         {
             conversationId,
             content,
-            regenerate = false,
-        }: { conversationId: string; content?: string; regenerate?: boolean },
+            mode = 'reply',
+        }: {
+            conversationId: string
+            content?: string
+            mode?: GenerationRequest['mode']
+        },
     ) => {
         if (get(activeGenerationsAtom)[conversationId]) return
         set(workspaceErrorAtom, '')
@@ -383,20 +388,15 @@ export const generateReplyAtom = atom(
         }
 
         try {
+            const request = {
+                idempotencyKey: crypto.randomUUID(),
+                clientInstanceId: getClientInstanceId(),
+            }
             await streamGeneration(
                 conversationId,
-                regenerate
-                    ? {
-                          mode: 'regenerate',
-                          idempotencyKey: crypto.randomUUID(),
-                          clientInstanceId: getClientInstanceId(),
-                      }
-                    : {
-                          mode: 'reply',
-                          content: content ?? '',
-                          idempotencyKey: crypto.randomUUID(),
-                          clientInstanceId: getClientInstanceId(),
-                      },
+                mode === 'reply'
+                    ? { mode, content: content ?? '', ...request }
+                    : { mode, ...request },
                 applyEvent,
             )
             const result = await api.conversations()

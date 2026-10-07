@@ -47,14 +47,25 @@
 
 ### 4. 이어쓰기 (continue)
 
-- [ ] `GenerationRequestSchema`(`shared/src/schemas/generations.ts`)에 `mode: 'continue'`를 추가한다.
-- [ ] PocketRisu의 이어쓰기 흐름(원본 위치 확인 필요)을 포팅한다.
-    - 마지막 캐릭터 메시지를 프롬프트에 어떤 형태로 넣는지(프리필/시스템 지시)
-    - 생성 결과를 기존 메시지 뒤에 붙이는 방식과 `editoutput`/Lua `editOutput` 적용 범위
-    - 프리필을 지원하지 않는 프로바이더에서의 동작
-- [ ] 생성 기록(스와이프)과의 관계를 정한다: 이어쓴 결과가 같은 생성 기록을 갱신하는지, 새 항목인지.
-- [ ] 채팅 UI에 이어쓰기 버튼을 추가한다.
-- [ ] parity 시나리오를 추가한다.
+- [x] `GenerationRequestSchema`에 `mode: 'continue'`를 추가한다.
+- [x] PocketRisu `sendChat({ continue: true })`를 포팅한다(`index.svelte.ts`, UI 조건은 `DefaultChatScreen.svelte`).
+    - 조건: 인사말을 뺀 채팅이 2턴 이상이고 마지막이 캐릭터 메시지일 때만 허용한다.
+    - 프롬프트: 마지막 캐릭터 메시지를 그대로 기록에 둔다. GPT/Claude/OpenRouter 계열만 `postEverything`에
+      `[Continue the last response]` 시스템 턴을 기록 예산 계산 뒤에 추가한다(재확인 단계에서만 계산됨).
+    - 출력: 기존 내용 + 새 출력을 `trim`한 뒤 Lua `editOutput` → `editoutput` 정규식으로 처리해 같은 메시지를 덮어쓴다.
+      스트리밍 중에도 기존 내용 뒤에 이어 붙여 저장한다. `onStart`/`onOutput`은 일반 생성처럼 실행하고 입력 단계는 건너뛴다.
+    - `reformatContent`의 `trim`은 일반 답변에도 적용한다(PocketRisu와 동일).
+- [x] 생성 기록: 이어쓰기는 같은 메시지에 새 생성 기록을 남긴다(`outputText`는 새 출력, `processedOutputText`는 합친 결과).
+      이전 기록을 고르면 이어쓰기 전 내용으로 돌아간다.
+- [x] 메시지 도구에 "응답 계속하기" 버튼을 추가한다.
+- [x] parity 시나리오(`continue-last-response`, `continue-korean-history-trimming`)를 추가한다.
+      오라클이 Gemini 프리셋만 써서 `[Continue the last response]` 추가는 컴파일러 단위 테스트로 검증한다.
+- [ ] PocketRisu와 다르게 둔 부분: 기본값인 `useSayNothing`이 켜져 있으면 PocketRisu는 이어쓰기 전에 `*says nothing*`
+      사용자 메시지를 넣고 그 메시지에 출력을 이어 붙인다(사용자 메시지가 망가지는 버그). Malang은 이 동작을 따르지 않는다.
+      실패한 이어쓰기는 메시지를 `failed`로 바꾸지 않고 원래 상태로 두어 채팅에서 빠지지 않게 한다.
+- [ ] 자동 이어쓰기(`autoContinueChat`, `autoContinueMinTokens`)와 `removeIncompleteResponse` 설정은 아직 없다.
+- [ ] NovelAI/NovelList/Horde 등 텍스트 완성 프로바이더는 PocketRisu `stringlize*` 형식(이어쓰기 시 `{{char}}:` 생략 등)을
+      포팅하지 않아 모든 요청을 `role: content`로 보낸다.
 
 ### 5. Bias (로짓 바이어스)
 

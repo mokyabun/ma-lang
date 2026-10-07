@@ -16,6 +16,13 @@ export function isPromptToggleEnabled(value: string): boolean {
     return value === '1' || value === 'true'
 }
 
+/** PocketRisu's chat.message excludes the greeting, which it derives from fmIndex. */
+export function splitGreeting(messages: Message[]) {
+    const stored = messages.filter((message) => message.status !== 'failed')
+    const greeting = stored[0]?.role === 'assistant' ? stored[0] : null
+    return { greeting, chatMessages: greeting ? stored.slice(1) : stored }
+}
+
 /** Chat state sendChat parses against: effective toggles, greeting split off, bound risuChatParser. */
 export function loadRisuChat(input: {
     character: Character
@@ -51,10 +58,7 @@ export function loadRisuChat(input: {
         ]),
     )
 
-    // chat.message excludes the greeting, which PocketRisu derives from fmIndex.
-    const stored = input.messages.filter((message) => message.status !== 'failed')
-    const greeting = stored[0]?.role === 'assistant' ? stored[0] : null
-    const chatMessages = greeting ? stored.slice(1) : stored
+    const { greeting, chatMessages } = splitGreeting(input.messages)
     const firstMessage = greeting?.content ?? ''
     const selectedGreeting =
         conversation.greetingIndex >= 0

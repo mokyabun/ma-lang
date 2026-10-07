@@ -72,6 +72,8 @@ export interface PromptScenario {
     chainOfThought?: boolean
     /** Model preset token budget; omitted means neither side trims history. */
     context?: { maxContext: number; maxResponse: number }
+    /** Build the prompt for continuing the chat's last character message. */
+    continue?: boolean
 }
 
 /** The prompt PocketRisu's sendChat would hand to the request layer. */

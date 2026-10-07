@@ -108,7 +108,7 @@ async function renderRequest(entry: RequestCase): Promise<OracleResult> {
         // sendChat persists CBS side effects (setvar) into the chat, so every
         // preview starts from a freshly loaded scenario.
         await loadScenario(entry.scenario)
-        if (!(await chatProcess.sendChat(-1, { preview: true }))) {
+        if (!(await chatProcess.sendChat(-1, { preview: true, continue: entry.scenario.continue }))) {
             throw new Error('sendChat preview returned false')
         }
         const messages = chatProcess.previewFormated.map((message) => {
@@ -117,7 +117,12 @@ async function renderRequest(entry: RequestCase): Promise<OracleResult> {
         })
 
         await loadScenario(entry.scenario)
-        if (!(await chatProcess.sendChat(-1, { previewPrompt: true }))) {
+        if (
+            !(await chatProcess.sendChat(-1, {
+                previewPrompt: true,
+                continue: entry.scenario.continue,
+            }))
+        ) {
             throw new Error('sendChat previewPrompt returned false')
         }
         const { body } = JSON.parse(chatProcess.previewBody) as { body: Record<string, unknown> }

@@ -5,6 +5,7 @@ import type {
     GenerationEvent,
     GenerationParameters,
     GenerationRequest,
+    Message,
     ModelChainAgent,
     ModelChainPreset,
     PromptPreview,
@@ -18,6 +19,7 @@ import { normalizeError } from '@/errors/normalize'
 import type { LuaRuntime } from '@/services/lua'
 import type { HypaMemoryV3Service } from '@/services/memory'
 import { compilePrompt, mergeGenerationParameters } from '@/services/prompt/compiler'
+import { splitGreeting } from '@/services/prompt/pocketrisu/chat'
 import { providerFor } from '@/services/providers'
 import { readPocketRisuProfileBinding } from '@/services/providers/pocketrisu-profile'
 import type { ProviderUsage } from '@/services/providers/types'
@@ -61,7 +63,7 @@ export class GenerationService {
         return this.store.message.update(messageId, { content: output, status: 'complete' })
     }
 
-    async preview(conversationId: string) {
+    async preview(conversationId: string, options: { continuing?: boolean } = {}) {
         const context = this.context(conversationId)
         const provider = this.providers.configForConversation(conversationId)
         const parameters = generationParameters(provider, context.preset.parameters)
@@ -77,7 +79,7 @@ export class GenerationService {
             parameters,
             tokenizer,
             longTermMemory,
-            ...providerPromptOptions(provider),
+            ...providerPromptOptions(provider, options.continuing),
         })
     }
 
@@ -111,6 +113,11 @@ export class GenerationService {
             throw new ValidationError(
                 'An empty reply requires a user message at the end of the chat',
             )
+        }
+        const continuing = request.mode === 'continue'
+        let continued = continuing ? continuableMessage(context.messages) : null
+        if (continuing && !continued) {
+            throw new GenerationConflictError('There is no assistant response to continue')
         }
         const providerConfig = await this.providers.requireRuntimeForConversation(conversationId)
         const modelChain = context.conversation.modelChainPresetId
@@ -180,6 +187,11 @@ export class GenerationService {
             })
             stoppedBeforeProvider = started.stopSending
             context = this.context(conversationId)
+            if (continued) {
+                continued = this.store.message.get(continued.id)
+                if (!continued)
+                    throw new GenerationConflictError('Lua onStart removed the response')
+            }
             compileMessages = targetMessage
                 ? context.messages.filter((message) => message.id !== targetMessage.id)
                 : context.messages
@@ -188,7 +200,7 @@ export class GenerationService {
                 messages: compileMessages,
                 parameters,
                 tokenizer,
-                ...providerPromptOptions(providerConfig),
+                ...providerPromptOptions(providerConfig, continuing),
             })
             const longTermMemory = await this.memory.prepare(
                 conversationId,
@@ -203,7 +215,7 @@ export class GenerationService {
                 parameters,
                 tokenizer,
                 longTermMemory,
-                ...providerPromptOptions(providerConfig),
+                ...providerPromptOptions(providerConfig, continuing),
             })
             chainContext = buildChainExecutionContext(
                 context,
@@ -246,14 +258,22 @@ export class GenerationService {
             throw error
         }
 
-        const streamingMessage = targetMessage
-            ? this.store.message.update(targetMessage.id, {
-                  content: '',
-                  status: 'streaming',
-              })
-            : this.store.message.create(conversationId, 'assistant', '', 'streaming')
+        const streamingMessage = continued
+            ? this.store.message.update(continued.id, { status: 'streaming' })
+            : targetMessage
+              ? this.store.message.update(targetMessage.id, {
+                    content: '',
+                    status: 'streaming',
+                })
+              : this.store.message.create(conversationId, 'assistant', '', 'streaming')
         if (!streamingMessage) throw new Error('Failed to create assistant message')
         const messageId = streamingMessage.id
+        // PocketRisu streams the continuation onto the stored reply text.
+        const prefix = continued?.content ?? ''
+        const restoreContinued = continued && {
+            content: continued.content,
+            status: continued.status,
+        }
         this.store.generation.attachMessage(generationId, messageId)
         const abortController = new AbortController()
         this.active.set(generationId, abortController)
@@ -285,10 +305,10 @@ export class GenerationService {
                 let usage: ProviderUsage | undefined
                 try {
                     if (stoppedBeforeProvider) {
-                        const stopped = this.store.message.update(messageId, {
-                            content: '',
-                            status: 'cancelled',
-                        })
+                        const stopped = this.store.message.update(
+                            messageId,
+                            restoreContinued || { content: '', status: 'cancelled' },
+                        )
                         this.store.generation.finish(generationId, {
                             status: 'cancelled',
                             outputText: '',
@@ -346,7 +366,7 @@ export class GenerationService {
                                 Date.now() - checkpointAt >= 1_000
                             ) {
                                 this.store.message.update(messageId, {
-                                    content,
+                                    content: prefix + content,
                                     status: 'streaming',
                                 })
                                 checkpointLength = content.length
@@ -370,7 +390,8 @@ export class GenerationService {
                         eventKey: request.idempotencyKey,
                         phase: 'editOutput',
                         mode: 'editOutput',
-                        data: content,
+                        // sendChat's reformatContent trims before processScriptFull.
+                        data: (prefix + content).trim(),
                         clientInstanceId,
                         scriptSnapshot: luaScriptSnapshot,
                     })
@@ -425,8 +446,9 @@ export class GenerationService {
                 } catch (error) {
                     const cancelled = abortController.signal.aborted
                     this.store.message.update(messageId, {
-                        content: processedContent || content,
-                        status: cancelled ? 'cancelled' : 'failed',
+                        content: processedContent || prefix + content,
+                        // A failed continue must not drop the reply it extended from the chat.
+                        status: cancelled ? 'cancelled' : (restoreContinued?.status ?? 'failed'),
                     })
                     const normalized = normalizeError(error, requestId, { cancelled })
                     const apiError = normalized.apiError
@@ -677,12 +699,27 @@ export class GenerationService {
     }
 }
 
-/** PocketRisu: `[Start a new chat]` except for NovelAI; merge system turns only for GPT/Claude/OpenRouter. */
-function providerPromptOptions(config: { provider: string } | null | undefined) {
+/** PocketRisu: `[Start a new chat]` except for NovelAI; GPT/Claude/OpenRouter get merged system turns and the continue instruction. */
+function providerPromptOptions(
+    config: { provider: string } | null | undefined,
+    continuing = false,
+) {
+    const gptOrClaude = ['openai', 'anthropic', 'openrouter'].includes(config?.provider ?? '')
     return {
         includeStartNewChat: config?.provider !== 'novelai',
-        mergeSystemMessages: ['openai', 'anthropic', 'openrouter'].includes(config?.provider ?? ''),
+        mergeSystemMessages: gptOrClaude,
+        continueInstruction: continuing && gptOrClaude,
     }
+}
+
+/** PocketRisu offers continue only when the chat, greeting excluded, has two turns and ends on the character. */
+function continuableMessage(messages: Message[]): Message | null {
+    const { chatMessages } = splitGreeting(messages)
+    const last = chatMessages.at(-1)
+    if (chatMessages.length < 2 || last?.role !== 'assistant' || last !== messages.at(-1)) {
+        return null
+    }
+    return last
 }
 
 function isGeminiProvider(

@@ -93,7 +93,9 @@ export async function compileWithMalang(
             context.modules.setConversationState(conversation.id, module.id, true)
         }
 
-        const preview = await context.generations.preview(conversation.id)
+        const preview = await context.generations.preview(conversation.id, {
+            continuing: scenario.continue,
+        })
         return {
             messages: preview.messages.map(({ role, content }) => ({ role, content })),
             geminiPrompt: toPocketRisuGeminiPrompt(preview.messages),
