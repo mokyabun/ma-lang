@@ -14,10 +14,10 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { loadConfig } from '../src/config'
-import { type DatabaseHandle, openDatabase, Store } from '../src/db'
-import { createLogger } from '../src/logger'
-import { BACKUP_MAX_BYTES, BackupService } from '../src/services/app/backups'
+import { loadConfig } from '@/config'
+import { type DatabaseHandle, openDatabase, Store } from '@/db'
+import { createLogger } from '@/logger'
+import { BACKUP_MAX_BYTES, BackupService } from '@/services/app/backups'
 
 describe('automatic database backups', () => {
     let directory: string

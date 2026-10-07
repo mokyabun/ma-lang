@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { compilePrompt } from '../src/services/prompt/compiler'
+import { compilePrompt } from '@/services/prompt/compiler'
 
 describe('PocketRisu editprocess ordering', () => {
     test('processes chat history before prompt blocks are assembled', async () => {

@@ -2,43 +2,29 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { createContext } from '@/services'
+import { toPocketRisuGeminiPrompt } from '@/services/providers/gemini-rest'
+
 import type {
     GeminiPrompt,
     PromptMessage,
     PromptScenario,
 } from '../../../scripts/pocketrisu-oracle/protocol'
-import type { AppConfig } from '../../src/config'
-import { createContext } from '../../src/services'
-import { toPocketRisuGeminiPrompt } from '../../src/services/providers/gemini-rest'
+import { appConfig } from '../support/fixtures'
 
 const encoder = new TextEncoder()
 
 // Mirrors the request oracle: neither side may trim history.
 const UNLIMITED_CONTEXT = 10_000_000
 
-function testConfig(directory: string): AppConfig {
-    return {
-        nodeEnv: 'test',
-        autoBackupEnabled: false,
-        host: '127.0.0.1',
-        dataDir: directory,
-        databasePath: join(directory, 'data.sqlite'),
+function testConfig(directory: string) {
+    const base = appConfig(directory)
+    return appConfig(directory, {
         adminPassword: 'pocketrisu parity administrator',
         sessionSecret: 'pocketrisu-parity-session-secret-with-entropy',
-        allowedOrigins: new Set(),
-        cookieSecure: false,
         port: 0,
-        logLevel: 'silent',
-        logPretty: false,
-        logColorize: false,
-        limits: {
-            importBytes: 128 << 20,
-            jsonBytes: 32 << 20,
-            assetBytes: 32 << 20,
-            archiveEntries: 4096,
-            uploadChunkBytes: 64 << 10,
-        },
-    }
+        limits: { ...base.limits, jsonBytes: 32 << 20 },
+    })
 }
 
 const json = (value: unknown) => encoder.encode(JSON.stringify(value))

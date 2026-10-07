@@ -1,6 +1,10 @@
 import { join } from 'node:path'
 
-import type { AppConfig } from '../src/config'
+import type { AppConfig } from '@/config'
+
+export function fixturePath(name: string) {
+    return join(import.meta.dir, '../fixtures', name)
+}
 
 export function appConfig(
     dataDir = '/tmp/malang-test',

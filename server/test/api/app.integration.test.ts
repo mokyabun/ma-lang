@@ -6,9 +6,11 @@ import { join } from 'node:path'
 import { GENERAL_CHAT_CHARACTER_ID, type ImportEvent } from '@malang/shared'
 import { unzipSync, zipSync } from 'fflate'
 
-import { createApp } from '../src/app'
-import { type AppContext, createContext } from '../src/services'
-import { appConfig, v3Card } from './fixtures'
+import { createApp } from '@/app'
+import { type AppContext, createContext } from '@/services'
+
+import { appConfig, fixturePath, v3Card } from '../support/fixtures'
+import { login } from '../support/session'
 
 describe('Hono API and SQLite persistence', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-api-'))
@@ -79,9 +81,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('imports a CHARX uploaded in out-of-order, retried chunks', async () => {
-        const bytes = new Uint8Array(
-            await Bun.file(new URL('./test.charx', import.meta.url)).arrayBuffer(),
-        )
+        const bytes = new Uint8Array(await Bun.file(fixturePath('test.charx')).arrayBuffer())
         const json = { cookie, 'content-type': 'application/json' }
         const uploadsDirectory = join(directory, 'tmp', 'uploads')
 
@@ -180,12 +180,7 @@ describe('Hono API and SQLite persistence', () => {
 
     test('creates, lists, downloads, and deletes database snapshots', async () => {
         if (!cookie) {
-            const login = await app.request('/api/v1/auth/login', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ password: config.adminPassword }),
-            })
-            cookie = login.headers.get('set-cookie')!.split(';')[0]!
+            cookie = await login(app, adminPassword)
         }
         const created = await app.request('/api/v1/settings/backups', {
             method: 'POST',
@@ -636,7 +631,7 @@ describe('Hono API and SQLite persistence', () => {
                 'content-type': 'application/octet-stream',
                 'x-filename': encodeURIComponent('테스트 캐릭터.charx'),
             },
-            body: await Bun.file(new URL('./test.charx', import.meta.url)).arrayBuffer(),
+            body: await Bun.file(fixturePath('test.charx')).arrayBuffer(),
         })
         expect(imported.status).toBe(201)
     })
@@ -720,7 +715,7 @@ describe('Hono API and SQLite persistence', () => {
             })
 
         const response = await upload(
-            await Bun.file(new URL('./test.charx', import.meta.url)).arrayBuffer(),
+            await Bun.file(fixturePath('test.charx')).arrayBuffer(),
             'stream.charx',
         )
         expect(response.headers.get('content-type')).toContain('text/event-stream')
@@ -1611,12 +1606,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('encrypts a Vertex API key and re-encrypts it after a password change', async () => {
-        const login = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: config.adminPassword }),
-        })
-        cookie = login.headers.get('set-cookie')!.split(';')[0]!
+        cookie = await login(app, adminPassword)
 
         const apiKey = 'test-vertex-api-key-that-must-never-be-plaintext'
         const configured = await app.request('/api/v1/provider', {
@@ -1666,12 +1656,7 @@ describe('Hono API and SQLite persistence', () => {
             apiKeyLocked: true,
         })
 
-        const relogin = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: newPassword }),
-        })
-        expect(relogin.status).toBe(200)
+        cookie = await login(app, newPassword)
         const runtime = await context.providers.requireRuntime()
         expect(runtime).toMatchObject({ provider: 'vertex', apiKey })
         expect(context.providers.get()).toMatchObject({
@@ -1691,10 +1676,7 @@ describe('Hono API and SQLite persistence', () => {
         }
         const serviceAccountConfigured = await app.request('/api/v1/provider', {
             method: 'PUT',
-            headers: {
-                cookie: relogin.headers.get('set-cookie')!.split(';')[0]!,
-                'content-type': 'application/json',
-            },
+            headers: { cookie, 'content-type': 'application/json' },
             body: JSON.stringify({
                 provider: 'vertex',
                 projectId: '',
@@ -1729,12 +1711,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('follows the global persona unless a conversation locks its selection', async () => {
-        const relogin = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: adminPassword }),
-        })
-        cookie = relogin.headers.get('set-cookie')!.split(';')[0]!
+        cookie = await login(app, adminPassword)
         const jsonHeaders = { cookie, 'content-type': 'application/json' }
 
         const personaCard = v3Card({
@@ -1908,12 +1885,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('avatar upload/removal and CRUD round-trip for personas', async () => {
-        const relogin = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: adminPassword }),
-        })
-        cookie = relogin.headers.get('set-cookie')!.split(';')[0]!
+        cookie = await login(app, adminPassword)
         const created = await app.request('/api/v1/personas', {
             method: 'POST',
             headers: { cookie, 'content-type': 'application/json' },
@@ -1975,12 +1947,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('round-trips extended lorebook fields through character updates and CCv3 card export/import', async () => {
-        const relogin = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: adminPassword }),
-        })
-        cookie = relogin.headers.get('set-cookie')!.split(';')[0]!
+        cookie = await login(app, adminPassword)
         const jsonHeaders = { cookie, 'content-type': 'application/json' }
 
         const created = await app.request('/api/v1/characters', {
@@ -2067,12 +2034,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('round-trips a fully-populated lorebook entry through prompt module updates', async () => {
-        const relogin = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: adminPassword }),
-        })
-        cookie = relogin.headers.get('set-cookie')!.split(';')[0]!
+        cookie = await login(app, adminPassword)
         const jsonHeaders = { cookie, 'content-type': 'application/json' }
 
         const created = await app.request('/api/v1/prompt-modules', {

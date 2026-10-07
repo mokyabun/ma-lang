@@ -27,7 +27,7 @@
   fails at startup when a journal entry is not registered.
 - Never edit a generated migration or snapshot by hand. A data-only fix belongs in a separate
   migration generated with `bun run db:generate --custom --name <name>`; it may contain DML only.
-- `test/db-schema.test.ts` fails when `schema.ts` differs from the latest migration snapshot.
+- `test/db/schema.test.ts` fails when `schema.ts` differs from the latest migration snapshot.
 - Queries belong in repositories under `server/src/db/repositories/`. Services and routes compose
   repositories and never run SQL on the connection directly; only infrastructure (backups, health
   checks) uses `DatabaseHandle`.

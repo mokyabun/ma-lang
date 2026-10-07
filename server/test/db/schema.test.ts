@@ -5,10 +5,10 @@ import { join } from 'node:path'
 import { generateSQLiteDrizzleJson, generateSQLiteMigration } from 'drizzle-kit/api'
 import { eq } from 'drizzle-orm'
 
-import { openDatabase } from '../src/db'
-import journal from '../src/db/migrations/meta/_journal.json'
-import * as schema from '../src/db/schema'
-import { adminUsers } from '../src/db/schema'
+import { openDatabase } from '@/db'
+import journal from '@/db/migrations/meta/_journal.json'
+import * as schema from '@/db/schema'
+import { adminUsers } from '@/db/schema'
 
 describe('database baseline', () => {
     test('has a generated migration for every schema.ts change', async () => {
@@ -17,7 +17,7 @@ describe('database baseline', () => {
             readFileSync(
                 join(
                     import.meta.dir,
-                    `../src/db/migrations/meta/${latest.tag.slice(0, 4)}_snapshot.json`,
+                    `../../src/db/migrations/meta/${latest.tag.slice(0, 4)}_snapshot.json`,
                 ),
                 'utf8',
             ),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-import { processRegexText } from '../src/services/prompt/regex-runtime'
-import { renderTemplate } from '../src/services/prompt/template-engine'
+import { processRegexText } from '@/services/prompt/regex-runtime'
+import { renderTemplate } from '@/services/prompt/template-engine'
 
 const templateContext = {
     values: {},

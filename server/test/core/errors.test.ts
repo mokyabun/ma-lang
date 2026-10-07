@@ -10,8 +10,8 @@ import {
     PayloadTooLargeError,
     ValidationError,
     validationDetails,
-} from '../src/errors'
-import { ProviderError } from '../src/services/providers/types'
+} from '@/errors'
+import { ProviderError } from '@/services/providers/types'
 
 describe('structured server errors', () => {
     test.each([

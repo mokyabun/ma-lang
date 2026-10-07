@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
-import { exportPromptModule, importPromptModule } from '../src/services/prompt/module-codec'
-import { appConfig } from './fixtures'
+import { exportPromptModule, importPromptModule } from '@/services/prompt/module-codec'
+
+import { appConfig } from '../support/fixtures'
 
 const limits = appConfig().limits
 

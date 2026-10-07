@@ -4,7 +4,7 @@ import {
     compilePrompt,
     isPromptToggleEnabled,
     mergeGenerationParameters,
-} from '../src/services/prompt/compiler'
+} from '@/services/prompt/compiler'
 
 describe('generation parameter merging', () => {
     test('treats RisuAI -1000 sentinels as unset', async () => {

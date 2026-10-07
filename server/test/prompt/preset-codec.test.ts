@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-import { exportPromptPreset, importPromptPreset } from '../src/services/prompt/preset-codec'
-import { encodeRPack } from '../src/services/prompt/rpack'
+import { exportPromptPreset, importPromptPreset } from '@/services/prompt/preset-codec'
+import { encodeRPack } from '@/services/prompt/rpack'
 
 describe('Risu preset codec', () => {
     const input = {

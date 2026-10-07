@@ -5,8 +5,9 @@ import { join } from 'node:path'
 
 import { CharacterCreateSchema } from '@malang/shared'
 
-import { type AppContext, createContext } from '../src/services'
-import { appConfig } from './fixtures'
+import { type AppContext, createContext } from '@/services'
+
+import { appConfig, fixturePath } from '../support/fixtures'
 
 describe('PocketRisu Lua runtime', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-lua-'))
@@ -24,7 +25,7 @@ describe('PocketRisu Lua runtime', () => {
                 name: 'Lua fixture',
                 defaultVariables: { fallback_value: 'character-default', choice: '0' },
                 luaScript: {
-                    code: readFileSync(join(import.meta.dir, 'fixtures/lua-runtime.lua'), 'utf8'),
+                    code: readFileSync(fixturePath('lua-runtime.lua'), 'utf8'),
                     enabled: true,
                     lowLevelAccess: true,
                 },

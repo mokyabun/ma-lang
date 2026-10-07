@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import type { LoreEntry } from '@malang/shared'
 
-import { selectLoreEntries } from '../src/services/prompt/lorebook'
+import { selectLoreEntries } from '@/services/prompt/lorebook'
 
 const baseEntry: LoreEntry = {
     id: '00000000-0000-4000-8000-000000000001',

@@ -5,9 +5,11 @@ import { join } from 'node:path'
 
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 
-import { createApp } from '../src/app'
-import { type AppContext, createContext } from '../src/services'
-import { appConfig } from './fixtures'
+import { createApp } from '@/app'
+import { type AppContext, createContext } from '@/services'
+
+import { appConfig } from '../support/fixtures'
+import { login } from '../support/session'
 
 describe('model presets, API keys, and conversation bindings', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-presets-'))
@@ -19,12 +21,7 @@ describe('model presets, API keys, and conversation bindings', () => {
     beforeAll(async () => {
         context = await createContext(config)
         app = createApp(context)
-        const login = await app.request('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ password: config.adminPassword }),
-        })
-        cookie = login.headers.get('set-cookie')!.split(';')[0]!
+        cookie = await login(app, config.adminPassword!)
     })
 
     afterAll(() => {

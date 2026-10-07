@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { EnvConfigSchema } from '../src/config'
+import { EnvConfigSchema } from '@/config'
 
 function parseConfig(env: Record<string, string | undefined>) {
     return EnvConfigSchema.parse(env)

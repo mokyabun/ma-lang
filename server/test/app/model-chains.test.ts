@@ -11,8 +11,9 @@ import {
     type ModelChainAgent,
 } from '@malang/shared'
 
-import { type AppContext, createContext } from '../src/services'
-import { appConfig } from './fixtures'
+import { type AppContext, createContext } from '@/services'
+
+import { appConfig } from '../support/fixtures'
 
 describe('server-side model chains', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-chains-'))

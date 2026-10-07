@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { SystemLogService } from '../src/services/app/system-logs'
+import { SystemLogService } from '@/services/app/system-logs'
 
 describe('persistent system logs', () => {
     let directory: string

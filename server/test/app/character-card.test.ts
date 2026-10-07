@@ -4,10 +4,11 @@ import { readFileSync } from 'node:fs'
 import type { CharacterCardV3 } from '@risuai/ccardlib'
 import { unzipSync, zipSync } from 'fflate'
 
-import { exportCharacterCard, importCharacterCard } from '../src/services/app/character-card'
-import { exportPromptModule } from '../src/services/prompt/module-codec'
-import { encodeRPack } from '../src/services/prompt/rpack'
-import { appConfig, v3Card } from './fixtures'
+import { exportCharacterCard, importCharacterCard } from '@/services/app/character-card'
+import { exportPromptModule } from '@/services/prompt/module-codec'
+import { encodeRPack } from '@/services/prompt/rpack'
+
+import { appConfig, fixturePath, v3Card } from '../support/fixtures'
 
 function buildRisumModule(module: Record<string, unknown>): Uint8Array {
     const main = encodeRPack(
@@ -129,7 +130,7 @@ describe('character card codec', () => {
 
     test('imports the Devil-chan CHARX compatibility fixture', async () => {
         const imported = await importCharacterCard(
-            readFileSync(new URL('./test.charx', import.meta.url)),
+            readFileSync(fixturePath('test.charx')),
             'test.charx',
             config,
         )

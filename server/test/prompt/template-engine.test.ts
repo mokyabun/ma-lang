@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { renderTemplate } from '../src/services/prompt/template-engine'
+import { renderTemplate } from '@/services/prompt/template-engine'
 
 const context = {
     values: { user: 'Mina', char: 'Aria' },

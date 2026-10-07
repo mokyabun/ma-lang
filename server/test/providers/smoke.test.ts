@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
-import { OllamaAdapter } from '../src/services/providers/ollama'
-import { VertexAdapter } from '../src/services/providers/vertex'
+import { OllamaAdapter } from '@/services/providers/ollama'
+import { VertexAdapter } from '@/services/providers/vertex'
 
 const vertexSmoke = Bun.env.VERTEX_SMOKE_PROJECT && Bun.env.VERTEX_SMOKE_MODEL ? test : test.skip
 vertexSmoke('Vertex ADC smoke test', async () => {
