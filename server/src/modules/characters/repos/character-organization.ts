@@ -23,7 +23,6 @@ export class CharacterOrganizationRepository extends RepositoryBase {
             return false
         }
 
-        const now = new Date()
         this.sqlite.transaction(() => {
             for (const group of input.groups) {
                 this.db

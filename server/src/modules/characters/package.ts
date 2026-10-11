@@ -310,6 +310,7 @@ function chatsFrom(bytes: Uint8Array, maxBytes: number, warnings: string[]) {
 }
 
 function safeFilename(value: string): string {
+    // oxlint-disable-next-line no-control-regex -- control characters are invalid in filenames
     return value.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/[. ]+$/, '') || 'character'
 }
 
