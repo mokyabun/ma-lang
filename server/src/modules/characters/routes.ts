@@ -18,7 +18,7 @@ export function createCharacterRoutes(context: AppContext) {
         .get('/', (c) =>
             c.json({
                 characters: context.characters.list(c.req.query('archived') === 'true'),
-                groups: context.store.characterGroup.list(),
+                groups: context.characters.listGroups(),
             }),
         )
         .post('/', jsonValidator(CharacterCreateSchema), (c) =>
@@ -30,23 +30,23 @@ export function createCharacterRoutes(context: AppContext) {
         .patch('/groups/:groupId', jsonValidator(GroupUpdateSchema), (c) => {
             const name = c.req.valid('json').name
             if (!name) throw new ValidationError('Group name is required')
-            const group = context.store.characterGroup.update(c.req.param('groupId'), name)
+            const group = context.characters.updateGroup(c.req.param('groupId'), name)
             if (!group) throw new NotFoundError('Character group not found')
             return c.json(group)
         })
         .delete('/groups/:groupId', (c) => {
-            if (!context.store.characterGroup.delete(c.req.param('groupId'))) {
+            if (!context.characters.deleteGroup(c.req.param('groupId'))) {
                 throw new NotFoundError('Character group not found')
             }
             return c.body(null, 204)
         })
         .put('/organization', jsonValidator(CharacterOrganizationSchema), (c) => {
-            if (!context.store.characterOrganization.update(c.req.valid('json'))) {
+            if (!context.characters.updateOrganization(c.req.valid('json'))) {
                 throw new ValidationError('Invalid character organization')
             }
             return c.json({
                 characters: context.characters.list(false),
-                groups: context.store.characterGroup.list(),
+                groups: context.characters.listGroups(),
             })
         })
         .post('/import', (c) =>
@@ -136,14 +136,7 @@ export function createCharacterRoutes(context: AppContext) {
             if (!context.characters.get(characterId)) {
                 throw new NotFoundError('Character not found')
             }
-            const generating = context.store.conversation
-                .list(true)
-                .some(
-                    (conversation) =>
-                        conversation.characterId === characterId &&
-                        context.store.generation.findRunning(conversation.id),
-                )
-            if (generating) {
+            if (context.characters.isGenerating(characterId)) {
                 throw new ConflictError('Character cannot be deleted while a generation is running')
             }
             if (!context.characters.delete(characterId)) {

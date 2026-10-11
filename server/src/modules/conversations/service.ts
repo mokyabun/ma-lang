@@ -1,6 +1,13 @@
-import type { AppSettings, Conversation, ConversationCreate } from '@malang/shared'
+import type {
+    AppSettings,
+    Conversation,
+    ConversationCreate,
+    ConversationOrganization,
+} from '@malang/shared'
 
 import type { Store } from '@/db'
+import { NotFoundError } from '@/lib/errors/app-error'
+import type { ConversationRepository } from '@/modules/conversations/repos/conversations'
 import type { PromptService } from '@/modules/prompts/service'
 
 /** A conversation follows the global default preset unless it pinned its own. */
@@ -14,6 +21,78 @@ export class ConversationService {
         private readonly store: Store,
         private readonly prompts: PromptService,
     ) {}
+
+    list(includeArchived = false) {
+        return this.store.conversation.list(includeArchived)
+    }
+
+    get(id: string) {
+        return this.store.conversation.get(id)
+    }
+
+    requireConversation(id: string): Conversation {
+        const conversation = this.store.conversation.get(id)
+        if (!conversation) throw new NotFoundError('Conversation not found')
+        return conversation
+    }
+
+    update(id: string, update: Parameters<ConversationRepository['update']>[1]) {
+        return this.store.conversation.update(id, update)
+    }
+
+    archive(id: string) {
+        return this.store.conversation.archive(id)
+    }
+
+    restore(id: string) {
+        return this.store.conversation.restore(id)
+    }
+
+    delete(id: string) {
+        return this.store.conversation.delete(id)
+    }
+
+    isGenerating(id: string): boolean {
+        return Boolean(this.store.generation.findRunning(id))
+    }
+
+    listGroups(characterId?: string) {
+        return this.store.conversationGroup.list(characterId)
+    }
+
+    updateGroup(id: string, name: string) {
+        return this.store.conversationGroup.update(id, name)
+    }
+
+    deleteGroup(id: string) {
+        return this.store.conversationGroup.delete(id)
+    }
+
+    updateOrganization(input: ConversationOrganization) {
+        return this.store.conversationOrganization.update(input)
+    }
+
+    /** Throws unless the message exists and belongs to the conversation. */
+    requireMessage(conversationId: string, messageId: string) {
+        const message = this.store.message.get(messageId)
+        if (!message || message.conversationId !== conversationId) {
+            throw new NotFoundError('Message not found')
+        }
+        return message
+    }
+
+    updateMessage(id: string, content: string) {
+        return this.store.message.update(id, { content })
+    }
+
+    /** Deletes every message from `position` onwards and returns how many were removed. */
+    truncateMessages(conversationId: string, position: number) {
+        return this.store.message.truncate(conversationId, position)
+    }
+
+    deleteMessage(id: string) {
+        this.store.message.delete(id)
+    }
 
     create(input: ConversationCreate): Conversation {
         return this.store.transaction(() => {

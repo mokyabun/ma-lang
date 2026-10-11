@@ -1,4 +1,4 @@
-import type { CharacterCreate, CharacterUpdate } from '@malang/shared'
+import type { CharacterCreate, CharacterOrganization, CharacterUpdate } from '@malang/shared'
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import type { CharacterCardV3 } from '@risuai/ccardlib'
 
@@ -67,6 +67,22 @@ export class CharacterService {
         )
     }
 
+    listGroups() {
+        return this.store.characterGroup.list()
+    }
+
+    updateGroup(id: string, name: string) {
+        return this.store.characterGroup.update(id, name)
+    }
+
+    deleteGroup(id: string) {
+        return this.store.characterGroup.delete(id)
+    }
+
+    updateOrganization(input: CharacterOrganization) {
+        return this.store.characterOrganization.update(input)
+    }
+
     list(includeArchived = false) {
         return this.store.character.list(includeArchived)
     }
@@ -120,6 +136,16 @@ export class CharacterService {
 
     archive(id: string) {
         return this.store.character.archive(id)
+    }
+
+    isGenerating(id: string): boolean {
+        return this.store.conversation
+            .list(true)
+            .some(
+                (conversation) =>
+                    conversation.characterId === id &&
+                    this.store.generation.findRunning(conversation.id),
+            )
     }
 
     delete(id: string) {

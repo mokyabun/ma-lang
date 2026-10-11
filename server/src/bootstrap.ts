@@ -6,6 +6,7 @@ import { AssetStore } from '@/modules/assets/service'
 import { AuthService } from '@/modules/auth/service'
 import { CharacterService } from '@/modules/characters/service'
 import { ConversationService } from '@/modules/conversations/service'
+import { DebugService } from '@/modules/debug/service'
 import { GenerationService } from '@/modules/generations/service'
 import { IllustrationCatalogService } from '@/modules/illustrations/catalog'
 import { ContinuityService } from '@/modules/illustrations/continuity-service'
@@ -14,12 +15,14 @@ import { IllustrationService, NOVELAI_LANE } from '@/modules/illustrations/servi
 import { JobRunner } from '@/modules/jobs/runner'
 import { LuaRuntime } from '@/modules/lua/runtime'
 import { HypaMemoryV3Service } from '@/modules/memory/hypa-v3'
+import { ModelChainService } from '@/modules/model-chains/service'
 import { PersonaService } from '@/modules/personas/service'
 import { PromptModuleService } from '@/modules/prompt-modules/service'
 import { PromptService } from '@/modules/prompts/service'
 import { ProviderService } from '@/modules/providers/service'
 import { RuntimeEventHub } from '@/modules/realtime/hub'
 import { SecretVault } from '@/modules/secrets/vault'
+import { SettingsService } from '@/modules/settings/service'
 import { BackupService } from '@/modules/system/backups'
 import { SystemLogService } from '@/modules/system/logs'
 import { UploadStore } from '@/modules/uploads/service'
@@ -102,6 +105,8 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
         prompts,
         modules: new PromptModuleService(store, config, assetStore),
         providers,
+        modelChains: new ModelChainService(store, providers),
+        settings: new SettingsService(store),
         lua,
         memory,
         events,
@@ -112,6 +117,7 @@ export async function createContext(config: AppConfig = loadConfig()): Promise<A
         continuity,
         backups,
         systemLogs,
+        debug: new DebugService(store, systemLogs),
         generations,
         logger,
         close: () => {

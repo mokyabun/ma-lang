@@ -6,7 +6,7 @@ import type { AppEnv } from '@/lib/http'
 
 export function createAssetRoutes(context: AppContext) {
     return new Hono<AppEnv>().get('/:id', async (c) => {
-        const asset = context.store.asset.get(c.req.param('id'))
+        const asset = context.assets.get(c.req.param('id'))
         const bytes = asset ? await context.assets.read(asset.id) : null
         if (!asset || !bytes) throw new NotFoundError('Asset not found')
 

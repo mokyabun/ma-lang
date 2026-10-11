@@ -7,7 +7,7 @@ import { type AppEnv, jsonValidator } from '@/lib/http'
 
 export function createSettingsRoutes(context: AppContext) {
     return new Hono<AppEnv>()
-        .get('/', (c) => c.json(context.store.settings.get()))
+        .get('/', (c) => c.json(context.settings.get()))
         .get('/backup', (c) => c.json({ allowed: context.config.autoBackupEnabled }))
         .get('/backups', (c) => c.json({ snapshots: context.backups.list() }))
         .post('/backups', (c) => c.json(context.backups.create(), 201))
@@ -50,6 +50,6 @@ export function createSettingsRoutes(context: AppContext) {
             ) {
                 throw new ValidationError('Default auxiliary model preset does not exist')
             }
-            return c.json(context.store.settings.update(body))
+            return c.json(context.settings.update(body))
         })
 }

@@ -8,11 +8,11 @@ import { type AppEnv, jsonValidator } from '@/lib/http'
 export function createConversationGenerationRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .post('/:id/prompt-preview', async (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             return c.json(await context.generations.preview(c.req.param('id')))
         })
         .post('/:id/generations', jsonValidator(GenerationRequestSchema), async (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             const result = await context.generations.start(
                 c.req.param('id'),
                 c.req.valid('json'),
@@ -37,10 +37,4 @@ export function createGenerationRoutes(context: AppContext) {
         }
         return c.body(null, 204)
     })
-}
-
-function requireConversation(context: AppContext, id: string) {
-    if (!context.store.conversation.get(id)) {
-        throw new NotFoundError('Conversation not found')
-    }
 }

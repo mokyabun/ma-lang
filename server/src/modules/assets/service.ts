@@ -18,6 +18,10 @@ export class AssetStore {
         mkdirSync(this.assetDir, { recursive: true })
     }
 
+    get(id: string) {
+        return this.store.asset.get(id)
+    }
+
     async put(bytes: Uint8Array, mimeType: string) {
         const sha256 = hex(await crypto.subtle.digest('SHA-256', bytes))
         const existing = this.store.asset.findBySha256(sha256)

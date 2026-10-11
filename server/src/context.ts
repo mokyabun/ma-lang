@@ -6,6 +6,7 @@ import type { AssetStore } from '@/modules/assets/service'
 import type { AuthService } from '@/modules/auth/service'
 import type { CharacterService } from '@/modules/characters/service'
 import type { ConversationService } from '@/modules/conversations/service'
+import type { DebugService } from '@/modules/debug/service'
 import type { GenerationService } from '@/modules/generations/service'
 import type { IllustrationCatalogService } from '@/modules/illustrations/catalog'
 import type { ContinuityService } from '@/modules/illustrations/continuity-service'
@@ -14,11 +15,13 @@ import type { IllustrationService } from '@/modules/illustrations/service'
 import type { JobRunner } from '@/modules/jobs/runner'
 import type { LuaRuntime } from '@/modules/lua/runtime'
 import type { HypaMemoryV3Service } from '@/modules/memory/hypa-v3'
+import type { ModelChainService } from '@/modules/model-chains/service'
 import type { PersonaService } from '@/modules/personas/service'
 import type { PromptModuleService } from '@/modules/prompt-modules/service'
 import type { PromptService } from '@/modules/prompts/service'
 import type { ProviderService } from '@/modules/providers/service'
 import type { RuntimeEventHub } from '@/modules/realtime/hub'
+import type { SettingsService } from '@/modules/settings/service'
 import type { BackupService } from '@/modules/system/backups'
 import type { SystemLogService } from '@/modules/system/logs'
 import type { UploadStore } from '@/modules/uploads/service'
@@ -36,6 +39,8 @@ export interface AppContext {
     prompts: PromptService
     modules: PromptModuleService
     providers: ProviderService
+    modelChains: ModelChainService
+    settings: SettingsService
     generations: GenerationService
     lua: LuaRuntime
     memory: HypaMemoryV3Service
@@ -47,6 +52,7 @@ export interface AppContext {
     continuity: ContinuityService
     backups: BackupService
     systemLogs: SystemLogService
+    debug: DebugService
     logger: Logger
     close(): void
 }

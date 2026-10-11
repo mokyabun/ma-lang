@@ -46,8 +46,8 @@ export function createConversationRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) =>
             c.json({
-                conversations: context.store.conversation.list(c.req.query('archived') === 'true'),
-                groups: context.store.conversationGroup.list(),
+                conversations: context.conversations.list(c.req.query('archived') === 'true'),
+                groups: context.conversations.listGroups(),
             }),
         )
         .post('/', jsonValidator(ConversationCreateSchema), (c) => {
@@ -74,10 +74,7 @@ export function createConversationRoutes(context: AppContext) {
             ) {
                 throw new NotFoundError('Auxiliary model preset not found')
             }
-            if (
-                input.modelChainPresetId &&
-                !context.store.modelChain.get(input.modelChainPresetId)
-            ) {
+            if (input.modelChainPresetId && !context.modelChains.get(input.modelChainPresetId)) {
                 throw new NotFoundError('Model chain preset not found')
             }
             return c.json(context.conversations.create(input), 201)
@@ -91,42 +88,42 @@ export function createConversationRoutes(context: AppContext) {
         .patch('/groups/:groupId', jsonValidator(GroupUpdateSchema), (c) => {
             const name = c.req.valid('json').name
             if (!name) throw new ValidationError('Group name is required')
-            const group = context.store.conversationGroup.update(c.req.param('groupId'), name)
+            const group = context.conversations.updateGroup(c.req.param('groupId'), name)
             if (!group) throw new NotFoundError('Chat group not found')
             return c.json(group)
         })
         .delete('/groups/:groupId', (c) => {
-            if (!context.store.conversationGroup.delete(c.req.param('groupId'))) {
+            if (!context.conversations.deleteGroup(c.req.param('groupId'))) {
                 throw new NotFoundError('Chat group not found')
             }
             return c.body(null, 204)
         })
         .put('/organization', jsonValidator(ConversationOrganizationSchema), (c) => {
             const input = c.req.valid('json')
-            if (!context.store.conversationOrganization.update(input)) {
+            if (!context.conversations.updateOrganization(input)) {
                 throw new ValidationError('Invalid chat organization')
             }
             return c.json({
-                conversations: context.store.conversation
+                conversations: context.conversations
                     .list(false)
                     .filter((conversation) => conversation.characterId === input.characterId),
-                groups: context.store.conversationGroup.list(input.characterId),
+                groups: context.conversations.listGroups(input.characterId),
             })
         })
         .post('/:id/restore', (c) => {
-            if (!context.store.conversation.restore(c.req.param('id'))) {
+            if (!context.conversations.restore(c.req.param('id'))) {
                 throw new NotFoundError('Conversation not found')
             }
-            return c.json(requireConversation(context, c.req.param('id')))
+            return c.json(context.conversations.requireConversation(c.req.param('id')))
         })
         .get('/:id/generation', (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             return c.json({
-                generation: context.store.generation.active(c.req.param('id')),
+                generation: context.generations.activeRun(c.req.param('id')),
             })
         })
         .get('/:id/messages', async (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             const query = MessagePageQuery.safeParse({
                 before: c.req.query('before'),
                 limit: c.req.query('limit'),
@@ -137,12 +134,12 @@ export function createConversationRoutes(context: AppContext) {
             )
         })
         .get('/:id/memory', (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             return c.json(context.memory.state(c.req.param('id')))
         })
         .patch('/:id/memory', jsonValidator(LongTermMemorySettingsPatchSchema), (c) => {
             const conversationId = c.req.param('id')
-            requireConversation(context, conversationId)
+            context.conversations.requireConversation(conversationId)
             const current = context.memory.state(conversationId).settings
             const patch = c.req.valid('json')
             if (
@@ -157,11 +154,11 @@ export function createConversationRoutes(context: AppContext) {
             return c.json(context.memory.updateSettings(conversationId, patch))
         })
         .delete('/:id/memory', (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             return c.json({ deleted: context.memory.clear(c.req.param('id')) })
         })
         .patch('/:id/memory/summaries/:summaryId', jsonValidator(MemorySummaryPatchBody), (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             const summary = context.memory.updateSummary(
                 c.req.param('id'),
                 c.req.param('summaryId'),
@@ -171,18 +168,18 @@ export function createConversationRoutes(context: AppContext) {
             return c.json(summary)
         })
         .delete('/:id/memory/summaries/:summaryId', (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             if (!context.memory.deleteSummary(c.req.param('id'), c.req.param('summaryId'))) {
                 throw new NotFoundError('Memory summary not found')
             }
             return c.body(null, 204)
         })
         .get('/:id/modules', (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             return c.json({ modules: context.modules.conversationStates(c.req.param('id')) })
         })
         .put('/:id/modules/:moduleId', jsonValidator(ConversationModuleBody), (c) => {
-            requireConversation(context, c.req.param('id'))
+            context.conversations.requireConversation(c.req.param('id'))
             if (
                 !context.modules.setConversationState(
                     c.req.param('id'),
@@ -195,22 +192,23 @@ export function createConversationRoutes(context: AppContext) {
             return c.json({ modules: context.modules.conversationStates(c.req.param('id')) })
         })
         .patch('/:id/messages/:messageId', jsonValidator(MessagePatchBody), (c) => {
-            const message = context.store.message.get(c.req.param('messageId'))
-            if (!message || message.conversationId !== c.req.param('id')) {
-                throw new NotFoundError('Message not found')
-            }
-            const updated = context.store.message.update(message.id, {
-                content: c.req.valid('json').content,
-            })
+            const message = context.conversations.requireMessage(
+                c.req.param('id'),
+                c.req.param('messageId'),
+            )
+            const updated = context.conversations.updateMessage(
+                message.id,
+                c.req.valid('json').content,
+            )
             if (!updated) throw new NotFoundError('Message not found')
             return c.json(updated)
         })
         .delete('/:id/messages/:messageId/after', (c) => {
-            const message = context.store.message.get(c.req.param('messageId'))
-            if (!message || message.conversationId !== c.req.param('id')) {
-                throw new NotFoundError('Message not found')
-            }
-            const deleted = context.store.message.truncate(
+            const message = context.conversations.requireMessage(
+                c.req.param('id'),
+                c.req.param('messageId'),
+            )
+            const deleted = context.conversations.truncateMessages(
                 message.conversationId,
                 message.position + 1,
             )
@@ -218,37 +216,40 @@ export function createConversationRoutes(context: AppContext) {
             return c.json({ deleted })
         })
         .delete('/:id/messages/:messageId/from', (c) => {
-            const message = context.store.message.get(c.req.param('messageId'))
-            if (!message || message.conversationId !== c.req.param('id')) {
-                throw new NotFoundError('Message not found')
-            }
-            const deleted = context.store.message.truncate(message.conversationId, message.position)
+            const message = context.conversations.requireMessage(
+                c.req.param('id'),
+                c.req.param('messageId'),
+            )
+            const deleted = context.conversations.truncateMessages(
+                message.conversationId,
+                message.position,
+            )
             context.illustrationPipeline.handleMessagesRemoved(message.conversationId)
             return c.json({ deleted })
         })
         .delete('/:id/messages/:messageId', (c) => {
-            const message = context.store.message.get(c.req.param('messageId'))
-            if (!message || message.conversationId !== c.req.param('id')) {
-                throw new NotFoundError('Message not found')
-            }
-            context.store.message.delete(message.id)
+            const message = context.conversations.requireMessage(
+                c.req.param('id'),
+                c.req.param('messageId'),
+            )
+            context.conversations.deleteMessage(message.id)
             context.illustrationPipeline.handleMessagesRemoved(message.conversationId)
             return c.body(null, 204)
         })
         .get('/:id/messages/:messageId/generations', (c) => {
-            const message = context.store.message.get(c.req.param('messageId'))
-            if (!message || message.conversationId !== c.req.param('id')) {
-                throw new NotFoundError('Message not found')
-            }
+            const message = context.conversations.requireMessage(
+                c.req.param('id'),
+                c.req.param('messageId'),
+            )
             return c.json({
-                generations: context.store.generation.listByMessage(message.id),
+                generations: context.generations.listByMessage(message.id),
             })
         })
         .put('/:id/messages/:messageId/generation', jsonValidator(GenerationSelectionBody), (c) => {
-            const message = context.store.message.get(c.req.param('messageId'))
-            if (!message || message.conversationId !== c.req.param('id')) {
-                throw new NotFoundError('Message not found')
-            }
+            const message = context.conversations.requireMessage(
+                c.req.param('id'),
+                c.req.param('messageId'),
+            )
             const updated = context.generations.selectOutput(
                 message.id,
                 c.req.valid('json').generationId,
@@ -258,7 +259,7 @@ export function createConversationRoutes(context: AppContext) {
             }
             return c.json(updated)
         })
-        .get('/:id', (c) => c.json(requireConversation(context, c.req.param('id'))))
+        .get('/:id', (c) => c.json(context.conversations.requireConversation(c.req.param('id'))))
         .patch('/:id', jsonValidator(ConversationPatchBody), (c) => {
             const body = c.req.valid('json')
             if (body.promptPresetId && !context.prompts.get(body.promptPresetId)) {
@@ -276,12 +277,12 @@ export function createConversationRoutes(context: AppContext) {
             ) {
                 throw new NotFoundError('Auxiliary model preset not found')
             }
-            if (body.modelChainPresetId && !context.store.modelChain.get(body.modelChainPresetId)) {
+            if (body.modelChainPresetId && !context.modelChains.get(body.modelChainPresetId)) {
                 throw new NotFoundError('Model chain preset not found')
             }
 
             if (body.greetingIndex !== undefined) {
-                const conversation = requireConversation(context, c.req.param('id'))
+                const conversation = context.conversations.requireConversation(c.req.param('id'))
                 const character = context.characters.get(conversation.characterId)
                 if (!character) throw new NotFoundError('Character not found')
                 const greeting =
@@ -303,7 +304,7 @@ export function createConversationRoutes(context: AppContext) {
                 }
             }
 
-            const conversation = context.store.conversation.update(c.req.param('id'), body)
+            const conversation = context.conversations.update(c.req.param('id'), body)
             if (!conversation) {
                 throw new NotFoundError('Conversation not found')
             }
@@ -311,26 +312,20 @@ export function createConversationRoutes(context: AppContext) {
         })
         .delete('/:id/permanent', (c) => {
             const conversationId = c.req.param('id')
-            if (context.store.generation.findRunning(conversationId)) {
+            if (context.conversations.isGenerating(conversationId)) {
                 throw new ConflictError(
                     'Conversation cannot be deleted while a generation is running',
                 )
             }
-            if (!context.store.conversation.delete(conversationId)) {
+            if (!context.conversations.delete(conversationId)) {
                 throw new NotFoundError('Conversation not found')
             }
             return c.body(null, 204)
         })
         .delete('/:id', (c) => {
-            if (!context.store.conversation.archive(c.req.param('id'))) {
+            if (!context.conversations.archive(c.req.param('id'))) {
                 throw new NotFoundError('Conversation not found')
             }
             return c.body(null, 204)
         })
-}
-
-function requireConversation(context: AppContext, id: string) {
-    const conversation = context.store.conversation.get(id)
-    if (!conversation) throw new NotFoundError('Conversation not found')
-    return conversation
 }

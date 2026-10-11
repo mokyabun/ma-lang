@@ -75,6 +75,14 @@ export class GenerationService {
         this.regeneratingListeners.push(listener)
     }
 
+    activeRun(conversationId: string) {
+        return this.store.generation.active(conversationId)
+    }
+
+    listByMessage(messageId: string) {
+        return this.store.generation.listByMessage(messageId)
+    }
+
     /** Promotes a completed generation run's output to be the message's content. */
     selectOutput(messageId: string, generationId: string) {
         const output = this.store.generation.completedOutput(messageId, generationId)
