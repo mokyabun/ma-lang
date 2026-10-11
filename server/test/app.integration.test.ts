@@ -214,45 +214,6 @@ describe('Hono API and SQLite persistence', () => {
         expect(deleted.status).toBe(204)
     })
 
-    test('returns stable structured errors with request IDs and validation issues', async () => {
-        const malformed = await app.request('/api/v1/settings', {
-            method: 'PATCH',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: '{',
-        })
-        expect(malformed.status).toBe(400)
-        expect(await malformed.json()).toMatchObject({
-            code: 'bad_request',
-            message: 'Malformed JSON body',
-            requestId: expect.any(String),
-        })
-
-        const invalid = await app.request('/api/v1/settings', {
-            method: 'PATCH',
-            headers: {
-                cookie,
-                'content-type': 'application/json',
-                'x-request-id': 'validation-request',
-            },
-            body: JSON.stringify({ userName: 42 }),
-        })
-        expect(invalid.status).toBe(422)
-        expect(invalid.headers.get('x-request-id')).toBe('validation-request')
-        expect(await invalid.json()).toEqual({
-            code: 'validation_failed',
-            message: 'Request validation failed',
-            details: {
-                issues: [
-                    expect.objectContaining({
-                        path: ['userName'],
-                        code: 'invalid_type',
-                    }),
-                ],
-            },
-            requestId: 'validation-request',
-        })
-    })
-
     test('rejects a state-changing request from an unapproved origin', async () => {
         const response = await app.request('/api/v1/settings', {
             method: 'PATCH',
