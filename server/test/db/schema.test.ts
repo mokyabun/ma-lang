@@ -11,7 +11,7 @@ import * as schema from '@/db/schema'
 import { adminUsers } from '@/db/schema'
 
 describe('database baseline', () => {
-    test('has a generated migration for every schema.ts change', async () => {
+    test('has a generated migration for every schema change', async () => {
         const latest = journal.entries.at(-1)!
         const snapshot = JSON.parse(
             readFileSync(
@@ -23,7 +23,7 @@ describe('database baseline', () => {
             ),
         )
         const current = await generateSQLiteDrizzleJson(schema)
-        // Non-empty means schema.ts changed without `bun run db:generate`.
+        // Non-empty means the schema changed without `bun run db:generate`.
         expect(await generateSQLiteMigration(snapshot, current)).toEqual([])
     })
 

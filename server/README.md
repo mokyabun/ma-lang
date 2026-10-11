@@ -67,7 +67,7 @@ server/
 │   │   └── providers/        # Vertex·Ollama adapter
 │   └── db/
 │       ├── db.ts             # SQLite/Drizzle 연결
-│       ├── schema.ts         # Drizzle schema
+│       ├── schema/           # Drizzle schema (feature별 파일)
 │       ├── store.ts          # repository
 │       ├── migrate.ts        # migration runner
 │       └── migrations/       # versioned SQL
