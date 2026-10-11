@@ -31,11 +31,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { CharacterActors } from '@/features/illustrations/character-actors'
 import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { characterExportUrl, characterPackageExportUrl } from '@/lib/api'
 import type { CharacterEditorSection } from '@/lib/workspace-page'
 
-import { CharacterActors } from '../illustration/character-actors'
 import { personaListAtom, selectedPersonaIdAtom, selectPersonaAtom } from '../settings/persona/atom'
 import { CharacterAvatar } from './character-avatar'
 import { CharacterEditorSections } from './character-editor-sections'

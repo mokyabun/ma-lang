@@ -1,9 +1,9 @@
 import { EditorSection } from '@/components/form/editor-section'
 import { TabsContent } from '@/components/ui/tabs'
+import { LoreEntryEditor } from '@/features/lorebook/lore-entry-editor'
+import { blankLoreEntry, normalizeLoreEntry } from '@/features/lorebook/model'
 import { removeAt, replaceAt } from '@/lib/collections'
 
-import { LoreEntryEditor } from '../../lorebook/lore-entry-editor'
-import { blankLoreEntry, normalizeLoreEntry } from '../../lorebook/model'
 import type { ModuleEditorProps } from './types'
 
 export function ModuleLorebookSection({

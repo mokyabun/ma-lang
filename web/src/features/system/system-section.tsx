@@ -1,14 +1,19 @@
+import type { AppSettings } from '@malang/shared'
 import { useState } from 'react'
 
 import { SectionHeading } from '@/components/page-heading'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { BackupSection } from '../backup/backup-section'
-import type { SettingsPanelProps } from '../types'
+import { BackupSection } from './backup-section'
 import { RequestLogsPanel } from './request-logs-panel'
 import { SystemLogsPanel } from './system-logs-panel'
 import { UsagePanel } from './usage-panel'
+
+export interface SystemSettingsProps {
+    settings: AppSettings | null
+    onSettingsChange: (settings: AppSettings) => void
+}
 
 type SystemPage = 'snapshots' | 'logs' | 'requests' | 'usage'
 
@@ -19,10 +24,7 @@ const pages: Array<{ id: SystemPage; label: string }> = [
     { id: 'usage', label: '사용량' },
 ]
 
-export function SystemSection({
-    settings,
-    onSettingsChange,
-}: Pick<SettingsPanelProps, 'settings' | 'onSettingsChange'>) {
+export function SystemSection({ settings, onSettingsChange }: SystemSettingsProps) {
     const [page, setPage] = useState<SystemPage>('snapshots')
 
     return (

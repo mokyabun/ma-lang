@@ -22,13 +22,13 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { LoreEntryEditor } from '@/features/lorebook/lore-entry-editor'
+import { LorebookTree } from '@/features/lorebook/lorebook-tree'
+import { blankLoreEntry } from '@/features/lorebook/model'
 import { useScrollParentVirtualizer } from '@/hooks/use-scroll-parent-virtualizer'
 import { formatBytes } from '@/lib/text'
 import type { CharacterEditorSection } from '@/lib/workspace-page'
 
-import { LoreEntryEditor } from '../lorebook/lore-entry-editor'
-import { LorebookTree } from '../lorebook/lorebook-tree'
-import { blankLoreEntry } from '../lorebook/model'
 import { CharacterAvatar } from './character-avatar'
 import { blankCharacterRegex } from './model'
 

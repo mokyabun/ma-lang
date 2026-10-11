@@ -16,13 +16,13 @@ import { Switch } from '@/components/ui/switch'
 import { api, type BackupSnapshot } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-import type { SettingsPanelProps } from '../types'
+import type { SystemSettingsProps } from './system-section'
 
 export function BackupSection({
     settings,
     onSettingsChange,
     embedded = false,
-}: Pick<SettingsPanelProps, 'settings' | 'onSettingsChange'> & { embedded?: boolean }) {
+}: SystemSettingsProps & { embedded?: boolean }) {
     const [allowed, setAllowed] = useState<boolean | null>(null)
     const [snapshots, setSnapshots] = useState<BackupSnapshot[]>([])
     const [loading, setLoading] = useState(true)

@@ -23,10 +23,10 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContinuityPanel } from '@/features/illustrations/continuity-panel'
+import { ConversationIllustrationPanel } from '@/features/illustrations/conversation-illustration-panel'
 import { activePromptToggles } from '@/lib/prompt-toggles'
 
-import { ContinuityPanel } from '../illustration/continuity-panel'
-import { ConversationIllustrationPanel } from '../illustration/conversation-illustration-panel'
 import { ModuleActivationControl, PromptToggleControls } from './conversation-prompt-controls'
 
 export function ChatSettingsDialog({

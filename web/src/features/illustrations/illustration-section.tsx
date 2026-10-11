@@ -9,13 +9,6 @@ import {
 import { Plus, Trash } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
-import { CountFields } from '@/components/app/illustration/count-fields'
-import { ImageParamsFields } from '@/components/app/illustration/image-params-fields'
-import { StateDefinitionList } from '@/components/app/illustration/state-definitions'
-import {
-    TestImagePreview,
-    useTestGeneration,
-} from '@/components/app/illustration/test-image-preview'
 import { Field } from '@/components/form/field'
 import { SegmentedChoice } from '@/components/form/segmented-choice'
 import { SettingsGroup } from '@/components/form/settings-group'
@@ -36,6 +29,11 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
+
+import { CountFields } from './count-fields'
+import { ImageParamsFields } from './image-params-fields'
+import { StateDefinitionList } from './state-definitions'
+import { TestImagePreview, useTestGeneration } from './test-image-preview'
 
 const NONE = '__none__'
 

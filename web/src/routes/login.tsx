@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { LoginScreen } from '@/components/app/auth/login-screen'
+import { LoginScreen } from '@/features/auth/login-screen'
 import { api } from '@/lib/api'
 
 export const Route = createFileRoute('/login')({
