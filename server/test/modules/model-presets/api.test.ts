@@ -1,35 +1,13 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { afterAll, describe, expect, test } from 'bun:test'
 
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 
-import { createApp } from '@/app'
-import { createContext } from '@/bootstrap'
-import type { AppContext } from '@/context'
+import { createTestApp } from '../../helpers/app'
 
-import { testConfig } from '../../helpers/app'
-import { login } from '../../helpers/app'
+const t = await createTestApp()
+afterAll(() => t.close())
 
 describe('model presets, API keys, and conversation bindings', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-model-presets-'))
-    const config = testConfig(directory)
-    let context: AppContext
-    let app: ReturnType<typeof createApp>
-    let cookie = ''
-
-    beforeAll(async () => {
-        context = await createContext(config)
-        app = createApp(context)
-        cookie = await login(app, config.adminPassword!)
-    })
-
-    afterAll(() => {
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
-    })
-
     test('imports, preserves, and exports PocketRisu model profile schema v1', async () => {
         const profile = {
             schemaVersion: 1,
@@ -121,11 +99,7 @@ describe('model presets, API keys, and conversation bindings', () => {
                 type: 'application/json',
             }),
         )
-        const response = await app.request('/api/v1/model-presets/import', {
-            method: 'POST',
-            headers: { cookie },
-            body: form,
-        })
+        const response = await t.send('/model-presets/import', { method: 'POST', body: form })
         expect(response.status).toBe(201)
         const imported = (await response.json()) as {
             id: string
@@ -146,9 +120,7 @@ describe('model presets, API keys, and conversation bindings', () => {
         expect(imported.config.providerOptions.thinkingLevel).toBe('medium')
         expect(JSON.stringify(imported)).not.toContain('must-not-survive')
 
-        const exportedResponse = await app.request(`/api/v1/model-presets/${imported.id}/export`, {
-            headers: { cookie },
-        })
+        const exportedResponse = await t.send(`/model-presets/${imported.id}/export`)
         expect(exportedResponse.status).toBe(200)
         expect(exportedResponse.headers.get('content-disposition')).toContain('.profile.json')
         const exported = (await exportedResponse.json()) as typeof profile
@@ -159,10 +131,9 @@ describe('model presets, API keys, and conversation bindings', () => {
     })
 
     test('reuses an encrypted key and resolves primary and auxiliary chat models', async () => {
-        const discovery = await app.request('/api/v1/model-presets/models', {
+        const discovery = await t.send('/model-presets/models', {
             method: 'POST',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: JSON.stringify({
+            body: {
                 apiKeyId: null,
                 config: {
                     provider: 'echo',
@@ -170,7 +141,7 @@ describe('model presets, API keys, and conversation bindings', () => {
                     defaults: {},
                     providerOptions: {},
                 },
-            }),
+            },
         })
         expect(discovery.status).toBe(200)
         expect((await discovery.json()) as object).toEqual({
@@ -178,25 +149,23 @@ describe('model presets, API keys, and conversation bindings', () => {
         })
 
         const plaintext = 'sk-model-preset-secret-never-store-in-plaintext'
-        const keyResponse = await app.request('/api/v1/model-presets/api-keys', {
+        const keyResponse = await t.send('/model-presets/api-keys', {
             method: 'POST',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: JSON.stringify({
+            body: {
                 name: 'OpenAI personal',
                 provider: 'openai',
                 credentialType: 'apiKey',
                 apiKey: plaintext,
-            }),
+            },
         })
         expect(keyResponse.status).toBe(201)
         const key = (await keyResponse.json()) as { id: string; hint: string }
         expect(key.hint).toBe('••••text')
 
         const createPreset = (name: string, modelId: string) =>
-            app.request('/api/v1/model-presets', {
+            t.send('/model-presets', {
                 method: 'POST',
-                headers: { cookie, 'content-type': 'application/json' },
-                body: JSON.stringify({
+                body: {
                     name,
                     apiKeyId: key.id,
                     config: {
@@ -205,7 +174,7 @@ describe('model presets, API keys, and conversation bindings', () => {
                         defaults: { temperature: 0.7 },
                         providerOptions: {},
                     },
-                }),
+                },
             })
         const primaryResponse = await createPreset('Primary', 'gpt-primary')
         const auxiliaryResponse = await createPreset('Lua other', 'gpt-auxiliary')
@@ -214,68 +183,55 @@ describe('model presets, API keys, and conversation bindings', () => {
         const primary = (await primaryResponse.json()) as { id: string }
         const auxiliary = (await auxiliaryResponse.json()) as { id: string }
 
-        const defaults = await app.request('/api/v1/settings', {
+        const defaults = await t.send('/settings', {
             method: 'PATCH',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: JSON.stringify({
+            body: {
                 defaultModelPresetId: primary.id,
                 defaultAuxiliaryModelPresetId: auxiliary.id,
-            }),
+            },
         })
         expect(defaults.status).toBe(200)
 
-        const conversationResponse = await app.request('/api/v1/conversations', {
+        const conversationResponse = await t.send('/conversations', {
             method: 'POST',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: JSON.stringify({ characterId: GENERAL_CHAT_CHARACTER_ID }),
+            body: { characterId: GENERAL_CHAT_CHARACTER_ID },
         })
         const conversation = (await conversationResponse.json()) as { id: string }
-        const primaryRuntime = await context.providers.requireRuntimeForConversation(
+        const primaryRuntime = await t.context.providers.requireRuntimeForConversation(
             conversation.id,
         )
-        const auxiliaryRuntime = await context.providers.requireRuntimeForConversation(
+        const auxiliaryRuntime = await t.context.providers.requireRuntimeForConversation(
             conversation.id,
             true,
         )
         expect(primaryRuntime).toMatchObject({ modelId: 'gpt-primary', apiKey: plaintext })
         expect(auxiliaryRuntime).toMatchObject({ modelId: 'gpt-auxiliary', apiKey: plaintext })
 
-        const rebound = await app.request(`/api/v1/conversations/${conversation.id}`, {
+        const rebound = await t.send(`/conversations/${conversation.id}`, {
             method: 'PATCH',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: JSON.stringify({
+            body: {
                 modelPresetId: auxiliary.id,
                 auxiliaryModelPresetId: primary.id,
-            }),
+            },
         })
         expect(rebound.status).toBe(200)
         expect(
-            await context.providers.requireRuntimeForConversation(conversation.id),
+            await t.context.providers.requireRuntimeForConversation(conversation.id),
         ).toMatchObject({
             modelId: 'gpt-auxiliary',
         })
         expect(
-            await context.providers.requireRuntimeForConversation(conversation.id, true),
+            await t.context.providers.requireRuntimeForConversation(conversation.id, true),
         ).toMatchObject({ modelId: 'gpt-primary' })
 
-        const encrypted = context.store.secretStorage.get().secrets.provider!
+        const encrypted = t.context.store.secretStorage.get().secrets.provider!
         expect(encrypted).toContain('AES-256-GCM')
         expect(encrypted).not.toContain(plaintext)
+        expect((await t.send(`/model-presets/${primary.id}`, { method: 'DELETE' })).status).toBe(
+            409,
+        )
         expect(
-            (
-                await app.request(`/api/v1/model-presets/${primary.id}`, {
-                    method: 'DELETE',
-                    headers: { cookie },
-                })
-            ).status,
-        ).toBe(409)
-        expect(
-            (
-                await app.request(`/api/v1/model-presets/api-keys/${key.id}`, {
-                    method: 'DELETE',
-                    headers: { cookie },
-                })
-            ).status,
+            (await t.send(`/model-presets/api-keys/${key.id}`, { method: 'DELETE' })).status,
         ).toBe(409)
     })
 })

@@ -1,7 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { afterAll, describe, expect, test } from 'bun:test'
 
 import {
     chainAgentNodeId,
@@ -11,27 +8,16 @@ import {
     type ModelChainAgent,
 } from '@malang/shared'
 
-import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { testConfig } from '../../helpers/app'
+import { createTestApp } from '../../helpers/app'
+
+const t = await createTestApp({ login: false })
+afterAll(() => t.close())
 
 describe('server-side model chains', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-model-chains-'))
-    const config = testConfig(directory)
-    let context: AppContext
-
-    beforeAll(async () => {
-        context = await createContext(config)
-    })
-
-    afterAll(() => {
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
-    })
-
     function createEcho(name: string, message: string, delayMs = 0) {
-        return context.store.modelPreset.create({
+        return t.context.store.modelPreset.create({
             name,
             apiKeyId: null,
             config: {
@@ -48,16 +34,16 @@ describe('server-side model chains', () => {
         const analyst = createEcho('Analyst', 'PRE NOTE')
         const editor = createEcho('Editor', 'POST BODY')
 
-        const single = context.conversations.create({
+        const single = t.context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             greetingIndex: -1,
         })
         expect(single.modelChainPresetId).toBeNull()
-        await runGeneration(context, single.id, 'single request')
-        expect(context.store.message.lastAssistant(single.id)?.content).toBe('MAIN BODY')
+        await runGeneration(t.context, single.id, 'single request')
+        expect(t.context.store.message.lastAssistant(single.id)?.content).toBe('MAIN BODY')
 
-        const chain = context.store.modelChain.create({
+        const chain = t.context.store.modelChain.create({
             name: 'Review chain',
             description: 'Pre and post',
             layers: [
@@ -75,26 +61,26 @@ describe('server-side model chains', () => {
                 },
             ],
         })
-        const chained = context.conversations.create({
+        const chained = t.context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             modelChainPresetId: chain.id,
             greetingIndex: -1,
         })
-        context.store.requestDebug.clear()
-        context.store.settings.update({ requestDebugEnabled: true })
-        await runGeneration(context, chained.id, 'chained request')
-        context.store.settings.update({ requestDebugEnabled: false })
-        const message = context.store.message.lastAssistant(chained.id)
+        t.context.store.requestDebug.clear()
+        t.context.store.settings.update({ requestDebugEnabled: true })
+        await runGeneration(t.context, chained.id, 'chained request')
+        t.context.store.settings.update({ requestDebugEnabled: false })
+        const message = t.context.store.message.lastAssistant(chained.id)
         expect(message?.content).toBe('POST BODY')
-        expect(context.store.generation.listByMessage(message!.id)[0]).toMatchObject({
+        expect(t.context.store.generation.listByMessage(message!.id)[0]).toMatchObject({
             outputText: 'POST BODY',
             processedOutputText: 'POST BODY',
         })
-        expect(context.store.modelChain.delete(chain.id)).toBe('in_use')
-        expect(context.store.modelPreset.delete(analyst.id)).toBe('in_use')
+        expect(t.context.store.modelChain.delete(chain.id)).toBe('in_use')
+        expect(t.context.store.modelPreset.delete(analyst.id)).toBe('in_use')
 
-        const debugRecords = context.store.requestDebug
+        const debugRecords = t.context.store.requestDebug
             .list()
             .filter((record) => record.conversationId === chained.id)
         expect(debugRecords).toHaveLength(3)
@@ -133,7 +119,7 @@ describe('server-side model chains', () => {
         const preB = createEcho('Parallel Pre B', 'PRE B', 160)
         const postA = createEcho('Parallel Post A', 'POST A', 160)
         const postB = createEcho('Parallel Post B', 'POST B', 160)
-        const chain = context.store.modelChain.create({
+        const chain = t.context.store.modelChain.create({
             name: 'Parallel review chain',
             description: 'Multiple concurrent agents',
             layers: [
@@ -154,7 +140,7 @@ describe('server-side model chains', () => {
                 },
             ],
         })
-        const conversation = context.conversations.create({
+        const conversation = t.context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             modelChainPresetId: chain.id,
@@ -162,10 +148,10 @@ describe('server-side model chains', () => {
         })
 
         const startedAt = performance.now()
-        await runGeneration(context, conversation.id, 'parallel request')
+        await runGeneration(t.context, conversation.id, 'parallel request')
         const elapsedMs = performance.now() - startedAt
 
-        expect(context.store.message.lastAssistant(conversation.id)?.content).toBe(
+        expect(t.context.store.message.lastAssistant(conversation.id)?.content).toBe(
             'MAIN\n\nPOST A\n\nPOST B',
         )
         expect(elapsedMs).toBeLessThan(520)
@@ -227,18 +213,18 @@ describe('server-side model chains', () => {
                 positions: { [id(orphan.id)]: { x: -120, y: 500 }, [main]: { x: 0, y: 0 } },
             },
         })
-        const chain = context.store.modelChain.create(input)
-        expect(context.store.modelChain.get(chain.id)?.graph).toEqual(input.graph)
-        const conversation = context.conversations.create({
+        const chain = t.context.store.modelChain.create(input)
+        expect(t.context.store.modelChain.get(chain.id)?.graph).toEqual(input.graph)
+        const conversation = t.context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: mainModel.id,
             modelChainPresetId: chain.id,
             greetingIndex: -1,
         })
-        context.store.settings.update({ requestDebugEnabled: true })
+        t.context.store.settings.update({ requestDebugEnabled: true })
         try {
-            await runGeneration(context, conversation.id, 'graph request')
-            const records = context.store.requestDebug
+            await runGeneration(t.context, conversation.id, 'graph request')
+            const records = t.context.store.requestDebug
                 .list()
                 .filter((record) => record.conversationId === conversation.id)
             expect(records).toHaveLength(10)
@@ -264,27 +250,27 @@ describe('server-side model chains', () => {
                         record.request.chain?.agentId === detached.id,
                 ),
             ).toBe(false)
-            expect(context.store.modelChainMemory.get(conversation.id, orphan.id)).toBe('')
-            expect(context.store.message.lastAssistant(conversation.id)?.content).toBe(
+            expect(t.context.store.modelChainMemory.get(conversation.id, orphan.id)).toBe('')
+            expect(t.context.store.message.lastAssistant(conversation.id)?.content).toBe(
                 'MAIN\n\nOUTPUT_PostA\n\nOUTPUT_PostB\n\nOUTPUT_PostC\n\nOUTPUT_PostJoin',
             )
 
             // Explicitly clearing every edge must survive storage and execute only main.
-            const updated = context.store.modelChain.update(chain.id, {
+            const updated = t.context.store.modelChain.update(chain.id, {
                 ...input,
                 graph: { ...input.graph!, edges: [] },
             })!
             expect(updated.layers).toEqual(chain.layers)
             expect(updated.graph?.edges).toEqual([])
             expect(updated.graph?.positions).toEqual(input.graph?.positions)
-            await runGeneration(context, conversation.id, 'disconnected request')
-            expect(context.store.message.lastAssistant(conversation.id)?.content).toBe('MAIN')
-            const after = context.store.requestDebug
+            await runGeneration(t.context, conversation.id, 'disconnected request')
+            expect(t.context.store.message.lastAssistant(conversation.id)?.content).toBe('MAIN')
+            const after = t.context.store.requestDebug
                 .list()
                 .filter((record) => record.conversationId === conversation.id)
             expect(after).toHaveLength(11)
         } finally {
-            context.store.settings.update({ requestDebugEnabled: false })
+            t.context.store.settings.update({ requestDebugEnabled: false })
         }
     })
 
@@ -299,7 +285,7 @@ describe('server-side model chains', () => {
             memoryInstruction: 'Keep durable facts.',
             memoryFormat: '- fact',
         })
-        const chain = context.store.modelChain.create({
+        const chain = t.context.store.modelChain.create({
             name: 'Memory chain',
             description: 'Persistent agent memory',
             layers: [
@@ -311,16 +297,16 @@ describe('server-side model chains', () => {
                 },
             ],
         })
-        const conversation = context.conversations.create({
+        const conversation = t.context.conversations.create({
             characterId: GENERAL_CHAT_CHARACTER_ID,
             modelPresetId: main.id,
             modelChainPresetId: chain.id,
             greetingIndex: -1,
         })
 
-        await runGeneration(context, conversation.id, 'remember')
+        await runGeneration(t.context, conversation.id, 'remember')
 
-        expect(context.store.modelChainMemory.get(conversation.id, agent.id)).toBe(
+        expect(t.context.store.modelChainMemory.get(conversation.id, agent.id)).toBe(
             'persistent state',
         )
     })

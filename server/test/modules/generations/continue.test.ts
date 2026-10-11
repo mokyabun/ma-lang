@@ -1,48 +1,21 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { afterAll, describe, expect, test } from 'bun:test'
 
-import { GENERAL_CHAT_CHARACTER_ID, type GenerationRequest } from '@malang/shared'
+import type { GenerationRequest } from '@malang/shared'
 
-import { createContext } from '@/bootstrap'
-import type { AppContext } from '@/context'
+import { createTestApp } from '../../helpers/app'
+import { createConversation, createEchoPreset } from '../../helpers/fixtures'
 
-import { testConfig } from '../../helpers/app'
+const t = await createTestApp({ login: false })
+afterAll(() => t.close())
 
 describe('continuing the last response', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-continue-'))
-    let context: AppContext
-
-    beforeAll(async () => {
-        context = await createContext(testConfig(directory))
-    })
-
-    afterAll(() => {
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
-    })
-
     function conversationWith(message: string, delayMs = 0) {
-        const preset = context.store.modelPreset.create({
-            name: `Echo ${crypto.randomUUID()}`,
-            apiKeyId: null,
-            config: {
-                provider: 'echo',
-                modelId: 'echo',
-                defaults: {},
-                providerOptions: { message, delayMs },
-            },
-        })
-        return context.conversations.create({
-            characterId: GENERAL_CHAT_CHARACTER_ID,
-            modelPresetId: preset.id,
-            greetingIndex: -1,
-        }).id
+        const preset = createEchoPreset(t, { message, delayMs })
+        return createConversation(t, { modelPresetId: preset.id }).id
     }
 
     function start(conversationId: string, request: Partial<GenerationRequest>) {
-        return context.generations.start(
+        return t.context.generations.start(
             conversationId,
             {
                 mode: 'reply',
@@ -71,22 +44,22 @@ describe('continuing the last response', () => {
     test('appends the continuation to the same reply and records it as a new generation', async () => {
         const conversationId = conversationWith(' More.')
         await run(conversationId, { content: 'Hello' })
-        const reply = context.store.message.lastAssistant(conversationId)!
+        const reply = t.context.store.message.lastAssistant(conversationId)!
         expect(reply.content).toBe('More.')
 
-        context.store.requestDebug.clear()
-        context.store.settings.update({ requestDebugEnabled: true })
+        t.context.store.requestDebug.clear()
+        t.context.store.settings.update({ requestDebugEnabled: true })
         await run(conversationId, { mode: 'continue' })
-        context.store.settings.update({ requestDebugEnabled: false })
+        t.context.store.settings.update({ requestDebugEnabled: false })
 
-        const continued = context.store.message.get(reply.id)!
+        const continued = t.context.store.message.get(reply.id)!
         expect(continued).toMatchObject({ content: 'More. More.', status: 'complete' })
-        expect(context.store.message.list(conversationId).at(-1)?.id).toBe(reply.id)
-        expect(context.store.generation.listByMessage(reply.id)).toMatchObject([
+        expect(t.context.store.message.list(conversationId).at(-1)?.id).toBe(reply.id)
+        expect(t.context.store.generation.listByMessage(reply.id)).toMatchObject([
             { outputText: ' More.', processedOutputText: 'More.' },
             { outputText: ' More.', processedOutputText: 'More. More.' },
         ])
-        const sent = context.store.requestDebug.list()[0]?.request.body as {
+        const sent = t.context.store.requestDebug.list()[0]?.request.body as {
             messages: Array<{ role: string; content: string }>
         }
         expect(sent.messages.at(-1)).toEqual({ role: 'assistant', content: 'More.' })
@@ -97,21 +70,26 @@ describe('continuing the last response', () => {
         const refusal = 'There is no assistant response to continue'
         expect(await continueError(conversationId)).toBe(refusal)
 
-        context.store.message.create(conversationId, 'user', 'Only the user spoke', 'complete')
+        t.context.store.message.create(conversationId, 'user', 'Only the user spoke', 'complete')
         expect(await continueError(conversationId)).toBe(refusal)
     })
 
     test('keeps the original reply when the continuation is cancelled', async () => {
         const conversationId = conversationWith('Slow', 5_000)
-        context.store.message.create(conversationId, 'user', 'Hi', 'complete')
-        const reply = context.store.message.create(conversationId, 'assistant', 'Kept', 'complete')
+        t.context.store.message.create(conversationId, 'user', 'Hi', 'complete')
+        const reply = t.context.store.message.create(
+            conversationId,
+            'assistant',
+            'Kept',
+            'complete',
+        )
 
         const { generationId, stream } = await start(conversationId, { mode: 'continue' })
         const body = new Response(stream).text()
-        expect(context.generations.cancel(generationId)).toBe(true)
+        expect(t.context.generations.cancel(generationId)).toBe(true)
         await body
 
-        expect(context.store.message.get(reply.id)).toMatchObject({
+        expect(t.context.store.message.get(reply.id)).toMatchObject({
             content: 'Kept',
             status: 'cancelled',
         })

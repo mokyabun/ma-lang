@@ -1,28 +1,19 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
 
 import { CharacterCreateSchema } from '@malang/shared'
 
-import { createContext } from '@/bootstrap'
-import type { AppContext } from '@/context'
-
-import { testConfig } from '../../helpers/app'
+import { createTestApp } from '../../helpers/app'
 import { fixturePath } from '../../helpers/fixtures'
 
+const t = await createTestApp({ login: false })
+afterAll(() => t.close())
+
 describe('PocketRisu Lua runtime', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-lua-'))
-    const config = testConfig(directory)
-    let context: AppContext
     let conversationId: string
 
-    beforeAll(async () => {
-        context = await createContext(config)
-    })
-
     beforeEach(() => {
-        const character = context.characters.create(
+        const character = t.context.characters.create(
             CharacterCreateSchema.parse({
                 name: 'Lua fixture',
                 defaultVariables: { fallback_value: 'character-default', choice: '0' },
@@ -33,15 +24,10 @@ describe('PocketRisu Lua runtime', () => {
                 },
             }),
         )
-        conversationId = context.conversations.create({
+        conversationId = t.context.conversations.create({
             characterId: character.id,
             greetingIndex: -1,
         }).id
-    })
-
-    afterAll(() => {
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
     })
 
     test('runs a manual invocation once per idempotency key', async () => {
@@ -54,17 +40,19 @@ describe('PocketRisu Lua runtime', () => {
             sourceMessageId: null,
             triggerElementId: 'init',
         }
-        await context.lua.trigger(conversationId, request)
-        expect(context.store.conversation.get(conversationId)?.variables).toMatchObject({
+        await t.context.lua.trigger(conversationId, request)
+        expect(t.context.store.conversation.get(conversationId)?.variables).toMatchObject({
             initialized: '1',
             choice: '0',
             hp: '1000',
             fallback: 'character-default',
         })
-        await context.lua.trigger(conversationId, request)
-        expect(context.store.conversation.get(conversationId)?.variables.initializations).toBe('1')
+        await t.context.lua.trigger(conversationId, request)
+        expect(t.context.store.conversation.get(conversationId)?.variables.initializations).toBe(
+            '1',
+        )
         expect(
-            context.database.sqlite
+            t.context.database.sqlite
                 .query<{ count: number }, [string, string]>(
                     'SELECT count(*) as count FROM lua_event_runs WHERE conversation_id = ? AND event_key = ?',
                 )
@@ -73,32 +61,32 @@ describe('PocketRisu Lua runtime', () => {
     })
 
     test('supports named triggers, button data, and one display batch per epoch', async () => {
-        await context.lua.trigger(conversationId, {
+        await t.context.lua.trigger(conversationId, {
             type: 'manual',
             name: 'toggleChoice',
             idempotencyKey: crypto.randomUUID(),
             clientInstanceId: crypto.randomUUID(),
             triggerElementId: 'choice',
         })
-        expect(context.store.conversation.get(conversationId)?.variables.choice).toBe('1')
-        await context.lua.trigger(conversationId, {
+        expect(t.context.store.conversation.get(conversationId)?.variables.choice).toBe('1')
+        await t.context.lua.trigger(conversationId, {
             type: 'button',
             data: 'choice^Take the silver key',
             idempotencyKey: crypto.randomUUID(),
             clientInstanceId: crypto.randomUUID(),
             triggerElementId: 'button',
         })
-        expect(context.store.message.list(conversationId).at(-1)).toMatchObject({
+        expect(t.context.store.message.list(conversationId).at(-1)).toMatchObject({
             role: 'user',
             content: 'Take the silver key',
         })
-        context.store.message.create(conversationId, 'assistant', 'Status', 'complete')
-        const first = await context.generations.messagesWithDisplay(conversationId)
-        const second = await context.generations.messagesWithDisplay(conversationId)
+        t.context.store.message.create(conversationId, 'assistant', 'Status', 'complete')
+        const first = await t.context.generations.messagesWithDisplay(conversationId)
+        const second = await t.context.generations.messagesWithDisplay(conversationId)
         expect(first.at(-1)?.displayContent).toContain('STATUS')
         expect(second).toEqual(first)
         expect(
-            context.database.sqlite
+            t.context.database.sqlite
                 .query<{ count: number }, [string]>(
                     'SELECT count(*) as count FROM lua_display_batches WHERE conversation_id = ?',
                 )
@@ -108,16 +96,16 @@ describe('PocketRisu Lua runtime', () => {
 
     test('renders editDisplay only for the requested message page', async () => {
         for (let index = 0; index < 5; index++) {
-            context.store.message.create(conversationId, 'assistant', 'Status', 'complete')
+            t.context.store.message.create(conversationId, 'assistant', 'Status', 'complete')
         }
         const countDisplayEvents = () =>
-            context.database.sqlite
+            t.context.database.sqlite
                 .query<{ count: number }, [string]>(
                     "SELECT count(*) as count FROM lua_event_runs WHERE conversation_id = ? AND phase LIKE 'editDisplay:%'",
                 )
                 .get(conversationId)?.count
 
-        const latest = await context.generations.messagePageWithDisplay(conversationId, {
+        const latest = await t.context.generations.messagePageWithDisplay(conversationId, {
             limit: 2,
         })
         expect(latest.messages).toHaveLength(2)
@@ -126,10 +114,10 @@ describe('PocketRisu Lua runtime', () => {
         )
         expect(countDisplayEvents()).toBe(2)
 
-        await context.generations.messagePageWithDisplay(conversationId, { limit: 2 })
+        await t.context.generations.messagePageWithDisplay(conversationId, { limit: 2 })
         expect(countDisplayEvents()).toBe(2)
 
-        const older = await context.generations.messagePageWithDisplay(conversationId, {
+        const older = await t.context.generations.messagePageWithDisplay(conversationId, {
             before: latest.nextCursor!,
             limit: 2,
         })
@@ -139,10 +127,10 @@ describe('PocketRisu Lua runtime', () => {
 
     test('round-trips a blocking alert only through the initiating tab', async () => {
         const clientInstanceId = crypto.randomUUID()
-        const stream = context.events.subscribe(clientInstanceId)
+        const stream = t.context.events.subscribe(clientInstanceId)
         const reader = stream.getReader()
         await reader.read() // connection comment
-        const invocation = context.lua.trigger(conversationId, {
+        const invocation = t.context.lua.trigger(conversationId, {
             type: 'manual',
             name: 'setHP',
             idempotencyKey: crypto.randomUUID(),
@@ -157,20 +145,20 @@ describe('PocketRisu Lua runtime', () => {
         }
         expect(command.kind).toBe('alertInput')
         expect(
-            context.lua.remote.resolve(command.commandId, {
+            t.context.lua.remote.resolve(command.commandId, {
                 clientInstanceId,
                 result: '250',
             }),
         ).toBe('ok')
         // The success alert is fire-and-forget and does not block completion.
         await invocation
-        expect(context.store.conversation.get(conversationId)?.variables.hp).toBe('250')
+        expect(t.context.store.conversation.get(conversationId)?.variables.hp).toBe('250')
         await reader.cancel()
     })
 
     test('fails a blocking invocation when its initiating tab is unavailable', async () => {
         expect(
-            context.lua.trigger(conversationId, {
+            t.context.lua.trigger(conversationId, {
                 type: 'manual',
                 name: 'setHP',
                 idempotencyKey: crypto.randomUUID(),
@@ -181,13 +169,13 @@ describe('PocketRisu Lua runtime', () => {
 
     test('commits pre-error callback changes but discards a timed-out invocation', async () => {
         const makeConversation = (code: string) => {
-            const character = context.characters.create(
+            const character = t.context.characters.create(
                 CharacterCreateSchema.parse({
                     name: 'Lua policy fixture',
                     luaScript: { code, enabled: true, lowLevelAccess: false },
                 }),
             )
-            return context.conversations.create({
+            return t.context.conversations.create({
                 characterId: character.id,
                 greetingIndex: -1,
             }).id
@@ -198,14 +186,14 @@ describe('PocketRisu Lua runtime', () => {
                 error('expected callback failure')
             end
         `)
-        const callback = await context.lua.trigger(callbackConversation, {
+        const callback = await t.context.lua.trigger(callbackConversation, {
             type: 'manual',
             name: 'partial',
             idempotencyKey: crypto.randomUUID(),
             clientInstanceId: crypto.randomUUID(),
         })
         expect(callback.warnings.join('\n')).toContain('expected callback failure')
-        expect(context.store.conversation.get(callbackConversation)?.variables.before_error).toBe(
+        expect(t.context.store.conversation.get(callbackConversation)?.variables.before_error).toBe(
             'saved',
         )
 
@@ -216,7 +204,7 @@ describe('PocketRisu Lua runtime', () => {
             end
         `)
         expect(
-            context.lua.trigger(timeoutConversation, {
+            t.context.lua.trigger(timeoutConversation, {
                 type: 'manual',
                 name: 'spin',
                 idempotencyKey: crypto.randomUUID(),
@@ -224,7 +212,7 @@ describe('PocketRisu Lua runtime', () => {
             }),
         ).rejects.toThrow(/timeout/i)
         expect(
-            context.store.conversation.get(timeoutConversation)?.variables.must_not_commit,
+            t.context.store.conversation.get(timeoutConversation)?.variables.must_not_commit,
         ).toBeUndefined()
     })
 })
