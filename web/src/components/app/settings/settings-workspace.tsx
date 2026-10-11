@@ -5,7 +5,6 @@ import { useEffect } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api } from '@/lib/api'
-
 import {
     promptModulesAtom,
     promptPresetsAtom,
@@ -14,7 +13,8 @@ import {
     modelPresetsAtom,
     selectedConversationIdAtom,
     settingsAtom,
-} from '../atom'
+} from '@/lib/store'
+
 import { conversationModuleStatesAtom } from '../chat/atom'
 import { loadSettingsAtom, settingsErrorAtom, settingsInitializedAtom } from './atom'
 import { SettingsPanel } from './settings-panel'

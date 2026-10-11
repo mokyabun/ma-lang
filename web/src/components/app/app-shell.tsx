@@ -1,13 +1,14 @@
 import { useAtomValue } from 'jotai'
 
-import { workspaceInitializedAtom } from './atom'
+import { workspaceInitializedAtom } from '@/lib/store'
+import type { WorkspacePage } from '@/lib/workspace-page'
+
 import { ChatWorkspace } from './chat/chat-workspace'
-import type { WorkspacePage } from './workspace/types'
 import { useWorkspaceBootstrap } from './workspace/use-workspace-bootstrap'
 import { WorkspaceLoading } from './workspace/workspace-feedback'
 import { WorkspaceLayout } from './workspace/workspace-layout'
 
-export type { WorkspacePage } from './workspace/types'
+export type { WorkspacePage } from '@/lib/workspace-page'
 
 export function AppShell({ page }: { page: WorkspacePage }) {
     useWorkspaceBootstrap(page)

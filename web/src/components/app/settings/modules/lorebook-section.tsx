@@ -1,8 +1,8 @@
 import { TabsContent } from '@/components/ui/tabs'
+import { removeAt, replaceAt } from '@/lib/collections'
 
 import { LoreEntryEditor } from '../../lorebook/lore-entry-editor'
 import { blankLoreEntry, normalizeLoreEntry } from '../../lorebook/model'
-import { removeAt, replaceAt } from '../shared/collections'
 import { EditorSection } from '../shared/editor-section'
 import type { ModuleEditorProps } from './types'
 

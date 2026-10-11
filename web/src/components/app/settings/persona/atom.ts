@@ -2,8 +2,7 @@ import type { Persona, PersonaCreate, PersonaUpdate } from '@malang/shared'
 import { atom } from 'jotai'
 
 import { api } from '@/lib/api'
-
-import { conversationsAtom, settingsAtom } from '../../atom'
+import { conversationsAtom, settingsAtom } from '@/lib/store'
 
 export const personaListAtom = atom<Persona[]>([])
 

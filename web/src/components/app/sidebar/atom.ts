@@ -1,8 +1,7 @@
 import { atom } from 'jotai'
 
-import { conversationsAtom, selectedCharacterIdAtom } from '../atom'
+import { conversationsAtom, selectedCharacterIdAtom } from '@/lib/store'
 
-export const mobileSidebarOpenAtom = atom(false)
 export const conversationSearchAtom = atom('')
 
 export const filteredConversationsAtom = atom((get) => {

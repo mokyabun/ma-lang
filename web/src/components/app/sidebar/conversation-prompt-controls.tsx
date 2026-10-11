@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 
 export function GlobalPromptPresetSelect({
     value,

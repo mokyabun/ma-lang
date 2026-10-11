@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
 
 import { actorInputFrom, attachOutfitIds, blankOutfit, splitKeys, withDefaultOutfit } from './model'
 

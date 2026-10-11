@@ -4,8 +4,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 
 import { Button } from '@/components/ui/button'
+import { activeCharactersAtom, conversationsAtom } from '@/lib/store'
 
-import { activeCharactersAtom, conversationsAtom } from '../atom'
 import { requestCharacterImportAtom } from '../character/atom'
 import { CharacterAvatar } from '../character/character-avatar'
 import { conversationCreatingAtom } from '../chat/atom'

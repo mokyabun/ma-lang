@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
 import type { ModelChainPreset, ModelPreset } from '@malang/shared'
+import { hookHarness } from '@test/react'
 import { act } from 'react'
 
 import { api } from '@/lib/api'
 
-import { hookHarness } from '../../../../../test/react'
 import { starterChain } from './model'
 import { useModelChainEditor } from './use-model-chain-editor'
 

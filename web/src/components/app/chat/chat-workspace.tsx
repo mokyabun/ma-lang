@@ -11,7 +11,6 @@ import {
     subscribeRuntimeConnection,
     subscribeRuntimeEvents,
 } from '@/lib/runtime-events'
-
 import {
     promptPresetsAtom,
     modelPresetsAtom,
@@ -20,7 +19,9 @@ import {
     selectedConversationIdAtom,
     settingsAtom,
     updatePromptToggleValuesAtom,
-} from '../atom'
+} from '@/lib/store'
+import type { WorkspacePage } from '@/lib/workspace-page'
+
 import {
     characterAssetsAtom,
     removeCharacterAvatarAtom,
@@ -30,7 +31,6 @@ import {
 import { CharacterQuickEditor } from '../character/character-quick-editor'
 import { useCharacterDelete } from '../character/use-character-delete'
 import { personaListAtom } from '../settings/persona/atom'
-import type { WorkspacePage } from '../workspace/types'
 import { WorkspaceEmpty } from '../workspace/workspace-empty'
 import {
     activeGenerationsAtom,

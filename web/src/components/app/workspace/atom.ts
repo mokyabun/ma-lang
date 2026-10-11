@@ -2,7 +2,6 @@ import type { CharacterAsset } from '@malang/shared'
 import { atom } from 'jotai'
 
 import { api } from '@/lib/api'
-
 import {
     characterGroupsAtom,
     charactersAtom,
@@ -20,7 +19,8 @@ import {
     workspaceErrorAtom,
     workspaceInitializedAtom,
     workspaceLoadingAtom,
-} from '../atom'
+} from '@/lib/store'
+
 import { characterAssetsAtom } from '../character/atom'
 import { personaListAtom, selectedPersonaIdAtom } from '../settings/persona/atom'
 

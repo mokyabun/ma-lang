@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
+import { hookHarness } from '@test/react'
 import { act } from 'react'
 
-import { hookHarness } from '../../../../../test/react'
 import { useEditableCatalog } from './use-editable-catalog'
 
 type Item = { id: string; name: string }

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { WorkspaceRoute } from '@/components/app/workspace-route'
-import type { CharacterEditorSection } from '@/components/app/workspace/types'
+import type { CharacterEditorSection } from '@/lib/workspace-page'
 
 const sections = new Set<CharacterEditorSection>([
     'profile',

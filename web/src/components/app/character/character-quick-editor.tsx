@@ -31,12 +31,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { characterExportUrl, characterPackageExportUrl } from '@/lib/api'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
+import type { CharacterEditorSection } from '@/lib/workspace-page'
 
 import { CharacterActors } from '../illustration/character-actors'
 import { personaListAtom, selectedPersonaIdAtom, selectPersonaAtom } from '../settings/persona/atom'
-import type { CharacterEditorSection } from '../workspace/types'
 import { CharacterAvatar } from './character-avatar'
 import { CharacterEditorSections } from './character-editor-sections'
 import { draftFrom, replaceRegex } from './model'

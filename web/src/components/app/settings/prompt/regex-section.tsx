@@ -1,10 +1,10 @@
 import type { RegexScript } from '@malang/shared'
 
 import { TabsContent } from '@/components/ui/tabs'
+import { removeAt, replaceAt } from '@/lib/collections'
+import { blankRegex } from '@/lib/prompt-defaults'
 
-import { removeAt, replaceAt } from '../shared/collections'
 import { EditorSection } from '../shared/editor-section'
-import { blankRegex } from '../shared/prompt-defaults'
 import { RegexRow } from '../shared/regex-row'
 import type { PresetEditorSectionProps } from './types'
 

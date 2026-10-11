@@ -1,7 +1,7 @@
 import { useSetAtom } from 'jotai'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { autoSaveReportsAtom, type AutoSaveReport, type AutoSaveState } from './auto-save-state'
+import { autoSaveReportsAtom, type AutoSaveReport, type AutoSaveState } from '@/lib/auto-save-state'
 
 export function useDebouncedSave<T>(
     value: T,

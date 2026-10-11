@@ -3,7 +3,8 @@ import { describe, expect, test } from 'bun:test'
 import type { BackgroundJob, MessageIllustration, RuntimeEvent } from '@malang/shared'
 import { createStore } from 'jotai'
 
-import { selectedConversationIdAtom } from '../atom'
+import { selectedConversationIdAtom } from '@/lib/store'
+
 import {
     applyIllustrationEventAtom,
     illustrationView,

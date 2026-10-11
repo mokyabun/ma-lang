@@ -7,15 +7,16 @@ import { type ChangeEvent, type ReactNode, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { api } from '@/lib/api'
-
 import {
     activeCharactersAtom,
     characterGroupsAtom,
     charactersAtom,
     conversationsAtom,
+    mobileSidebarOpenAtom,
     selectedCharacterIdAtom,
     workspaceErrorAtom,
-} from '../atom'
+} from '@/lib/store'
+
 import {
     characterCreatingAtom,
     characterImportRequestedAtom,
@@ -28,7 +29,6 @@ import { useCharacterDelete } from '../character/use-character-delete'
 import { generatingConversationIdsAtom } from '../chat/atom'
 import { useStartConversation } from '../chat/use-start-conversation'
 import { WorkspaceDialogs } from '../dialogs/workspace-dialogs'
-import { mobileSidebarOpenAtom } from '../sidebar/atom'
 import { CharacterRail } from '../sidebar/workspace-navigation'
 import { WorkspaceError } from './workspace-feedback'
 

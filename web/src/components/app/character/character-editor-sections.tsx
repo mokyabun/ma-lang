@@ -22,14 +22,15 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useScrollParentVirtualizer } from '@/lib/use-scroll-parent-virtualizer'
+import { useScrollParentVirtualizer } from '@/hooks/use-scroll-parent-virtualizer'
+import { formatBytes } from '@/lib/text'
+import type { CharacterEditorSection } from '@/lib/workspace-page'
 
 import { LoreEntryEditor } from '../lorebook/lore-entry-editor'
 import { LorebookTree } from '../lorebook/lorebook-tree'
 import { blankLoreEntry } from '../lorebook/model'
-import type { CharacterEditorSection } from '../workspace/types'
 import { CharacterAvatar } from './character-avatar'
-import { blankCharacterRegex, formatBytes } from './model'
+import { blankCharacterRegex } from './model'
 
 export function CharacterEditorSections({
     section,

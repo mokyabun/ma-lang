@@ -2,8 +2,7 @@ import { WarningCircle, X } from '@phosphor-icons/react'
 import { useAtom } from 'jotai'
 
 import { Button } from '@/components/ui/button'
-
-import { workspaceErrorAtom } from '../atom'
+import { workspaceErrorAtom } from '@/lib/store'
 
 export function WorkspaceError() {
     const [error, setError] = useAtom(workspaceErrorAtom)

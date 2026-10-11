@@ -59,11 +59,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
 import { AppSearchInput } from '../app-search-input'
 import { CharacterAvatar } from '../character/character-avatar'
-import { relativeTime } from '../chat/format'
 import {
     type CollectionNodeType,
     dropSlotId,

@@ -6,9 +6,10 @@ import {
     selectedConversationIdAtom,
     workspaceInitializedAtom,
     workspaceLoadingAtom,
-} from '../atom'
+} from '@/lib/store'
+import type { WorkspacePage } from '@/lib/workspace-page'
+
 import { loadWorkspaceAtom } from './atom'
-import type { WorkspacePage } from './types'
 
 export function useWorkspaceBootstrap(page: WorkspacePage) {
     const loadWorkspace = useSetAtom(loadWorkspaceAtom)

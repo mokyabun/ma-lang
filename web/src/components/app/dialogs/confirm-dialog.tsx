@@ -20,7 +20,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 
 interface ConfirmDialogProps {
     open: boolean

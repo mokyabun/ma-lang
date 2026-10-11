@@ -1,6 +1,6 @@
 import { TabsContent } from '@/components/ui/tabs'
+import { removeAt, replaceAt } from '@/lib/collections'
 
-import { removeAt, replaceAt } from '../shared/collections'
 import { EditorSection } from '../shared/editor-section'
 import { blankModulePrompt } from './model'
 import { ModulePromptRow } from './module-prompt-row'

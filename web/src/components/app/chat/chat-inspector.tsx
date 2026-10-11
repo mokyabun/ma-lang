@@ -24,9 +24,9 @@ import {
 } from '@/components/ui/select'
 import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
 import { activePromptToggles } from '@/lib/prompt-toggles'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
 
 import { CharacterAvatar } from '../character/character-avatar'
 

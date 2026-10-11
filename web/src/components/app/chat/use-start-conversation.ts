@@ -2,7 +2,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback } from 'react'
 
-import { settingsAtom } from '../atom'
+import { settingsAtom } from '@/lib/store'
+
 import { createConversationAtom } from './atom'
 
 export function useStartConversation() {

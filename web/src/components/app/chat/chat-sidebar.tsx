@@ -7,10 +7,10 @@ import { moduleInput } from '@/components/app/settings/modules/model'
 import { presetInput } from '@/components/app/settings/prompt/model'
 import { useTheme } from '@/components/theme-provider'
 import { api } from '@/lib/api'
-
 import {
     conversationGroupsAtom,
     conversationsAtom,
+    mobileSidebarOpenAtom,
     modelPresetsAtom,
     modelChainPresetsAtom,
     promptModulesAtom,
@@ -21,17 +21,14 @@ import {
     settingsAtom,
     updatePromptToggleValuesAtom,
     workspaceErrorAtom,
-} from '../atom'
+} from '@/lib/store'
+import type { WorkspacePage } from '@/lib/workspace-page'
+
 import { personaListAtom, selectPersonaAtom, selectedPersonaIdAtom } from '../settings/persona/atom'
-import {
-    conversationSearchAtom,
-    filteredConversationsAtom,
-    mobileSidebarOpenAtom,
-} from '../sidebar/atom'
+import { conversationSearchAtom, filteredConversationsAtom } from '../sidebar/atom'
 import { ChatSettingsDialog } from '../sidebar/chat-settings-dialog'
 import { QuickChatSettingsButton } from '../sidebar/quick-chat-settings-button'
 import { ConversationSidebar } from '../sidebar/workspace-navigation'
-import type { WorkspacePage } from '../workspace/types'
 import {
     conversationModuleStatesAtom,
     conversationCreatingAtom,

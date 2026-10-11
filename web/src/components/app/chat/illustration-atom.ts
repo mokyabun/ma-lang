@@ -8,8 +8,8 @@ import { atom } from 'jotai'
 
 import { api } from '@/lib/api'
 import type { IllustrationView } from '@/lib/message-images'
+import { selectedConversationIdAtom, workspaceErrorAtom } from '@/lib/store'
 
-import { selectedConversationIdAtom, workspaceErrorAtom } from '../atom'
 import { loadConversationAtom } from './atom'
 
 const PLAN_JOB = 'illustration.plan'

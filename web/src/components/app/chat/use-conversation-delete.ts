@@ -1,7 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 
-import { selectedCharacterIdAtom } from '../atom'
+import { selectedCharacterIdAtom } from '@/lib/store'
+
 import { confirmationAtom } from '../dialogs/atom'
 import { deleteConversationAtom } from './atom'
 

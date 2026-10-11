@@ -8,12 +8,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-
 import {
     parseToggleText,
     serializeToggleText,
     type ToggleSyntaxError,
-} from './prompt-toggle-syntax'
+} from '@/lib/prompt-toggle-syntax'
+
 import { PromptToggleTextarea } from './prompt-toggle-textarea'
 
 export function PromptToggleAdvancedEditor({

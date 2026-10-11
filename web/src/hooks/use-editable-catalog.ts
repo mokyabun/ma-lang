@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-import { useDebouncedSave } from '@/lib/use-debounced-save'
+import { useDebouncedSave } from './use-debounced-save'
 
 interface EditableCatalogOptions<Item extends { id: string }, Draft> {
     items: Item[]

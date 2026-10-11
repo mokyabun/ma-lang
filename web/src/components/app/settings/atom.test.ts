@@ -4,8 +4,8 @@ import type { AppSettings } from '@malang/shared'
 import { createStore } from 'jotai/vanilla'
 
 import { api } from '@/lib/api'
+import { settingsAtom, updatePromptToggleValuesAtom } from '@/lib/store'
 
-import { settingsAtom, updatePromptToggleValuesAtom } from '../atom'
 import { loadSettingsAtom } from './atom'
 
 const originalApi = {

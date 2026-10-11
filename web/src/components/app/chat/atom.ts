@@ -8,14 +8,13 @@ import type {
 import { atom } from 'jotai'
 
 import { api, getClientInstanceId, streamGeneration } from '@/lib/api'
-
 import {
     conversationsAtom,
+    mobileSidebarOpenAtom,
     selectedCharacterIdAtom,
     selectedConversationIdAtom,
     workspaceErrorAtom,
-} from '../atom'
-import { mobileSidebarOpenAtom } from '../sidebar/atom'
+} from '@/lib/store'
 
 export interface ActiveGeneration {
     generationId?: string

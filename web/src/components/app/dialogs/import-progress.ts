@@ -1,6 +1,6 @@
 import type { ImportProgress } from '@/lib/api'
+import { formatBytes } from '@/lib/text'
 
-import { formatBytes } from '../character/model'
 import type { AppLoading } from './atom'
 
 /**

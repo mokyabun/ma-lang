@@ -2,19 +2,19 @@ import type { CharacterAsset, CharacterUpdate } from '@malang/shared'
 import { atom } from 'jotai'
 
 import { api } from '@/lib/api'
-
 import {
     charactersAtom,
     conversationGroupsAtom,
     conversationsAtom,
+    mobileSidebarOpenAtom,
     selectedCharacterIdAtom,
     selectedConversationIdAtom,
     workspaceErrorAtom,
-} from '../atom'
+} from '@/lib/store'
+
 import { loadingAtom } from '../dialogs/atom'
 import { withImportProgress } from '../dialogs/import-progress'
 import { personaListAtom } from '../settings/persona/atom'
-import { mobileSidebarOpenAtom } from '../sidebar/atom'
 
 export const characterAssetsAtom = atom<CharacterAsset[]>([])
 export const characterSavingAtom = atom(false)

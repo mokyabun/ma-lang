@@ -15,8 +15,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
 
 import { blankStateDefinition, isStateDefinitionSaveable, stateDefinitionInputFrom } from './model'
 

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 
 import { PersonaActor } from '../../illustration/persona-actor'
 import { removePersonaAvatarAtom, setPersonaAvatarAtom, updatePersonaAtom } from './atom'

@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
-import { useDebouncedSave } from '@/lib/use-debounced-save'
 
 import { ConfirmDialog } from '../../dialogs/confirm-dialog'
 import { SectionHeading } from '../../page-heading'

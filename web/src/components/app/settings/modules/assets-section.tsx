@@ -3,8 +3,8 @@ import { ImageSquare } from '@phosphor-icons/react'
 import { useSyncExternalStore } from 'react'
 
 import { TabsContent } from '@/components/ui/tabs'
+import { useScrollParentVirtualizer } from '@/hooks/use-scroll-parent-virtualizer'
 import { assetUrl } from '@/lib/api'
-import { useScrollParentVirtualizer } from '@/lib/use-scroll-parent-virtualizer'
 
 import { formatAssetBytes } from './format'
 import type { ModuleEditorProps } from './types'

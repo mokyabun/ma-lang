@@ -32,6 +32,7 @@ export const selectedConversationIdAtom = atom<string | null>(null)
 export const workspaceInitializedAtom = atom(false)
 export const workspaceLoadingAtom = atom(false)
 export const workspaceErrorAtom = atom('')
+export const mobileSidebarOpenAtom = atom(false)
 /** Invalidates settings reads that started before a prompt-toggle write completed. */
 export const promptToggleRevisionAtom = atom(0)
 
