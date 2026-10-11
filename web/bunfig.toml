@@ -1,2 +1,2 @@
 [test]
-preload = ["./test/happy-dom-node-name.ts"]
+preload = ["./test/setup.ts"]

@@ -1,4 +1,4 @@
-// Preloaded for every web test (bunfig.toml). Browsers define `nodeName` once,
+// Loaded for every web test through test/setup.ts. Browsers define `nodeName` once,
 // on Node.prototype. happy-dom overrides it on every subclass and leaves
 // Node.prototype's getter returning "". DOMPurify 3.4+ caches Node.prototype's
 // getter when an instance is created (a clobbering defence), so under happy-dom

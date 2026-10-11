@@ -45,5 +45,9 @@ export function hookHarness<T>(onRender: (value: T) => void) {
             }
             await act(async () => root.render(<Harness />))
         },
+        /** Unmounts the hook before the test ends, to check its cleanup. */
+        async unmount() {
+            await act(async () => root.render(null))
+        },
     }
 }
