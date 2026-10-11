@@ -10,8 +10,8 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig, fixturePath, v3Card } from '../support/fixtures'
-import { login } from '../support/session'
+import { appConfig, fixturePath, v3Card } from './support/fixtures'
+import { login } from './support/session'
 
 describe('Hono API and SQLite persistence', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-api-'))
