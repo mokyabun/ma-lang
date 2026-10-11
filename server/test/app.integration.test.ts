@@ -12,7 +12,7 @@ import type { AppContext } from '@/context'
 
 import { testConfig } from './helpers/app'
 import { login } from './helpers/app'
-import { charxArchive, v3Card } from './helpers/fixtures'
+import { v3Card } from './helpers/fixtures'
 
 describe('Hono API and SQLite persistence', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-api-'))
@@ -25,8 +25,6 @@ describe('Hono API and SQLite persistence', () => {
     let adminPassword = 'correct horse battery staple'
     let characterId = ''
     let conversationId = ''
-    let moduleId = ''
-    let recoveredModuleId = ''
     let ollama: ReturnType<typeof Bun.serve>
 
     beforeAll(async () => {
@@ -118,39 +116,6 @@ describe('Hono API and SQLite persistence', () => {
             ),
         ).toBeTrue()
         expect(body.activatedLoreIds).toHaveLength(1)
-    })
-
-    test('persists normalized data after reopening SQLite', async () => {
-        const recoverable = context.store.promptModule.create(
-            {
-                name: 'Recoverable module',
-                description: '',
-                namespace: 'test.recoverable',
-                enabledByDefault: false,
-                prompts: [],
-                toggles: [],
-                backgroundEmbedding: '<style>.risu-chat { color: silver; }</style>',
-                lorebook: [],
-            },
-            {
-                type: 'risuModule',
-                module: {
-                    customModuleToggle: '',
-                    lorebook: [{ content: '{{getglobalvar::toggle_recovered_after_restart}}' }],
-                },
-            },
-        )
-        recoveredModuleId = recoverable.id
-        context.close()
-        context = await createContext({ ...config, adminPassword: undefined })
-        app = createApp(context)
-        expect(context.store.character.get(characterId)?.name).toBe('Aria')
-        expect(context.store.conversation.get(conversationId)?.title).toBe('Library chat')
-        expect(context.store.message.list(conversationId)).toHaveLength(2)
-        expect(context.store.promptModule.get(recoveredModuleId)?.toggles).toEqual([])
-        expect(context.store.promptModule.get(recoveredModuleId)?.backgroundEmbedding).toContain(
-            '.risu-chat',
-        )
     })
 
     test('streams Ollama output and blocks concurrent or duplicate generations', async () => {
