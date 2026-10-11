@@ -2,25 +2,25 @@ import type { Logger } from 'pino'
 
 import type { AppConfig } from '@/config'
 import type { DatabaseHandle, Store } from '@/db'
-import type { AssetStore } from '@/services/app/assets'
-import type { AuthService } from '@/services/app/auth'
-import type { BackupService } from '@/services/app/backups'
+import type { AssetStore } from '@/modules/assets/service'
+import type { AuthService } from '@/modules/auth/service'
+import type { PersonaService } from '@/modules/personas/service'
+import type { BackupService } from '@/modules/system/backups'
+import type { SystemLogService } from '@/modules/system/logs'
+import type { UploadStore } from '@/modules/uploads/service'
 import type { CharacterService } from '@/services/app/characters'
 import type { ConversationService } from '@/services/app/conversations'
 import type { GenerationService } from '@/services/app/generations'
 import type { PromptModuleService } from '@/services/app/modules'
-import type { PersonaService } from '@/services/app/personas'
 import type { PromptService } from '@/services/app/prompts'
 import type { ProviderService } from '@/services/app/providers'
 import type { RuntimeEventHub } from '@/services/app/runtime-events'
-import type { SystemLogService } from '@/services/app/system-logs'
 import type {
     ContinuityService,
     IllustrationCatalogService,
     IllustrationPipeline,
     IllustrationService,
 } from '@/services/illustration'
-import type { UploadStore } from '@/services/import/uploads'
 import type { JobRunner } from '@/services/jobs'
 import type { LuaRuntime } from '@/services/lua'
 import type { HypaMemoryV3Service } from '@/services/memory'

@@ -1,8 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { RepositoryBase } from '@/db/repository'
-
-import { assets } from '../schema'
+import { assets } from '@/db/schema'
 
 export interface AssetRecord {
     id: string

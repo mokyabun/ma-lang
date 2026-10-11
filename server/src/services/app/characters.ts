@@ -17,6 +17,7 @@ import {
     readAll,
     toByteSource,
 } from '@/lib/import/source'
+import type { AssetStore } from '@/modules/assets/service'
 import { exportPromptModule } from '@/services/prompt/module-codec'
 import {
     mergeLuaTriggers,
@@ -30,7 +31,6 @@ import {
     toRisuRegexScripts,
 } from '@/services/prompt/risu'
 
-import type { AssetStore } from './assets'
 import {
     type ExportableCard,
     type ImportedCard,

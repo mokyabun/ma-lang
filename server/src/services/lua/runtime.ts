@@ -14,12 +14,12 @@ import { LuaFactory, type LuaEngine } from 'wasmoon'
 
 import type { Store } from '@/db'
 import { ConflictError } from '@/lib/errors/app-error'
+import type { PersonaService } from '@/modules/personas/service'
 import { renderTemplate } from '@/services/prompt/template-engine'
 import { providerFor } from '@/services/providers'
 
 import { effectivePromptPresetId } from '../app/conversations'
 import { conversationModuleStates } from '../app/modules'
-import type { PersonaService } from '../app/personas'
 import type { ProviderService } from '../app/providers'
 import type { RuntimeEventHub } from '../app/runtime-events'
 import { LuaRemoteCommandError, RemoteRuntime } from './remote-runtime'

@@ -17,7 +17,7 @@ import { join } from 'node:path'
 import { loadConfig } from '@/config'
 import { type DatabaseHandle, openDatabase, Store } from '@/db'
 import { createLogger } from '@/logger'
-import { BACKUP_MAX_BYTES, BackupService } from '@/services/app/backups'
+import { BACKUP_MAX_BYTES, BackupService } from '@/modules/system/backups'
 
 describe('automatic database backups', () => {
     let directory: string

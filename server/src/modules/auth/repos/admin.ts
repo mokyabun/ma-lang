@@ -1,8 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { RepositoryBase } from '@/db/repository'
-
-import { adminUsers, sessions } from '../schema'
+import { adminUsers, sessions } from '@/db/schema'
 
 export class AdminRepository extends RepositoryBase {
     get() {

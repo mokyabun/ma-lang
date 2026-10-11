@@ -5,7 +5,7 @@ import type { AppContext } from '@/context'
 import { normalizeError, statusForErrorKind } from '@/lib/errors'
 import type { AppEnv } from '@/lib/http'
 import type { ImportProgress } from '@/lib/import/source'
-import type { Upload } from '@/services/import/uploads'
+import type { Upload } from '@/modules/uploads/service'
 
 const encoder = new TextEncoder()
 

@@ -4,7 +4,7 @@ import type { AppContext } from '@/context'
 import { NotFoundError } from '@/lib/errors'
 import type { AppEnv } from '@/lib/http'
 
-export function createDebugDomain(context: AppContext) {
+export function createDebugRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/system-logs', (c) => c.json({ logs: context.systemLogs.list() }))
         .delete('/system-logs', (c) => c.json({ deleted: context.systemLogs.clear() }))

@@ -1,4 +1,5 @@
 import type { Store } from '@/db'
+import type { PersonaService } from '@/modules/personas/service'
 import { loadRisuChat } from '@/services/prompt/pocketrisu/chat'
 import {
     collectRegexScripts,
@@ -8,7 +9,6 @@ import {
 
 import { effectivePromptPresetId } from '../conversations'
 import { conversationModuleStates } from '../modules'
-import type { PersonaService } from '../personas'
 
 export function loadGenerationContext(
     store: Store,

@@ -8,8 +8,7 @@ import type {
 
 import type { Store } from '@/db'
 import { ValidationError } from '@/lib/errors/app-error'
-
-import type { AssetStore } from './assets'
+import type { AssetStore } from '@/modules/assets/service'
 
 export class PersonaService {
     constructor(

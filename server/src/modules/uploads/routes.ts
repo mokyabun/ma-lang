@@ -10,7 +10,7 @@ const UploadCreateBody = z.object({
 })
 
 /** Chunked upload sessions; a completed upload is passed to an import via `x-upload-id`. */
-export function createUploadDomain(context: AppContext) {
+export function createUploadRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .post('/', jsonValidator(UploadCreateBody), async (c) => {
             const { filename, size } = c.req.valid('json')

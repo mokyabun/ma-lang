@@ -1,8 +1,7 @@
 import { and, eq, gt, lt } from 'drizzle-orm'
 
 import { RepositoryBase } from '@/db/repository'
-
-import { sessions } from '../schema'
+import { sessions } from '@/db/schema'
 
 export class SessionRepository extends RepositoryBase {
     create(adminId: string, tokenHash: string, expiresAt: number): string {

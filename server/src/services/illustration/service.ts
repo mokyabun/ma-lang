@@ -10,7 +10,7 @@ import type { z } from 'zod'
 
 import type { Store } from '@/db'
 import { NotFoundError, ValidationError } from '@/lib/errors/app-error'
-import type { SecretVault } from '@/services/app/secret-vault'
+import type { SecretVault } from '@/modules/secrets/vault'
 import type { JobRunner } from '@/services/jobs'
 
 import { type NovelAIImageInput, NovelAIImageClient, type NovelAIImageResult } from './novelai'

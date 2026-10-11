@@ -5,6 +5,7 @@ import type { AppConfig } from '@/config'
 import type { Store } from '@/db'
 import { ConflictError } from '@/lib/errors/app-error'
 import type { ByteSource, ImportProgress } from '@/lib/import/source'
+import type { AssetStore } from '@/modules/assets/service'
 import { exportCharacterCard, importCharacterCard } from '@/services/app/character-card'
 import {
     exportPromptModule,
@@ -13,7 +14,6 @@ import {
 } from '@/services/prompt/module-codec'
 import { mergeLuaTriggers, toRisuRegexScripts } from '@/services/prompt/risu'
 
-import type { AssetStore } from './assets'
 import { effectivePromptPresetId } from './conversations'
 
 export class PromptModuleConflictError extends ConflictError {}

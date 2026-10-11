@@ -1,7 +1,7 @@
 import pino, { type Logger } from 'pino'
 
 import type { AppConfig } from './config'
-import type { SystemLogService } from './services/app/system-logs'
+import type { SystemLogService } from './modules/system/logs'
 
 const REDACT_PATHS = [
     'password',

@@ -2,9 +2,9 @@ import type { ProviderConfig } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
 import { RepositoryBase } from '@/db/repository'
+import { ensureAppSettingsRow } from '@/modules/settings/repo'
 
 import { appSettings } from '../schema'
-import { ensureAppSettingsRow } from './settings'
 
 export class ProviderRepository extends RepositoryBase {
     get(): ProviderConfig | null {

@@ -16,7 +16,7 @@ import { z } from 'zod'
 
 import type { NewMessageIllustration, Store } from '@/db'
 import { AppError, NotFoundError, ValidationError } from '@/lib/errors/app-error'
-import type { AssetStore } from '@/services/app/assets'
+import type { AssetStore } from '@/modules/assets/service'
 import type { GenerationCompletedEvent } from '@/services/app/generations'
 import type { ProviderService } from '@/services/app/providers'
 import type { RuntimeEventHub } from '@/services/app/runtime-events'

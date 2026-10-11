@@ -1,6 +1,5 @@
 import type { Store } from '@/db'
-
-import type { SecretVault } from './secret-vault'
+import type { SecretVault } from '@/modules/secrets/vault'
 
 const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000
 

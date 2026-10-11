@@ -4,7 +4,7 @@ import type { AppContext } from '@/context'
 import { NotFoundError } from '@/lib/errors'
 import type { AppEnv } from '@/lib/http'
 
-export function createAssetDomain(context: AppContext) {
+export function createAssetRoutes(context: AppContext) {
     return new Hono<AppEnv>().get('/:id', async (c) => {
         const asset = context.store.asset.get(c.req.param('id'))
         const bytes = asset ? await context.assets.read(asset.id) : null

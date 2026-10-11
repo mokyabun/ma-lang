@@ -5,7 +5,7 @@ import type { AppContext } from '@/context'
 import { NotFoundError } from '@/lib/errors'
 import { type AppEnv, jsonValidator, readImportFile } from '@/lib/http'
 
-export function createPersonaDomain(context: AppContext) {
+export function createPersonaRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) => c.json({ personas: context.personas.list() }))
         .post('/', jsonValidator(PersonaCreateSchema), (c) =>

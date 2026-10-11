@@ -13,7 +13,7 @@ const PasswordPatchBody = z.object({
     newPassword: z.string().min(12).max(10_000),
 })
 
-export function createAuthDomain(context: AppContext) {
+export function createAuthRoutes(context: AppContext) {
     const attempts = new Map<string, { count: number; resetAt: number }>()
 
     return new Hono<AppEnv>()

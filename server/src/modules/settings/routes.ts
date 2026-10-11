@@ -5,7 +5,7 @@ import type { AppContext } from '@/context'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { type AppEnv, jsonValidator } from '@/lib/http'
 
-export function createSettingsDomain(context: AppContext) {
+export function createSettingsRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) => c.json(context.store.settings.get()))
         .get('/backup', (c) => c.json({ allowed: context.config.autoBackupEnabled }))

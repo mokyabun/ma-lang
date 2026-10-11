@@ -1,48 +1,47 @@
 import { randomUUID } from 'node:crypto'
 
 import { Hono } from 'hono'
-import { getCookie } from 'hono/cookie'
 
 import type { AppContext } from '@/context'
 import {
-    createAssetDomain,
-    createAuthDomain,
     createCharacterDomain,
     createConversationDomain,
     createConversationGenerationDomain,
     createConversationIllustrationDomain,
     createConversationLuaDomain,
-    createDebugDomain,
     createGenerationDomain,
     createIllustrationDomain,
     createJobDomain,
     createModelPresetDomain,
     createModelChainDomain,
-    createPersonaDomain,
     createPromptPresetDomain,
     createPromptModuleDomain,
     createRuntimeDomain,
     createProviderDomain,
-    createSettingsDomain,
-    createUploadDomain,
-    SESSION_COOKIE,
 } from '@/domains'
-import { errorResponse, normalizeError, NotFoundError, UnauthorizedError } from '@/lib/errors'
+import { errorResponse, normalizeError, NotFoundError } from '@/lib/errors'
 import type { AppEnv } from '@/lib/http'
+import { createAssetRoutes } from '@/modules/assets/routes'
+import { sessionMiddleware } from '@/modules/auth/middleware'
+import { createAuthRoutes } from '@/modules/auth/routes'
+import { createDebugRoutes } from '@/modules/debug/routes'
+import { createPersonaRoutes } from '@/modules/personas/routes'
 import { originMiddleware } from '@/modules/security/middleware'
+import { createSettingsRoutes } from '@/modules/settings/routes'
+import { createUploadRoutes } from '@/modules/uploads/routes'
 
 function routeApi(app: Hono<AppEnv>, context: AppContext) {
     return app
-        .route('/api/v1/auth', createAuthDomain(context))
-        .route('/api/v1/settings', createSettingsDomain(context))
-        .route('/api/v1/debug', createDebugDomain(context))
+        .route('/api/v1/auth', createAuthRoutes(context))
+        .route('/api/v1/settings', createSettingsRoutes(context))
+        .route('/api/v1/debug', createDebugRoutes(context))
         .route('/api/v1/provider', createProviderDomain(context))
         .route('/api/v1/model-presets', createModelPresetDomain(context))
         .route('/api/v1/model-chains', createModelChainDomain(context))
         .route('/api/v1/characters', createCharacterDomain(context))
-        .route('/api/v1/personas', createPersonaDomain(context))
-        .route('/api/v1/assets', createAssetDomain(context))
-        .route('/api/v1/uploads', createUploadDomain(context))
+        .route('/api/v1/personas', createPersonaRoutes(context))
+        .route('/api/v1/assets', createAssetRoutes(context))
+        .route('/api/v1/uploads', createUploadRoutes(context))
         .route('/api/v1/prompt-presets', createPromptPresetDomain(context))
         .route('/api/v1/prompt-modules', createPromptModuleDomain(context))
         .route('/api/v1/conversations', createConversationDomain(context))
@@ -80,19 +79,7 @@ export function createApp(context: AppContext) {
         )
     })
     app.use('*', originMiddleware(context.config.allowedOrigins))
-    app.use('/api/v1/*', async (c, next) => {
-        const path = new URL(c.req.url).pathname
-        if (path === '/api/v1/auth/login') {
-            return next()
-        }
-
-        const token = getCookie(c, SESSION_COOKIE)
-        const session = token ? await context.auth.authenticate(token) : null
-        if (!session) throw new UnauthorizedError('Authentication is required')
-
-        c.set('adminId', session.adminId)
-        await next()
-    })
+    app.use('/api/v1/*', sessionMiddleware(context))
     app.onError((error, c) => {
         const requestId = c.get('requestId') ?? randomUUID()
         const normalized = normalizeError(error, requestId)
