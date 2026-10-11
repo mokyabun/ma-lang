@@ -56,22 +56,29 @@ PBKDF2-SHA-256(600,000회)으로 파생한 키로 AES-256-GCM 암호화하며, �
 server/
 ├── drizzle.config.ts
 ├── src/
-│   ├── index.ts              # 서버 부팅
-│   ├── app.ts                # 공통 middleware와 domain 조립
+│   ├── index.ts              # 서버 부팅과 종료
+│   ├── app.ts                # 공통 middleware와 route mount
+│   ├── bootstrap.ts          # createContext: service 생성과 연결
+│   ├── context.ts            # AppContext 타입
 │   ├── config.ts             # Zod 환경 설정
 │   ├── logger.ts             # Pino logger
-│   ├── domains/              # Hono HTTP route
-│   ├── services/
-│   │   ├── app/              # 인증·카드·프리셋·생성 use case
-│   │   ├── prompt/           # 템플릿·로어북·prompt compiler
-│   │   └── providers/        # Vertex·Ollama adapter
-│   └── db/
-│       ├── db.ts             # SQLite/Drizzle 연결
-│       ├── schema/           # Drizzle schema (feature별 파일)
-│       ├── store.ts          # repository
-│       ├── migrate.ts        # migration runner
-│       └── migrations/       # versioned SQL
-└── test/
+│   ├── db/
+│   │   ├── client.ts         # SQLite/Drizzle 연결
+│   │   ├── schema/           # Drizzle schema (feature별 파일)
+│   │   ├── repository.ts     # RepositoryBase와 공용 helper
+│   │   ├── store.ts          # 모듈 repository를 묶는 Store facade
+│   │   ├── migrate.ts        # migration runner
+│   │   └── migrations/       # versioned SQL
+│   ├── lib/                  # errors, http helper, import(zip·mime) 등 공용 코드
+│   ├── integrations/         # 외부 연동: LLM provider adapter, tokenizer, NovelAI
+│   └── modules/<feature>/    # 기능별 모듈
+│       ├── routes.ts         # Hono route: 요청 검증 후 service 호출
+│       ├── service.ts        # use case (class, constructor injection)
+│       ├── repo.ts           # repository (여러 개면 repos/<name>.ts)
+│       └── mapper.ts         # row → DTO
+└── test/                     # 기능별 디렉터리 + support/, fixtures/, pocketrisu-parity/
 ```
 
-HTTP domain은 요청 검증과 응답 조립만 담당하고, 실행 로직은 `services/`, 영속성은 `db/`로 위임한다.
+route는 요청 검증과 응답 조립만 담당하고 실행 로직은 service에, 쿼리는 repository에 둔다.
+다른 모듈은 파일 단위로 import한다(`@/modules/characters/service`). `lib/`와 `integrations/`는
+`modules/`를 import하지 않는다.

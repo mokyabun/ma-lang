@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
-import type { SecretEnvelopes, SecretSlot, Store } from '@/db'
+import type { Store } from '@/db'
 import { ValidationError } from '@/lib/errors/app-error'
+import type { SecretEnvelopes, SecretSlot } from '@/modules/secrets/repo'
 
 const iterations = 600_000
 // Binding each slot to its own AAD keeps one ciphertext from being replayed into another slot.

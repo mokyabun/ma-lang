@@ -46,11 +46,6 @@ import { SettingsRepository } from '@/modules/settings/repo'
 
 import type { DatabaseHandle } from './client'
 
-export type { NewConversationRecord } from '@/modules/conversations/repos/conversations'
-export type { AssetRecord } from '@/modules/assets/repo'
-export type { SecretEnvelopes, SecretSlot } from '@/modules/secrets/repo'
-export type { PromptModuleAssetRecord } from '@/modules/prompt-modules/repos/prompt-module-assets'
-
 export class Store {
     readonly admin: AdminRepository
     readonly session: SessionRepository

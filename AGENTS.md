@@ -30,6 +30,20 @@ database structure.
 - Never edit a generated migration or snapshot by hand. A data-only fix belongs in a separate
   migration generated with `bun run db:generate --custom --name <name>`; it may contain DML only.
 - `test/db/schema.test.ts` fails when the schema differs from the latest migration snapshot.
-- Queries belong in repositories under `server/src/db/repositories/`. Services and routes compose
-  repositories and never run SQL on the connection directly; only infrastructure (backups, health
-  checks) uses `DatabaseHandle`.
+- Queries belong in repositories under `server/src/modules/<feature>/repo.ts` (or `repos/`).
+  Services compose repositories and never run SQL on the connection directly; only infrastructure
+  (backups, health checks) uses `DatabaseHandle`.
+
+## Modules (server)
+
+`server/src/modules/<feature>/` holds one feature: `routes.ts`, `service.ts`, `repo.ts` (or
+`repos/`), `mapper.ts`, plus feature-specific files.
+
+- Routes validate the request and call a service; they never touch `context.store` or
+  `context.database`.
+- Services and repositories are classes with constructor injection, wired in `src/bootstrap.ts`
+  and typed in `src/context.ts`.
+- Import other modules by file (`@/modules/characters/service`). No module barrels (`index.ts`)
+  or `export *`.
+- `lib/` and `integrations/` never import `modules/`. `db/` imports only `lib/` and the
+  repositories that `store.ts` assembles.
