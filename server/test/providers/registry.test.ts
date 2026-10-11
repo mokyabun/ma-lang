@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from 'bun:test'
 
 import { ProviderConfigSchema, type CompiledMessage, type ProviderKind } from '@malang/shared'
 
-import { providerFor } from '@/services/providers'
-import type { RuntimeProviderConfig } from '@/services/providers/types'
+import { providerFor } from '@/integrations/providers'
+import type { RuntimeProviderConfig } from '@/integrations/providers/types'
 
 const originalFetch = globalThis.fetch
 afterEach(() => {

@@ -12,12 +12,9 @@ import {
     createGenerationDomain,
     createIllustrationDomain,
     createJobDomain,
-    createModelPresetDomain,
-    createModelChainDomain,
     createPromptPresetDomain,
     createPromptModuleDomain,
     createRuntimeDomain,
-    createProviderDomain,
 } from '@/domains'
 import { errorResponse, normalizeError, NotFoundError } from '@/lib/errors'
 import type { AppEnv } from '@/lib/http'
@@ -25,7 +22,10 @@ import { createAssetRoutes } from '@/modules/assets/routes'
 import { sessionMiddleware } from '@/modules/auth/middleware'
 import { createAuthRoutes } from '@/modules/auth/routes'
 import { createDebugRoutes } from '@/modules/debug/routes'
+import { createModelChainRoutes } from '@/modules/model-chains/routes'
+import { createModelPresetRoutes } from '@/modules/model-presets/routes'
 import { createPersonaRoutes } from '@/modules/personas/routes'
+import { createProviderRoutes } from '@/modules/providers/routes'
 import { originMiddleware } from '@/modules/security/middleware'
 import { createSettingsRoutes } from '@/modules/settings/routes'
 import { createUploadRoutes } from '@/modules/uploads/routes'
@@ -35,9 +35,9 @@ function routeApi(app: Hono<AppEnv>, context: AppContext) {
         .route('/api/v1/auth', createAuthRoutes(context))
         .route('/api/v1/settings', createSettingsRoutes(context))
         .route('/api/v1/debug', createDebugRoutes(context))
-        .route('/api/v1/provider', createProviderDomain(context))
-        .route('/api/v1/model-presets', createModelPresetDomain(context))
-        .route('/api/v1/model-chains', createModelChainDomain(context))
+        .route('/api/v1/provider', createProviderRoutes(context))
+        .route('/api/v1/model-presets', createModelPresetRoutes(context))
+        .route('/api/v1/model-chains', createModelChainRoutes(context))
         .route('/api/v1/characters', createCharacterDomain(context))
         .route('/api/v1/personas', createPersonaRoutes(context))
         .route('/api/v1/assets', createAssetRoutes(context))

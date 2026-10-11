@@ -1,6 +1,6 @@
 import { type ProviderKind, type TokenizerId, TokenizerIdSchema } from '@malang/shared'
 
-import { readPocketRisuProfileBinding } from '@/services/providers/pocketrisu-profile'
+import { readPocketRisuProfileBinding } from '@/integrations/providers/pocketrisu-profile'
 
 import { type EncoderName, loadEncoder, type TokenEncoder } from './encoders'
 

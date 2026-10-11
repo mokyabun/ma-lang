@@ -14,9 +14,9 @@ import {
     openAILogitBias,
     providerFor,
     sendsOpenAILogitBias,
-} from '@/services/providers'
-import type { RuntimeProviderConfig } from '@/services/providers/types'
-import { loadEncoder } from '@/services/tokenizer/encoders'
+} from '@/integrations/providers'
+import type { RuntimeProviderConfig } from '@/integrations/providers/types'
+import { loadEncoder } from '@/integrations/tokenizer/encoders'
 
 const originalFetch = globalThis.fetch
 afterEach(() => {

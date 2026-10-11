@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import type { CompiledMessage } from '@malang/shared'
 
-import { buildPocketRisuGeminiBody } from '@/services/providers/gemini-rest'
-import type { RuntimeProviderConfig } from '@/services/providers/types'
+import { buildPocketRisuGeminiBody } from '@/integrations/providers/gemini-rest'
+import type { RuntimeProviderConfig } from '@/integrations/providers/types'
 
 // Independent PocketRisu oracle (snapshot, buildRequest, googleGemini). Keep it separate from
 // Malang's code so drift fails this test.

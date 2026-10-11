@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createContext } from '@/bootstrap'
-import { toPocketRisuGeminiPrompt } from '@/services/providers/gemini-rest'
+import { toPocketRisuGeminiPrompt } from '@/integrations/providers/gemini-rest'
 
 import type {
     GeminiPrompt,

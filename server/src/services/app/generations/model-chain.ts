@@ -1,7 +1,7 @@
 import type { CompiledMessage, ModelChainAgent } from '@malang/shared'
 
+import type { ChatTokenizer } from '@/integrations/tokenizer'
 import { selectLoreEntries } from '@/services/prompt/lorebook'
-import type { ChatTokenizer } from '@/services/tokenizer'
 
 import type { GenerationContext } from './context'
 

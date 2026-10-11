@@ -4,8 +4,5 @@ export { createConversationGenerationDomain, createGenerationDomain } from './ge
 export { createConversationIllustrationDomain, createIllustrationDomain } from './illustrations'
 export { createJobDomain } from './jobs'
 export { createConversationLuaDomain, createRuntimeDomain } from './lua-runtime'
-export { createModelPresetDomain } from './model-presets'
-export { createModelChainDomain } from './model-chains'
 export { createPromptPresetDomain } from './prompt-presets'
 export { createPromptModuleDomain } from './prompt-modules'
-export { createProviderDomain } from './provider'

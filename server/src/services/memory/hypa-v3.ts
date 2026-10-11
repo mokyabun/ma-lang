@@ -8,10 +8,9 @@ import { stripIllustrationTokens } from '@malang/shared'
 import type { Logger } from 'pino'
 
 import type { MemorySummaryRecord, SparseVector, Store } from '@/db'
-import { providerFor } from '@/services/providers'
-import type { ChatTokenizer } from '@/services/tokenizer'
-
-import type { ProviderService } from '../app/providers'
+import { providerFor } from '@/integrations/providers'
+import type { ChatTokenizer } from '@/integrations/tokenizer'
+import type { ProviderService } from '@/modules/providers/service'
 
 const MEMORY_TAG = 'Past Events Summary'
 const SUMMARY_SEPARATOR = '\n\n'

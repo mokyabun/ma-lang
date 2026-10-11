@@ -6,11 +6,14 @@ import {
 import { Hono } from 'hono'
 
 import type { AppContext } from '@/context'
+import {
+    exportPocketRisuModelProfile,
+    importPocketRisuModelProfile,
+} from '@/integrations/providers'
 import { ConflictError, NotFoundError } from '@/lib/errors'
 import { type AppEnv, binaryResponse, jsonValidator, readImportFile } from '@/lib/http'
-import { exportPocketRisuModelProfile, importPocketRisuModelProfile } from '@/services/providers'
 
-export function createModelPresetDomain(context: AppContext) {
+export function createModelPresetRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) =>
             c.json({

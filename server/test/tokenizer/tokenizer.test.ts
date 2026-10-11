@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import { POCKET_RISU_PROFILE_OPTION, type ProviderKind } from '@malang/shared'
 
-import { chatTokenizerFor, resolveTokenizerId } from '@/services/tokenizer'
-import { type EncoderName, loadEncoder } from '@/services/tokenizer/encoders'
+import { chatTokenizerFor, resolveTokenizerId } from '@/integrations/tokenizer'
+import { type EncoderName, loadEncoder } from '@/integrations/tokenizer/encoders'
 
 import golden from '../fixtures/tokenizer-golden.json'
 

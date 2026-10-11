@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from 'bun:test'
 
 import { ProviderConfigSchema } from '@malang/shared'
 
-import { buildPocketRisuGeminiBody } from '@/services/providers/gemini-rest'
-import type { RuntimeProviderConfig } from '@/services/providers/types'
-import { toGeminiContents, VertexAdapter } from '@/services/providers/vertex'
+import { buildPocketRisuGeminiBody } from '@/integrations/providers/gemini-rest'
+import type { RuntimeProviderConfig } from '@/integrations/providers/types'
+import { toGeminiContents, VertexAdapter } from '@/integrations/providers/vertex'
 
 const originalFetch = globalThis.fetch
 afterEach(() => {

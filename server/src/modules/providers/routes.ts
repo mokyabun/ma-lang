@@ -2,10 +2,10 @@ import { ProviderSettingsInputSchema } from '@malang/shared'
 import { Hono } from 'hono'
 
 import type { AppContext } from '@/context'
+import { providerFor } from '@/integrations/providers'
 import { type AppEnv, jsonValidator } from '@/lib/http'
-import { providerFor } from '@/services/providers'
 
-export function createProviderDomain(context: AppContext) {
+export function createProviderRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) => c.json(context.providers.get()))
         .put('/', jsonValidator(ProviderSettingsInputSchema), async (c) => {

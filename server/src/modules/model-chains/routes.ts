@@ -5,7 +5,7 @@ import type { AppContext } from '@/context'
 import { ConflictError, NotFoundError, ValidationError } from '@/lib/errors'
 import { type AppEnv, jsonValidator } from '@/lib/http'
 
-export function createModelChainDomain(context: AppContext) {
+export function createModelChainRoutes(context: AppContext) {
     return new Hono<AppEnv>()
         .get('/', (c) => c.json({ presets: context.store.modelChain.list() }))
         .post('/', jsonValidator(ModelChainPresetInputSchema), (c) => {

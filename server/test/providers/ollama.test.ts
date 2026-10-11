@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { parseNdjson } from '@/services/providers/ollama'
+import { parseNdjson } from '@/integrations/providers/ollama'
 
 function streamOf(...parts: string[]) {
     return new ReadableStream<Uint8Array>({

@@ -2,8 +2,7 @@ import type { ModelPreset, ModelPresetInput } from '@malang/shared'
 import { asc, eq, max } from 'drizzle-orm'
 
 import { iso, RepositoryBase, requireValue } from '@/db/repository'
-
-import { appSettings, conversations, modelChainPresets, modelPresets } from '../schema'
+import { appSettings, conversations, modelChainPresets, modelPresets } from '@/db/schema'
 
 export class ModelPresetRepository extends RepositoryBase {
     list(): ModelPreset[] {

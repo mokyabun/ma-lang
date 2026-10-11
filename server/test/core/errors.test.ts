@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { ApiErrorSchema } from '@malang/shared'
 import { HTTPException } from 'hono/http-exception'
 
+import { ProviderError } from '@/integrations/providers/types'
 import {
     ConflictError,
     errorResponse,
@@ -11,7 +12,6 @@ import {
     ValidationError,
     validationDetails,
 } from '@/lib/errors'
-import { ProviderError } from '@/services/providers/types'
 
 describe('structured server errors', () => {
     test.each([

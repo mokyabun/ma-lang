@@ -13,11 +13,11 @@ import {
 import { z } from 'zod'
 
 import type { Store } from '@/db'
+import { providerFor } from '@/integrations/providers'
+import type { RuntimeProviderConfig } from '@/integrations/providers/types'
+import type { ServiceAccountCredentials } from '@/integrations/providers/types'
 import { ValidationError } from '@/lib/errors/app-error'
 import type { SecretVault } from '@/modules/secrets/vault'
-import { providerFor } from '@/services/providers'
-import type { RuntimeProviderConfig } from '@/services/providers/types'
-import type { ServiceAccountCredentials } from '@/services/providers/types'
 
 export class ProviderConfigurationError extends ValidationError {}
 
