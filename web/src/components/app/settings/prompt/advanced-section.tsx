@@ -1,6 +1,6 @@
+import { PromptToggleAdvancedEditor } from '@/components/prompt/prompt-toggle-advanced-editor'
 import { TabsContent } from '@/components/ui/tabs'
 
-import { PromptToggleAdvancedEditor } from '../shared/prompt-toggle-advanced-editor'
 import type { PresetEditorSectionProps } from './types'
 
 export function PresetAdvancedSection({

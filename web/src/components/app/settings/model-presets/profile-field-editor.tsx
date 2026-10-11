@@ -1,10 +1,10 @@
 import type { PocketRisuProfileField } from '@malang/shared'
 
+import { Field } from '@/components/form/field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 
-import { Field } from '../shared/field'
 import { JsonProfileField } from './json-profile-field'
 import { finiteNumber, enumValue, scalarProfileValue } from './model'
 

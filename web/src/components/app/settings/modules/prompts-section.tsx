@@ -1,7 +1,7 @@
+import { EditorSection } from '@/components/form/editor-section'
 import { TabsContent } from '@/components/ui/tabs'
 import { removeAt, replaceAt } from '@/lib/collections'
 
-import { EditorSection } from '../shared/editor-section'
 import { blankModulePrompt } from './model'
 import { ModulePromptRow } from './module-prompt-row'
 import type { ModuleEditorProps } from './types'

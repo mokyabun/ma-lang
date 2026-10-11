@@ -12,6 +12,10 @@ import {
     TestImagePreview,
     useTestGeneration,
 } from '@/components/app/illustration/test-image-preview'
+import { ConfirmDialog } from '@/components/dialogs/confirm-dialog'
+import { Field } from '@/components/form/field'
+import { SettingsGroup } from '@/components/form/settings-group'
+import { SectionHeading } from '@/components/page-heading'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,11 +31,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
-
-import { ConfirmDialog } from '../../dialogs/confirm-dialog'
-import { SectionHeading } from '../../page-heading'
-import { Field } from '../shared/field'
-import { SettingsGroup } from '../shared/settings-group'
 
 export function IllustrationStylesSection() {
     const [styles, setStyles] = useState<IllustrationStyle[] | null>(null)

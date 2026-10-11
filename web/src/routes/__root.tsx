@@ -1,6 +1,6 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router'
 
-import { GlobalAutoSaveStatus } from '@/components/app/auto-save-status'
+import { GlobalAutoSaveStatus } from '@/components/auto-save-status'
 import { ThemeProvider } from '@/components/theme-provider'
 
 import '../styles.css'

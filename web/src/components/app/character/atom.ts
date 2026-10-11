@@ -1,6 +1,8 @@
 import type { CharacterAsset, CharacterUpdate } from '@malang/shared'
 import { atom } from 'jotai'
 
+import { loadingAtom } from '@/components/dialogs/atom'
+import { withImportProgress } from '@/components/dialogs/import-progress'
 import { api } from '@/lib/api'
 import {
     charactersAtom,
@@ -12,8 +14,6 @@ import {
     workspaceErrorAtom,
 } from '@/lib/store'
 
-import { loadingAtom } from '../dialogs/atom'
-import { withImportProgress } from '../dialogs/import-progress'
 import { personaListAtom } from '../settings/persona/atom'
 
 export const characterAssetsAtom = atom<CharacterAsset[]>([])

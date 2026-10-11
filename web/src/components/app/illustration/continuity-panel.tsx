@@ -8,7 +8,7 @@ import type {
 import { ArrowUp, Lock, LockOpen } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 
-import { ConfirmDialog } from '@/components/app/dialogs/confirm-dialog'
+import { ConfirmDialog } from '@/components/dialogs/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'

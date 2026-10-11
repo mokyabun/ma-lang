@@ -1,12 +1,12 @@
 import type { PromptModule } from '@malang/shared'
 import { useSetAtom } from 'jotai'
 
+import { loadingAtom } from '@/components/dialogs/atom'
+import { withImportProgress } from '@/components/dialogs/import-progress'
+import { EditableWorkbench } from '@/components/form/editable-workbench'
 import { useEditableCatalog } from '@/hooks/use-editable-catalog'
 import { api, promptModuleExportUrl } from '@/lib/api'
 
-import { loadingAtom } from '../../dialogs/atom'
-import { withImportProgress } from '../../dialogs/import-progress'
-import { EditableWorkbench } from '../shared/editable-workbench'
 import { blankModule, moduleInput } from './model'
 import { ModuleEditor } from './module-editor'
 

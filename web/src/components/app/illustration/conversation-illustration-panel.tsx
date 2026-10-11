@@ -5,8 +5,8 @@ import type {
 } from '@malang/shared'
 import { useEffect, useState } from 'react'
 
-import { Field } from '@/components/app/settings/shared/field'
-import { SegmentedChoice } from '@/components/app/settings/shared/segmented-choice'
+import { Field } from '@/components/form/field'
+import { SegmentedChoice } from '@/components/form/segmented-choice'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import {

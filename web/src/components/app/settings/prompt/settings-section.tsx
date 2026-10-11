@@ -1,5 +1,6 @@
 import { Plus, Trash } from '@phosphor-icons/react'
 
+import { SettingsGroup } from '@/components/form/settings-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,7 +8,6 @@ import { TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { nextVariableKey, splitList } from '@/lib/collections'
 
-import { SettingsGroup } from '../shared/settings-group'
 import { PresetCheck } from './preset-check'
 import type { PresetEditorSectionProps } from './types'
 

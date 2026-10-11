@@ -7,15 +7,15 @@ import {
     WarningCircle,
 } from '@phosphor-icons/react'
 
+import { Field } from '@/components/form/field'
+import { NoticeBox } from '@/components/form/notice-box'
+import { SettingsGroup } from '@/components/form/settings-group'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { api, modelPresetExportUrl } from '@/lib/api'
 
-import { Field } from '../shared/field'
-import { NoticeBox } from '../shared/notice-box'
-import { SettingsGroup } from '../shared/settings-group'
 import { CredentialChooser } from './credential-chooser'
 import { ModelIdPicker } from './model-id-picker'
 import { SchemaDefinedSettings } from './profile-settings'

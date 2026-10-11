@@ -3,6 +3,7 @@ import { Plus } from '@phosphor-icons/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useState } from 'react'
 
+import { ConfirmDialog } from '@/components/dialogs/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,7 +14,6 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 
-import { ConfirmDialog } from '../../dialogs/confirm-dialog'
 import {
     activePersonaAtom,
     createPersonaAtom,

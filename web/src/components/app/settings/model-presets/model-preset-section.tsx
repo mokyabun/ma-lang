@@ -1,12 +1,12 @@
 import type { AppSettings, ModelApiKey, ModelPreset } from '@malang/shared'
 import { useState } from 'react'
 
+import { type Notice, NoticeBox } from '@/components/form/notice-box'
+import { SectionHeading } from '@/components/page-heading'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 
-import { SectionHeading } from '../../page-heading'
-import { type Notice, NoticeBox } from '../shared/notice-box'
 import { ApiKeyCatalog } from './api-key-catalog'
 import { ApiKeyEditor } from './api-key-editor'
 import { PresetCatalog } from './preset-catalog'

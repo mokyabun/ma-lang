@@ -1,6 +1,7 @@
 import type { AppSettings } from '@malang/shared'
 
-import { SectionHeading } from '../../page-heading'
+import { SectionHeading } from '@/components/page-heading'
+
 import { PersonaManager } from './persona-manager'
 
 export function PersonaSection({

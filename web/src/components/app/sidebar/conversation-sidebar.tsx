@@ -33,6 +33,7 @@ import {
 } from '@phosphor-icons/react'
 import { Fragment, type FormEvent, useState } from 'react'
 
+import { AppSearchInput } from '@/components/app-search-input'
 import { Button } from '@/components/ui/button'
 import {
     ContextMenu,
@@ -62,7 +63,6 @@ import { Label } from '@/components/ui/label'
 import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
-import { AppSearchInput } from '../app-search-input'
 import { CharacterAvatar } from '../character/character-avatar'
 import {
     type CollectionNodeType,

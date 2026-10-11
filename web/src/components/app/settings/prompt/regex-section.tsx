@@ -1,11 +1,11 @@
 import type { RegexScript } from '@malang/shared'
 
+import { EditorSection } from '@/components/form/editor-section'
+import { RegexRow } from '@/components/prompt/regex-row'
 import { TabsContent } from '@/components/ui/tabs'
 import { removeAt, replaceAt } from '@/lib/collections'
 import { blankRegex } from '@/lib/prompt-defaults'
 
-import { EditorSection } from '../shared/editor-section'
-import { RegexRow } from '../shared/regex-row'
 import type { PresetEditorSectionProps } from './types'
 
 export function PresetRegexSection({

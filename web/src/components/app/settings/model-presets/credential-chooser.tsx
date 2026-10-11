@@ -1,11 +1,10 @@
 import type { ModelApiKey, ModelApiKeyInput, ProviderKind } from '@malang/shared'
 import { Key } from '@phosphor-icons/react'
 
+import { Field } from '@/components/form/field'
+import { SegmentedChoice } from '@/components/form/segmented-choice'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-
-import { Field } from '../shared/field'
-import { SegmentedChoice } from '../shared/segmented-choice'
 
 export function CredentialChooser({
     provider,

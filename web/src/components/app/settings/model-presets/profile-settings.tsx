@@ -1,6 +1,7 @@
 import type { PocketRisuProfileBinding } from '@malang/shared'
 
-import { SettingsGroup } from '../shared/settings-group'
+import { SettingsGroup } from '@/components/form/settings-group'
+
 import { nativeProfileFieldKeys } from './model'
 import { ProfileFieldGrid } from './profile-field-grid'
 

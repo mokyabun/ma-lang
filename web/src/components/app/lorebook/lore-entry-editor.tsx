@@ -1,7 +1,7 @@
 import type { LoreEntry } from '@malang/shared'
 import { CaretDown, Trash } from '@phosphor-icons/react'
 
-import { SettingsGroup } from '@/components/app/settings/shared/settings-group'
+import { SettingsGroup } from '@/components/form/settings-group'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'

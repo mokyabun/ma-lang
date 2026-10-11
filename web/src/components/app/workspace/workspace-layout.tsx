@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { type ChangeEvent, type ReactNode, useEffect, useRef } from 'react'
 
+import { WorkspaceDialogs } from '@/components/dialogs/workspace-dialogs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { api } from '@/lib/api'
@@ -28,7 +29,6 @@ import {
 import { useCharacterDelete } from '../character/use-character-delete'
 import { generatingConversationIdsAtom } from '../chat/atom'
 import { useStartConversation } from '../chat/use-start-conversation'
-import { WorkspaceDialogs } from '../dialogs/workspace-dialogs'
 import { CharacterRail } from '../sidebar/workspace-navigation'
 import { WorkspaceError } from './workspace-feedback'
 

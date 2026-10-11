@@ -2,7 +2,8 @@ import { GENERAL_CHAT_CHARACTER_ID, type Character } from '@malang/shared'
 import { useNavigate } from '@tanstack/react-router'
 import { useSetAtom } from 'jotai'
 
-import { confirmationAtom } from '../dialogs/atom'
+import { confirmationAtom } from '@/components/dialogs/atom'
+
 import { deleteCharacterAtom } from './atom'
 
 export function useCharacterDelete() {

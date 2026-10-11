@@ -1,7 +1,6 @@
+import { SegmentedChoice } from '@/components/form/segmented-choice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-import { SegmentedChoice } from '../shared/segmented-choice'
 
 export function ModelIdPicker({
     mode,

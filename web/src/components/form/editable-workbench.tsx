@@ -1,6 +1,7 @@
 import { BookOpenText, DownloadSimple, Plus, Trash, UploadSimple } from '@phosphor-icons/react'
 import { type ReactNode, useRef, useState } from 'react'
 
+import { ConfirmDialog } from '@/components/dialogs/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,8 +13,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-
-import { ConfirmDialog } from '../../dialogs/confirm-dialog'
 
 interface EditableWorkbenchProps {
     title: string

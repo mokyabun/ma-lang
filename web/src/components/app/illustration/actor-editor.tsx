@@ -6,7 +6,7 @@ import type {
 import { Plus, Star, Trash } from '@phosphor-icons/react'
 import { useState } from 'react'
 
-import { Field } from '@/components/app/settings/shared/field'
+import { Field } from '@/components/form/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

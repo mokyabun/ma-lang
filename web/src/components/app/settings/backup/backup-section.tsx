@@ -7,7 +7,8 @@ import {
 } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
-import { ConfirmDialog } from '@/components/app/dialogs/confirm-dialog'
+import { ConfirmDialog } from '@/components/dialogs/confirm-dialog'
+import { SectionHeading } from '@/components/page-heading'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -15,7 +16,6 @@ import { Switch } from '@/components/ui/switch'
 import { api, type BackupSnapshot } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-import { SectionHeading } from '../../page-heading'
 import type { SettingsPanelProps } from '../types'
 
 export function BackupSection({

@@ -11,9 +11,9 @@ import type {
 } from '@malang/shared'
 import { useState } from 'react'
 
+import type { Notice } from '@/components/form/notice-box'
 import { api } from '@/lib/api'
 
-import type { Notice } from '../shared/notice-box'
 import {
     nativeProfileFieldKeys,
     generationParameterKeys,

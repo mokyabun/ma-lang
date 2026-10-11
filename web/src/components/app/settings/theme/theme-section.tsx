@@ -1,13 +1,13 @@
 import { ArrowCounterClockwise, Moon, SlidersHorizontal, Sun } from '@phosphor-icons/react'
 
+import { SettingTitle } from '@/components/form/setting-title'
+import { SectionHeading } from '@/components/page-heading'
 import { CHAT_APPEARANCE_DEFAULTS, CHAT_APPEARANCE_LIMITS } from '@/components/theme-preferences'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { chatHotkeyModifierLabel, SEND_KEYS, sendKeyLabel } from '@/lib/chat-shortcuts'
 
-import { SectionHeading } from '../../page-heading'
-import { SettingTitle } from '../shared/setting-title'
 import { RangeSetting } from './range-setting'
 import { ThemeChoice } from './theme-choice'
 import { ThemePreview } from './theme-preview'

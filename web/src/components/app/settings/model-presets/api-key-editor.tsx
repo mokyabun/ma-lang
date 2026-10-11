@@ -2,14 +2,14 @@ import type { ModelApiKey, ModelApiKeyInput, ProviderKind } from '@malang/shared
 import { Key } from '@phosphor-icons/react'
 import { useState } from 'react'
 
+import { EditorShell } from '@/components/form/editor-shell'
+import { Field } from '@/components/form/field'
+import { type Notice, NoticeBox } from '@/components/form/notice-box'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 
-import { EditorShell } from '../shared/editor-shell'
-import { Field } from '../shared/field'
-import { type Notice, NoticeBox } from '../shared/notice-box'
 import { PROVIDERS } from './provider-catalog'
 
 export function ApiKeyEditor({

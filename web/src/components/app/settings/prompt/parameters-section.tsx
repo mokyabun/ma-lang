@@ -1,11 +1,11 @@
 import { Info } from '@phosphor-icons/react'
 
+import { BiasEditor } from '@/components/prompt/bias-editor'
 import { Label } from '@/components/ui/label'
 import { TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { splitLines } from '@/lib/collections'
 
-import { BiasEditor } from '../shared/bias-editor'
 import { ParameterRow } from './parameter-row'
 import { PresetNumberField } from './preset-number-field'
 import type { PresetEditorSectionProps } from './types'

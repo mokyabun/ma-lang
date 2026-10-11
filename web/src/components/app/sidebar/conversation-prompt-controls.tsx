@@ -2,7 +2,7 @@ import type { ConversationModuleState, PromptPreset, PromptToggle } from '@malan
 import { Lock, LockOpen } from '@phosphor-icons/react'
 import { useState } from 'react'
 
-import { SettingsGroup } from '@/components/app/settings/shared/settings-group'
+import { SettingsGroup } from '@/components/form/settings-group'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

@@ -1,9 +1,9 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 
+import { confirmationAtom } from '@/components/dialogs/atom'
 import { selectedCharacterIdAtom } from '@/lib/store'
 
-import { confirmationAtom } from '../dialogs/atom'
 import { deleteConversationAtom } from './atom'
 
 export function useConversationDelete() {

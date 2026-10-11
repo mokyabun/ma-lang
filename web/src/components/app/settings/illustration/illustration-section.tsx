@@ -16,6 +16,10 @@ import {
     TestImagePreview,
     useTestGeneration,
 } from '@/components/app/illustration/test-image-preview'
+import { Field } from '@/components/form/field'
+import { SegmentedChoice } from '@/components/form/segmented-choice'
+import { SettingsGroup } from '@/components/form/settings-group'
+import { SectionHeading } from '@/components/page-heading'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,11 +36,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
-
-import { SectionHeading } from '../../page-heading'
-import { Field } from '../shared/field'
-import { SegmentedChoice } from '../shared/segmented-choice'
-import { SettingsGroup } from '../shared/settings-group'
 
 const NONE = '__none__'
 

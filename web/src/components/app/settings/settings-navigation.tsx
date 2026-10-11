@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
+import { AppSearchInput } from '@/components/app-search-input'
 import { Button } from '@/components/ui/button'
 
-import { AppSearchInput } from '../app-search-input'
 import { SETTINGS_NAV } from './navigation'
 import type { SettingsPanelProps } from './types'
 

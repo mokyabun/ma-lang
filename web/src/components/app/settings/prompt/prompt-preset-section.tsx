@@ -1,9 +1,9 @@
 import type { AppSettings, PromptPreset } from '@malang/shared'
 
+import { EditableWorkbench } from '@/components/form/editable-workbench'
 import { useEditableCatalog } from '@/hooks/use-editable-catalog'
 import { api, promptPresetExportUrl } from '@/lib/api'
 
-import { EditableWorkbench } from '../shared/editable-workbench'
 import { blankPreset, presetInput } from './model'
 import { PresetEditor } from './preset-editor'
 import { PresetRegexActions } from './preset-regex-actions'

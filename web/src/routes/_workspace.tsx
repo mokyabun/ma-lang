@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
-import { LoadingDialog } from '@/components/app/dialogs/loading-dialog'
+import { LoadingDialog } from '@/components/dialogs/loading-dialog'
 import { api } from '@/lib/api'
 
 export const Route = createFileRoute('/_workspace')({

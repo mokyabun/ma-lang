@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
+import { SectionHeading } from '@/components/page-heading'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { SectionHeading } from '../../page-heading'
 import { BackupSection } from '../backup/backup-section'
 import type { SettingsPanelProps } from '../types'
 import { RequestLogsPanel } from './request-logs-panel'

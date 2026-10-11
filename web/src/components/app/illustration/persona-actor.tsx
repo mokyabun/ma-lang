@@ -2,7 +2,7 @@ import type { IllustrationActor, Persona } from '@malang/shared'
 import { Plus } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
-import { ConfirmDialog } from '@/components/app/dialogs/confirm-dialog'
+import { ConfirmDialog } from '@/components/dialogs/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 

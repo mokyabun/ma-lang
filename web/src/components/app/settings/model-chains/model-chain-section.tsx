@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react'
 import { lazy, Suspense, useRef } from 'react'
 
+import { SectionHeading } from '@/components/page-heading'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,7 +21,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 
-import { SectionHeading } from '../../page-heading'
 import { AgentInspector } from './agent-inspector'
 import { firstAgent, findAgent, updateAgent, deleteAgent, validDraft } from './model'
 import { PipelineSummary } from './pipeline-summary'
