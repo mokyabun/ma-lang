@@ -1,7 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 
 import {
     type ConversationContinuity,
@@ -11,12 +8,9 @@ import {
 } from '@malang/shared'
 import { zipSync } from 'fflate'
 
-import { createApp } from '@/app'
-import { createContext } from '@/bootstrap'
-import type { AppContext } from '@/context'
-
-import { testConfig } from '../../helpers/app'
-import { login } from '../../helpers/app'
+import { createTestApp } from '../../helpers/app'
+import { mockFetch } from '../../helpers/fetch'
+import { createConversation, createEchoPreset } from '../../helpers/fixtures'
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 3])
 
@@ -32,48 +26,28 @@ function analysis(continuity: unknown, illustrations: unknown[] = []) {
     return JSON.stringify({ illustrations, continuity })
 }
 
+const t = await createTestApp()
+afterAll(() => t.close())
+
 describe('illustration continuity', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-illustration-continuity-'))
-    const config = testConfig(directory)
-    const originalFetch = globalThis.fetch
     const novelaiInputs: Array<{ characterPrompts: Array<{ prompt: string }> }> = []
-    let context: AppContext
-    let app: ReturnType<typeof createApp>
-    let cookie = ''
+    let restoreFetch = () => {}
     let aria: IllustrationActor
 
-    const call = (path: string, method = 'GET', body?: unknown) =>
-        app.request(`/api/v1${path}`, {
-            method,
-            body: body === undefined ? undefined : JSON.stringify(body),
-            headers: { cookie, 'content-type': 'application/json' },
-        })
-
     function echoPreset(message: string) {
-        return context.store.modelPreset.create({
-            name: `Echo ${crypto.randomUUID()}`,
-            apiKeyId: null,
-            config: {
-                provider: 'echo',
-                modelId: 'echo',
-                defaults: {},
-                providerOptions: { message },
-            },
-        }).id
+        return createEchoPreset(t, { message }).id
     }
 
     function conversation(mode: 'auto' | 'manual') {
-        const id = context.conversations.create({
-            characterId: GENERAL_CHAT_CHARACTER_ID,
+        const id = createConversation(t, {
             modelPresetId: echoPreset('Aria steps out into the rain.\n\nShe laughs.'),
-            greetingIndex: -1,
         }).id
         setAnalysis(id, mode, analysis({}))
         return id
     }
 
     function setAnalysis(conversationId: string, mode: 'auto' | 'manual', reply: string) {
-        context.illustrationCatalog.saveConversationSettings(conversationId, {
+        t.context.illustrationCatalog.saveConversationSettings(conversationId, {
             enabled: true,
             mode,
             count: { min: 1, max: 1 },
@@ -84,7 +58,7 @@ describe('illustration continuity', () => {
     }
 
     async function generate(conversationId: string, mode: GenerationRequest['mode'] = 'reply') {
-        const result = await context.generations.start(
+        const result = await t.context.generations.start(
             conversationId,
             {
                 mode,
@@ -95,25 +69,22 @@ describe('illustration continuity', () => {
             crypto.randomUUID(),
         )
         await new Response(result.stream).text()
-        return context.store.message.lastAssistant(conversationId)!
+        return t.context.store.message.lastAssistant(conversationId)!
     }
 
     async function continuity(conversationId: string) {
         return (await (
-            await call(`/conversations/${conversationId}/continuity`)
+            await t.send(`/conversations/${conversationId}/continuity`)
         ).json()) as ConversationContinuity
     }
 
     function idleJobs(conversationId: string) {
-        return context.jobs.listActive({ conversationId }).length === 0
+        return t.context.jobs.listActive({ conversationId }).length === 0
     }
 
     beforeAll(async () => {
-        context = await createContext(config)
-        app = createApp(context)
-        cookie = await login(app, config.adminPassword!)
-        await context.illustrations.updateSettings({ novelaiApiKey: 'pst-continuity' })
-        aria = context.illustrationCatalog.createActor(
+        await t.context.illustrations.updateSettings({ novelaiApiKey: 'pst-continuity' })
+        aria = t.context.illustrationCatalog.createActor(
             { characterId: GENERAL_CHAT_CHARACTER_ID },
             {
                 name: 'Aria',
@@ -139,17 +110,13 @@ describe('illustration continuity', () => {
                 ],
             },
         )
-        globalThis.fetch = (async (_url: string, init: RequestInit & { body: string }) => {
-            novelaiInputs.push(JSON.parse(init.body).parameters)
+        restoreFetch = mockFetch(async (_url, init) => {
+            novelaiInputs.push(JSON.parse(init?.body as string).parameters)
             return new Response(zipSync({ 'image_0.png': png }))
-        }) as unknown as typeof fetch
+        })
     })
 
-    afterAll(() => {
-        globalThis.fetch = originalFetch
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
-    })
+    afterAll(() => restoreFetch())
 
     test('manages global and character state definitions', async () => {
         const wet = {
@@ -163,36 +130,47 @@ describe('illustration continuity', () => {
             lifetimeTurns: 2,
         }
         expect(
-            (await call('/illustrations/state-definitions', 'POST', { ...wet, characterId: null }))
-                .status,
+            (
+                await t.send('/illustrations/state-definitions', {
+                    method: 'POST',
+                    body: { ...wet, characterId: null },
+                })
+            ).status,
         ).toBe(201)
         expect(
-            (await call('/illustrations/state-definitions', 'POST', { ...wet, characterId: null }))
-                .status,
+            (
+                await t.send('/illustrations/state-definitions', {
+                    method: 'POST',
+                    body: { ...wet, characterId: null },
+                })
+            ).status,
         ).toBe(409)
-        const local = await call('/illustrations/state-definitions', 'POST', {
-            ...wet,
-            key: 'mood',
-            kind: 'choice',
-            options: [{ value: 'happy', tags: 'smile' }],
-            lifetimeTurns: null,
-            characterId: GENERAL_CHAT_CHARACTER_ID,
+        const local = await t.send('/illustrations/state-definitions', {
+            method: 'POST',
+            body: {
+                ...wet,
+                key: 'mood',
+                kind: 'choice',
+                options: [{ value: 'happy', tags: 'smile' }],
+                lifetimeTurns: null,
+                characterId: GENERAL_CHAT_CHARACTER_ID,
+            },
         })
         expect(local.status).toBe(201)
-        const invalidChoice = await call('/illustrations/state-definitions', 'POST', {
-            ...wet,
-            key: 'empty',
-            kind: 'choice',
-            characterId: null,
+        const invalidChoice = await t.send('/illustrations/state-definitions', {
+            method: 'POST',
+            body: { ...wet, key: 'empty', kind: 'choice', characterId: null },
         })
         expect(invalidChoice.status).toBe(422)
 
-        const listed = (await (await call('/illustrations/state-definitions')).json()) as {
+        const listed = (await (await t.send('/illustrations/state-definitions')).json()) as {
             definitions: Array<{ key: string }>
         }
         expect(listed.definitions.map((item) => item.key)).toEqual(['wet'])
         const scoped = (await (
-            await call(`/illustrations/state-definitions?characterId=${GENERAL_CHAT_CHARACTER_ID}`)
+            await t.send(
+                `/illustrations/state-definitions?characterId=${GENERAL_CHAT_CHARACTER_ID}`,
+            )
         ).json()) as { definitions: Array<{ key: string }> }
         expect(scoped.definitions.map((item) => item.key)).toEqual(['mood'])
     })
@@ -240,10 +218,13 @@ describe('illustration continuity', () => {
         })
 
         // The user locks the swimsuit; the next analysis tries to change it anyway.
-        const locked = await call(`/conversations/${conversationId}/continuity`, 'PUT', {
-            present: [aria.id],
-            outfits: { [aria.id]: { outfitId: swimsuit.id, locked: true } },
-            states: afterFirst.state.states,
+        const locked = await t.send(`/conversations/${conversationId}/continuity`, {
+            method: 'PUT',
+            body: {
+                present: [aria.id],
+                outfits: { [aria.id]: { outfitId: swimsuit.id, locked: true } },
+                states: afterFirst.state.states,
+            },
         })
         expect(locked.status).toBe(200)
         expect(((await locked.json()) as ConversationContinuity).source).toBe('manual')
@@ -275,10 +256,12 @@ describe('illustration continuity', () => {
             '1girl, aria, sleeping, black swimsuit, smile',
         )
 
-        const promoted = await call(`/illustrations/outfits/${swimsuit.id}/promote`, 'POST')
+        const promoted = await t.send(`/illustrations/outfits/${swimsuit.id}/promote`, {
+            method: 'POST',
+        })
         expect(await promoted.json()).toMatchObject({ id: swimsuit.id, conversationId: null })
         expect(
-            context.store.illustrationActor.get(aria.id)!.outfits.map((outfit) => outfit.name),
+            t.context.store.illustrationActor.get(aria.id)!.outfits.map((outfit) => outfit.name),
         ).toContain('swimsuit')
     })
 
@@ -289,7 +272,7 @@ describe('illustration continuity', () => {
             'manual',
             analysis({ states: [{ actor: 'aria', key: 'mood', op: 'choose', value: 'happy' }] }),
         )
-        context.store.illustrationSettings.update({ continuityTracking: 'every-message' })
+        t.context.store.illustrationSettings.update({ continuityTracking: 'every-message' })
         try {
             const reply = await generate(conversationId)
             await until(() => idleJobs(conversationId))
@@ -297,11 +280,11 @@ describe('illustration continuity', () => {
             expect(tracked.snapshotMessageId).toBe(reply.id)
             expect(tracked.state.states[aria.id]?.mood?.value).toBe('happy')
             // Continuity-only tracking never adds illustrations.
-            expect(context.illustrationPipeline.list(conversationId)).toEqual([])
+            expect(t.context.illustrationPipeline.list(conversationId)).toEqual([])
 
             setAnalysis(conversationId, 'manual', analysis({}))
-            context.store.illustrationSettings.update({ continuityTracking: 'with-illustration' })
-            context.store.conversation.update(conversationId, {
+            t.context.store.illustrationSettings.update({ continuityTracking: 'with-illustration' })
+            t.context.store.conversation.update(conversationId, {
                 modelPresetId: echoPreset('A different take on the scene.'),
             })
             await generate(conversationId, 'regenerate')
@@ -310,13 +293,13 @@ describe('illustration continuity', () => {
             expect(regenerated.source).toBeNull()
             expect(regenerated.state.states).toEqual({})
 
-            const [original] = context.store.generation.listByMessage(reply.id)
-            context.generations.selectOutput(reply.id, original!.id)
+            const [original] = t.context.store.generation.listByMessage(reply.id)
+            t.context.generations.selectOutput(reply.id, original!.id)
             expect((await continuity(conversationId)).state.states[aria.id]?.mood?.value).toBe(
                 'happy',
             )
         } finally {
-            context.store.illustrationSettings.update({ continuityTracking: 'with-illustration' })
+            t.context.store.illustrationSettings.update({ continuityTracking: 'with-illustration' })
         }
     })
 
@@ -324,7 +307,7 @@ describe('illustration continuity', () => {
         const conversationId = conversation('manual')
         await generate(conversationId)
         const put = (body: unknown) =>
-            call(`/conversations/${conversationId}/continuity`, 'PUT', body)
+            t.send(`/conversations/${conversationId}/continuity`, { method: 'PUT', body })
         const base = { present: [], outfits: {}, states: {} }
 
         expect((await put({ ...base, present: [crypto.randomUUID()] })).status).toBe(422)

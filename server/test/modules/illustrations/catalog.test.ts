@@ -1,7 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { afterAll, afterEach, describe, expect, test } from 'bun:test'
 
 import {
     type ConversationIllustrationSettings,
@@ -13,12 +10,8 @@ import {
 } from '@malang/shared'
 import { zipSync } from 'fflate'
 
-import { createApp } from '@/app'
-import { createContext } from '@/bootstrap'
-import type { AppContext } from '@/context'
-
-import { testConfig } from '../../helpers/app'
-import { login } from '../../helpers/app'
+import { createTestApp } from '../../helpers/app'
+import { mockFetch } from '../../helpers/fetch'
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1])
 
@@ -34,23 +27,14 @@ const aria: IllustrationActorInput = {
     ],
 }
 
-describe('illustration styles, actors, and conversation settings', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-illustration-catalog-'))
-    const config = testConfig(directory)
-    const originalFetch = globalThis.fetch
-    let context: AppContext
-    let app: ReturnType<typeof createApp>
-    let cookie = ''
+const t = await createTestApp()
+afterAll(() => t.close())
 
-    const call = (path: string, init: { method?: string; body?: unknown } = {}) =>
-        app.request(`/api/v1${path}`, {
-            method: init.method,
-            body: init.body === undefined ? undefined : JSON.stringify(init.body),
-            headers: { cookie, 'content-type': 'application/json' },
-        })
+describe('illustration styles, actors, and conversation settings', () => {
+    let restoreFetch = () => {}
 
     async function createStyle(name: string) {
-        const response = await call('/illustrations/styles', {
+        const response = await t.send('/illustrations/styles', {
             method: 'POST',
             body: {
                 name,
@@ -63,23 +47,10 @@ describe('illustration styles, actors, and conversation settings', () => {
         return (await response.json()) as IllustrationStyle
     }
 
-    beforeAll(async () => {
-        context = await createContext(config)
-        app = createApp(context)
-        cookie = await login(app, config.adminPassword!)
-    })
-
-    afterEach(() => {
-        globalThis.fetch = originalFetch
-    })
-
-    afterAll(() => {
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
-    })
+    afterEach(() => restoreFetch())
 
     test('saves global settings and validates references', async () => {
-        const response = await call('/illustrations/settings', {
+        const response = await t.send('/illustrations/settings', {
             method: 'PATCH',
             body: {
                 defaultMode: 'auto',
@@ -96,12 +67,12 @@ describe('illustration styles, actors, and conversation settings', () => {
             continuityTracking: 'with-illustration',
         })
 
-        const missing = await call('/illustrations/settings', {
+        const missing = await t.send('/illustrations/settings', {
             method: 'PATCH',
             body: { defaultStyleId: crypto.randomUUID() },
         })
         expect(missing.status).toBe(422)
-        const inverted = await call('/illustrations/settings', {
+        const inverted = await t.send('/illustrations/settings', {
             method: 'PATCH',
             body: { defaultCount: { min: 3, max: 1 } },
         })
@@ -113,11 +84,11 @@ describe('illustration styles, actors, and conversation settings', () => {
         expect(style).toMatchObject({ name: 'Watercolor', params: { steps: 20 }, sortOrder: 0 })
         expect((await createStyle('Ink')).sortOrder).toBe(1)
 
-        await call('/illustrations/settings', {
+        await t.send('/illustrations/settings', {
             method: 'PATCH',
             body: { defaultStyleId: style.id },
         })
-        const updated = await call(`/illustrations/styles/${style.id}`, {
+        const updated = await t.send(`/illustrations/styles/${style.id}`, {
             method: 'PUT',
             body: { ...style, name: 'Soft watercolor', params: { scale: 6 } },
         })
@@ -126,29 +97,29 @@ describe('illustration styles, actors, and conversation settings', () => {
             params: { scale: 6 },
         })
 
-        expect((await call(`/illustrations/styles/${style.id}`, { method: 'DELETE' })).status).toBe(
-            204,
-        )
+        expect(
+            (await t.send(`/illustrations/styles/${style.id}`, { method: 'DELETE' })).status,
+        ).toBe(204)
         const settings = (await (
-            await call('/illustrations/settings')
+            await t.send('/illustrations/settings')
         ).json()) as IllustrationSettings
         expect(settings.defaultStyleId).toBeNull()
-        const list = (await (await call('/illustrations/styles')).json()) as {
+        const list = (await (await t.send('/illustrations/styles')).json()) as {
             styles: IllustrationStyle[]
         }
         expect(list.styles.map((item) => item.name)).toEqual(['Ink'])
     })
 
     test('test-renders a style through the fixed prompts and style parameters', async () => {
-        await context.illustrations.updateSettings({ novelaiApiKey: 'pst-catalog-key' })
+        await t.context.illustrations.updateSettings({ novelaiApiKey: 'pst-catalog-key' })
         const style = await createStyle('Test style')
         const bodies: Array<{ input: string; parameters: Record<string, unknown> }> = []
-        globalThis.fetch = (async (_url: string, init: RequestInit & { body: string }) => {
-            bodies.push(JSON.parse(init.body))
+        restoreFetch = mockFetch(async (_url, init) => {
+            bodies.push(JSON.parse(init?.body as string))
             return new Response(zipSync({ 'image_0.png': png }))
-        }) as unknown as typeof fetch
+        })
 
-        const response = await call(`/illustrations/styles/${style.id}/test`, {
+        const response = await t.send(`/illustrations/styles/${style.id}/test`, {
             method: 'POST',
             body: { scene: '1girl, garden', characters: [{ prompt: '1girl, aria, smile' }] },
         })
@@ -162,7 +133,7 @@ describe('illustration styles, actors, and conversation settings', () => {
     })
 
     test('manages character actors and keeps outfit ids across saves', async () => {
-        const created = await call('/illustrations/actors', {
+        const created = await t.send('/illustrations/actors', {
             method: 'POST',
             body: { ...aria, characterId: GENERAL_CHAT_CHARACTER_ID },
         })
@@ -171,7 +142,7 @@ describe('illustration styles, actors, and conversation settings', () => {
         expect(actor.outfits.map((outfit) => outfit.name)).toEqual(['uniform', 'pajamas'])
 
         const [uniform] = actor.outfits
-        const saved = await call(`/illustrations/actors/${actor.id}`, {
+        const saved = await t.send(`/illustrations/actors/${actor.id}`, {
             method: 'PUT',
             body: {
                 ...aria,
@@ -197,11 +168,11 @@ describe('illustration styles, actors, and conversation settings', () => {
         expect(updated.outfits[0]!.id).toBe(uniform!.id)
 
         const listed = (await (
-            await call(`/illustrations/actors?characterId=${GENERAL_CHAT_CHARACTER_ID}`)
+            await t.send(`/illustrations/actors?characterId=${GENERAL_CHAT_CHARACTER_ID}`)
         ).json()) as { actors: IllustrationActor[] }
         expect(listed.actors.map((item) => item.id)).toEqual([actor.id])
 
-        const twoDefaults = await call(`/illustrations/actors/${actor.id}`, {
+        const twoDefaults = await t.send(`/illustrations/actors/${actor.id}`, {
             method: 'PUT',
             body: {
                 ...aria,
@@ -209,32 +180,32 @@ describe('illustration styles, actors, and conversation settings', () => {
             },
         })
         expect(twoDefaults.status).toBe(422)
-        expect((await call('/illustrations/actors')).status).toBe(422)
+        expect((await t.send('/illustrations/actors')).status).toBe(422)
     })
 
     test('allows one actor per persona and removes it with the persona', async () => {
         const persona = (await (
-            await call('/personas', { method: 'POST', body: { name: 'Mina', description: '' } })
+            await t.send('/personas', { method: 'POST', body: { name: 'Mina', description: '' } })
         ).json()) as { id: string }
         const body = { ...aria, name: 'Mina', outfits: [], personaId: persona.id }
 
-        expect((await call('/illustrations/actors', { method: 'POST', body })).status).toBe(201)
-        expect((await call('/illustrations/actors', { method: 'POST', body })).status).toBe(409)
+        expect((await t.send('/illustrations/actors', { method: 'POST', body })).status).toBe(201)
+        expect((await t.send('/illustrations/actors', { method: 'POST', body })).status).toBe(409)
 
-        await call(`/personas/${persona.id}`, { method: 'DELETE' })
-        expect(context.store.illustrationActor.list({ personaId: persona.id })).toEqual([])
+        await t.send(`/personas/${persona.id}`, { method: 'DELETE' })
+        expect(t.context.store.illustrationActor.list({ personaId: persona.id })).toEqual([])
     })
 
     test('reads conversation defaults until saved, then keeps its own settings', async () => {
         const conversation = (await (
-            await call('/conversations', {
+            await t.send('/conversations', {
                 method: 'POST',
                 body: { characterId: GENERAL_CHAT_CHARACTER_ID },
             })
         ).json()) as { id: string }
         const path = `/conversations/${conversation.id}/illustration-settings`
 
-        expect(await (await call(path)).json()).toEqual({
+        expect(await (await t.send(path)).json()).toEqual({
             conversationId: conversation.id,
             enabled: false,
             mode: 'auto',
@@ -245,7 +216,7 @@ describe('illustration styles, actors, and conversation settings', () => {
         })
 
         const style = await createStyle('Conversation style')
-        const saved = await call(path, {
+        const saved = await t.send(path, {
             method: 'PUT',
             body: {
                 enabled: true,
@@ -258,11 +229,11 @@ describe('illustration styles, actors, and conversation settings', () => {
         })
         expect(await saved.json()).toMatchObject({ enabled: true, styleId: style.id })
 
-        await call(`/illustrations/styles/${style.id}`, { method: 'DELETE' })
-        const after = (await (await call(path)).json()) as ConversationIllustrationSettings
+        await t.send(`/illustrations/styles/${style.id}`, { method: 'DELETE' })
+        const after = (await (await t.send(path)).json()) as ConversationIllustrationSettings
         expect(after).toMatchObject({ enabled: true, mode: 'manual', styleId: null })
         expect(
-            (await call(`/conversations/${crypto.randomUUID()}/illustration-settings`)).status,
+            (await t.send(`/conversations/${crypto.randomUUID()}/illustration-settings`)).status,
         ).toBe(404)
     })
 })

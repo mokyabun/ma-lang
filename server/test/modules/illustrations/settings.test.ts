@@ -1,54 +1,26 @@
-import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { afterAll, afterEach, describe, expect, test } from 'bun:test'
 
 import type { BackgroundJob, IllustrationSettings, IllustrationTestResult } from '@malang/shared'
 import { zipSync } from 'fflate'
 import { z } from 'zod'
 
-import { createApp } from '@/app'
-import { createContext } from '@/bootstrap'
-import type { AppContext } from '@/context'
-
-import { testConfig } from '../../helpers/app'
-import { login } from '../../helpers/app'
+import { createTestApp } from '../../helpers/app'
+import { mockFetch } from '../../helpers/fetch'
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9, 9])
 const NOVELAI_KEY = 'pst-novelai-secret-1234'
 
+const t = await createTestApp()
+afterAll(() => t.close())
+
 describe('illustration settings and test generation', () => {
-    const directory = mkdtempSync(join(tmpdir(), 'malang-illustrations-'))
-    const config = testConfig(directory)
-    const originalFetch = globalThis.fetch
-    let context: AppContext
-    let app: ReturnType<typeof createApp>
-    let cookie = ''
+    let restoreFetch = () => {}
 
-    const call = (path: string, init: { method?: string; body?: string } = {}) =>
-        app.request(`/api/v1${path}`, {
-            ...init,
-            headers: { cookie, 'content-type': 'application/json' },
-        })
-
-    beforeAll(async () => {
-        context = await createContext(config)
-        app = createApp(context)
-        cookie = await login(app, config.adminPassword!)
-    })
-
-    afterEach(() => {
-        globalThis.fetch = originalFetch
-    })
-
-    afterAll(() => {
-        context.close()
-        rmSync(directory, { recursive: true, force: true })
-    })
+    afterEach(() => restoreFetch())
 
     test('stores the NovelAI key encrypted and never returns it', async () => {
         const initial = (await (
-            await call('/illustrations/settings')
+            await t.send('/illustrations/settings')
         ).json()) as IllustrationSettings
         expect(initial).toMatchObject({
             imageProvider: 'novelai',
@@ -56,12 +28,12 @@ describe('illustration settings and test generation', () => {
             novelaiApiKeyConfigured: false,
         })
 
-        const response = await call('/illustrations/settings', {
+        const response = await t.send('/illustrations/settings', {
             method: 'PATCH',
-            body: JSON.stringify({
+            body: {
                 novelaiApiKey: NOVELAI_KEY,
                 defaultImageParams: { steps: 23, width: 1024, height: 1024 },
-            }),
+            },
         })
         const text = await response.text()
         expect(response.status).toBe(200)
@@ -78,35 +50,35 @@ describe('illustration settings and test generation', () => {
             },
         })
 
-        const envelope = context.store.secretStorage.get().secrets.novelai!
+        const envelope = t.context.store.secretStorage.get().secrets.novelai!
         expect(envelope).toContain('AES-256-GCM')
         expect(envelope).not.toContain(NOVELAI_KEY)
     })
 
     test('rejects image sizes NovelAI cannot render', async () => {
-        const response = await call('/illustrations/settings', {
+        const response = await t.send('/illustrations/settings', {
             method: 'PATCH',
-            body: JSON.stringify({ defaultImageParams: { width: 1000 } }),
+            body: { defaultImageParams: { width: 1000 } },
         })
         expect(response.status).toBe(422)
     })
 
     test('generates a test image with defaults merged under the request', async () => {
         const bodies: unknown[] = []
-        globalThis.fetch = (async (url: string, init: RequestInit & { body: string }) => {
+        restoreFetch = mockFetch(async (url, init) => {
             expect(url).toBe('https://image.novelai.net/ai/generate-image')
-            expect(new Headers(init.headers).get('authorization')).toBe(`Bearer ${NOVELAI_KEY}`)
-            bodies.push(JSON.parse(init.body))
+            expect(new Headers(init?.headers).get('authorization')).toBe(`Bearer ${NOVELAI_KEY}`)
+            bodies.push(JSON.parse(init?.body as string))
             return new Response(zipSync({ 'image_0.png': png }))
-        }) as unknown as typeof fetch
+        })
 
-        const response = await call('/illustrations/test', {
+        const response = await t.send('/illustrations/test', {
             method: 'POST',
-            body: JSON.stringify({
+            body: {
                 positive: 'artist:foo, 1girl',
                 characters: [{ prompt: '1girl, aria' }],
                 params: { seed: 5 },
-            }),
+            },
         })
         expect(response.status).toBe(200)
         const result = (await response.json()) as IllustrationTestResult
@@ -123,26 +95,27 @@ describe('illustration settings and test generation', () => {
     })
 
     test('maps NovelAI rejections to API errors', async () => {
-        globalThis.fetch = (async () =>
-            Response.json({ message: 'Unauthorized' }, { status: 401 })) as unknown as typeof fetch
-        const response = await call('/illustrations/test', {
+        restoreFetch = mockFetch(async () =>
+            Response.json({ message: 'Unauthorized' }, { status: 401 }),
+        )
+        const response = await t.send('/illustrations/test', {
             method: 'POST',
-            body: JSON.stringify({ positive: '1girl' }),
+            body: { positive: '1girl' },
         })
         expect(response.status).toBe(401)
         expect(await response.json()).toMatchObject({ code: 'provider_auth' })
     })
 
     test('broadcasts job updates on the runtime event stream', async () => {
-        context.jobs.define({
+        t.context.jobs.define({
             kind: 'test.echo',
             payload: z.object({ value: z.string() }),
             run: async () => null,
         })
-        const reader = context.events.subscribe(crypto.randomUUID()).getReader()
+        const reader = t.context.events.subscribe(crypto.randomUUID()).getReader()
         await reader.read()
 
-        const job = context.jobs.enqueue('test.echo', { value: 'x' })
+        const job = t.context.jobs.enqueue('test.echo', { value: 'x' })
         const statuses: string[] = []
         while (!statuses.includes('complete')) {
             const chunk = new TextDecoder().decode((await reader.read()).value)
@@ -155,35 +128,35 @@ describe('illustration settings and test generation', () => {
         }
         await reader.cancel()
         expect(statuses).toEqual(['queued', 'running', 'complete'])
-        expect(await (await call(`/jobs/${job.id}`)).json()).toMatchObject({ status: 'complete' })
+        expect(await (await t.send(`/jobs/${job.id}`)).json()).toMatchObject({ status: 'complete' })
     })
 
     test('re-encrypts the NovelAI key when the admin password changes', async () => {
-        const before = context.store.secretStorage.get().secrets.novelai
-        const response = await call('/auth/password', {
+        const before = t.context.store.secretStorage.get().secrets.novelai
+        const response = await t.send('/auth/password', {
             method: 'PATCH',
-            body: JSON.stringify({
-                currentPassword: config.adminPassword,
+            body: {
+                currentPassword: t.config.adminPassword,
                 newPassword: 'a brand new admin password',
-            }),
+            },
         })
         expect(response.status).toBe(204)
 
-        const after = context.store.secretStorage.get().secrets.novelai
+        const after = t.context.store.secretStorage.get().secrets.novelai
         expect(after).not.toBe(before)
         // Signing in decrypts every stored secret, so it fails if the rotation broke one.
-        cookie = await login(app, 'a brand new admin password')
+        await t.login('a brand new admin password')
         const settings = (await (
-            await call('/illustrations/settings')
+            await t.send('/illustrations/settings')
         ).json()) as IllustrationSettings
         expect(settings).toMatchObject({
             novelaiApiKeyConfigured: true,
             novelaiApiKeyLocked: false,
         })
 
-        const cleared = await call('/illustrations/settings', {
+        const cleared = await t.send('/illustrations/settings', {
             method: 'PATCH',
-            body: JSON.stringify({ clearNovelaiApiKey: true }),
+            body: { clearNovelaiApiKey: true },
         })
         expect(await cleared.json()).toMatchObject({
             novelaiApiKeyConfigured: false,

@@ -1,7 +1,10 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { type ConversationCreate, GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import { zipSync } from 'fflate'
+
+import type { TestApp } from './app'
 
 export function fixturePath(name: string) {
     return join(import.meta.dir, '../fixtures', name)
@@ -93,6 +96,31 @@ export function charxArchive(options: CharxArchiveOptions = {}) {
     const card = v3Card({ name: 'Archive', assets, ...options.card })
     files['card.json'] = new TextEncoder().encode(JSON.stringify(card))
     return zipSync(files, { level: 0 })
+}
+
+/** A model preset on the `echo` provider, which streams `message` back as the reply. */
+export function createEchoPreset(
+    t: TestApp,
+    options: { message: string; delayMs?: number; name?: string },
+) {
+    return t.context.store.modelPreset.create({
+        name: options.name ?? `Echo ${crypto.randomUUID()}`,
+        apiKeyId: null,
+        config: {
+            provider: 'echo',
+            modelId: 'echo',
+            defaults: {},
+            providerOptions: { message: options.message, delayMs: options.delayMs ?? 0 },
+        },
+    })
+}
+
+export function createConversation(t: TestApp, input: Partial<ConversationCreate> = {}) {
+    return t.context.conversations.create({
+        characterId: GENERAL_CHAT_CHARACTER_ID,
+        greetingIndex: -1,
+        ...input,
+    })
 }
 
 export async function waitFor(check: () => boolean | Promise<boolean>, timeoutMs = 5000) {
