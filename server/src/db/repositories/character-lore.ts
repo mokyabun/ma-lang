@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { characterLoreEntries } from '../schema'
-import { RepositoryBase } from './base'
 
 export class CharacterLoreRepository extends RepositoryBase {
     extensions(characterId: string): Map<string, Record<string, unknown>> {

@@ -14,7 +14,7 @@ import type { Logger } from 'pino'
 
 import type { AppConfig } from '@/config'
 import type { DatabaseHandle, Store } from '@/db'
-import { ConflictError, NotFoundError, ValidationError } from '@/errors'
+import { ConflictError, NotFoundError, ValidationError } from '@/lib/errors'
 
 export const BACKUP_INTERVAL_MS = 5 * 60 * 1000
 export const BACKUP_MAX_COUNT = 20

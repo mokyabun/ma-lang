@@ -14,7 +14,7 @@ import type {
 import { stripIllustrationTokens } from '@malang/shared'
 
 import type { CharacterRecord } from '@/db'
-import { AppError } from '@/errors/app-error'
+import { AppError } from '@/lib/errors/app-error'
 import type { ChatTokenizer } from '@/services/tokenizer'
 
 import { loadRisuChat } from './pocketrisu/chat'

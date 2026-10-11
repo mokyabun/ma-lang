@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 
+import { insertBatches, RepositoryBase } from '@/db/repository'
+
 import { promptModuleAssets } from '../schema'
-import { insertBatches, RepositoryBase } from './base'
 
 export interface PromptModuleAssetRecord {
     id: string

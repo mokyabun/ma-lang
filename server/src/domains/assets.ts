@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 
-import { NotFoundError } from '@/errors'
-import type { AppContext } from '@/services'
-import type { AppEnv } from '@/utils'
+import type { AppContext } from '@/context'
+import { NotFoundError } from '@/lib/errors'
+import type { AppEnv } from '@/lib/http'
 
 export function createAssetDomain(context: AppContext) {
     return new Hono<AppEnv>().get('/:id', async (c) => {

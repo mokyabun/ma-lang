@@ -15,8 +15,8 @@ import {
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator, queryValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { type AppEnv, jsonValidator, queryValidator } from '@/lib/http'
 
 const StateDefinitionScopeSchema = z.object({ characterId: z.uuid().optional() })
 

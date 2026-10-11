@@ -1,7 +1,7 @@
 import type { NovelAIImageParams } from '@malang/shared'
 import { unzipSync } from 'fflate'
 
-import { AppError, type AppErrorKind } from '@/errors/app-error'
+import { AppError, type AppErrorKind } from '@/lib/errors/app-error'
 
 export interface NovelAICharacterCaption {
     prompt: string

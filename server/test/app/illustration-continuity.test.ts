@@ -12,7 +12,8 @@ import {
 import { zipSync } from 'fflate'
 
 import { createApp } from '@/app'
-import { type AppContext, createContext } from '@/services'
+import { createContext } from '@/bootstrap'
+import type { AppContext } from '@/context'
 
 import { appConfig } from '../support/fixtures'
 import { login } from '../support/session'

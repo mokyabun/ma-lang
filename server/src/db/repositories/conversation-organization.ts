@@ -1,8 +1,9 @@
 import type { ConversationOrganization } from '@malang/shared'
 import { and, eq, isNull, max } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { conversationGroups, conversations } from '../schema'
-import { RepositoryBase } from './base'
 
 export class ConversationOrganizationRepository extends RepositoryBase {
     update(input: ConversationOrganization): boolean {

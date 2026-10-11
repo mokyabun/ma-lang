@@ -8,7 +8,7 @@ import type {
 } from '@malang/shared'
 
 import type { StateSnapshotRecord, Store } from '@/db'
-import { NotFoundError, ValidationError } from '@/errors/app-error'
+import { NotFoundError, ValidationError } from '@/lib/errors/app-error'
 import type { RuntimeEventHub } from '@/services/app/runtime-events'
 
 import type { AnalysisPlan } from './analysis'

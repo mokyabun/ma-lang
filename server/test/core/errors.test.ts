@@ -10,7 +10,7 @@ import {
     PayloadTooLargeError,
     ValidationError,
     validationDetails,
-} from '@/errors'
+} from '@/lib/errors'
 import { ProviderError } from '@/services/providers/types'
 
 describe('structured server errors', () => {

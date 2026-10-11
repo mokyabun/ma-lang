@@ -5,8 +5,8 @@ import { join } from 'node:path'
 
 import { zipSync } from 'fflate'
 
-import { bufferSource, fileSource } from '@/services/import/source'
-import { readZipDirectory, readZipEntry, ZipFormatError } from '@/services/import/zip'
+import { bufferSource, fileSource } from '@/lib/import/source'
+import { readZipDirectory, readZipEntry, ZipFormatError } from '@/lib/import/zip'
 
 const encoder = new TextEncoder()
 

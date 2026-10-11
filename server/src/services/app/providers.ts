@@ -13,7 +13,7 @@ import {
 import { z } from 'zod'
 
 import type { Store } from '@/db'
-import { ValidationError } from '@/errors/app-error'
+import { ValidationError } from '@/lib/errors/app-error'
 import { providerFor } from '@/services/providers'
 import type { RuntimeProviderConfig } from '@/services/providers/types'
 import type { ServiceAccountCredentials } from '@/services/providers/types'

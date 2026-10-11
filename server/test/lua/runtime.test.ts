@@ -5,7 +5,8 @@ import { join } from 'node:path'
 
 import { CharacterCreateSchema } from '@malang/shared'
 
-import { type AppContext, createContext } from '@/services'
+import { createContext } from '@/bootstrap'
+import type { AppContext } from '@/context'
 
 import { appConfig, fixturePath } from '../support/fixtures'
 

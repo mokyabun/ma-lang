@@ -1,8 +1,9 @@
 import type { GenerationParameters } from '@malang/shared'
 import { and, asc, eq } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { generationRuns } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 export class GenerationRepository extends RepositoryBase {
     recoverInterrupted(): void {

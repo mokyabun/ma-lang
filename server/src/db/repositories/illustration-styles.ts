@@ -1,8 +1,9 @@
 import type { IllustrationStyle, IllustrationStyleInput } from '@malang/shared'
 import { asc, eq, max } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { illustrationSettings, illustrationStyles } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 type StyleRow = typeof illustrationStyles.$inferSelect
 

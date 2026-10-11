@@ -9,7 +9,7 @@ import {
 import type { z } from 'zod'
 
 import type { Store } from '@/db'
-import { NotFoundError, ValidationError } from '@/errors/app-error'
+import { NotFoundError, ValidationError } from '@/lib/errors/app-error'
 import type { SecretVault } from '@/services/app/secret-vault'
 import type { JobRunner } from '@/services/jobs'
 

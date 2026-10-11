@@ -1,8 +1,9 @@
 import type { BackgroundJob, BackgroundJobError } from '@malang/shared'
 import { and, asc, eq, inArray, lt, lte, min, sql } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { backgroundJobs } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 type BackgroundJobRow = typeof backgroundJobs.$inferSelect
 

@@ -5,10 +5,10 @@ import encodeChunks from 'png-chunks-encode'
 import extractChunks from 'png-chunks-extract'
 
 import type { AppConfig } from '@/config'
-import { ValidationError } from '@/errors/app-error'
-import { mimeFromExtension } from '@/services/import/mime'
-import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/services/import/source'
-import { readZipDirectory, readZipEntry, type ZipEntry } from '@/services/import/zip'
+import { ValidationError } from '@/lib/errors/app-error'
+import { mimeFromExtension } from '@/lib/import/mime'
+import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/lib/import/source'
+import { readZipDirectory, readZipEntry, type ZipEntry } from '@/lib/import/zip'
 import { readRisum } from '@/services/prompt/module-codec'
 
 const textDecoder = new TextDecoder()

@@ -6,9 +6,9 @@ import {
     PromptModuleInputSchema,
 } from '@malang/shared'
 
-import { ValidationError } from '@/errors/app-error'
-import { mimeFromExtension } from '@/services/import/mime'
-import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/services/import/source'
+import { ValidationError } from '@/lib/errors/app-error'
+import { mimeFromExtension } from '@/lib/import/mime'
+import { type ByteSource, type LazyAsset, readAll, toByteSource } from '@/lib/import/source'
 
 import {
     mergeLuaTriggers,

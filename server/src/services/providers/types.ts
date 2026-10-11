@@ -5,7 +5,7 @@ import type {
     RequestDebugSnapshot,
 } from '@malang/shared'
 
-import { AppError, type AppErrorKind } from '@/errors/app-error'
+import { AppError, type AppErrorKind } from '@/lib/errors/app-error'
 
 import type { GenerationBias } from './bias'
 

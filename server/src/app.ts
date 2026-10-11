@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { Hono } from 'hono'
 import { getCookie } from 'hono/cookie'
 
+import type { AppContext } from '@/context'
 import {
     createAssetDomain,
     createAuthDomain,
@@ -26,16 +27,9 @@ import {
     createUploadDomain,
     SESSION_COOKIE,
 } from '@/domains'
-import {
-    errorResponse,
-    ForbiddenError,
-    normalizeError,
-    NotFoundError,
-    UnauthorizedError,
-} from '@/errors'
-import type { AppContext } from '@/services'
-
-import type { AppEnv } from './utils'
+import { errorResponse, normalizeError, NotFoundError, UnauthorizedError } from '@/lib/errors'
+import type { AppEnv } from '@/lib/http'
+import { originMiddleware } from '@/modules/security/middleware'
 
 function routeApi(app: Hono<AppEnv>, context: AppContext) {
     return app
@@ -85,35 +79,7 @@ export function createApp(context: AppContext) {
             'Request completed',
         )
     })
-    app.use('*', async (c, next) => {
-        const origin = c.req.header('origin')
-
-        if (origin && context.config.allowedOrigins.has(origin)) {
-            c.header('access-control-allow-origin', origin)
-            c.header('access-control-allow-credentials', 'true')
-            c.header('vary', 'Origin')
-        }
-        if (c.req.method === 'OPTIONS') {
-            if (origin && !context.config.allowedOrigins.has(origin)) {
-                throw new ForbiddenError('Origin is not allowed')
-            }
-            c.header('access-control-allow-methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-            c.header(
-                'access-control-allow-headers',
-                'content-type,x-request-id,x-filename,x-upload-id',
-            )
-            return c.body(null, 204)
-        }
-        if (
-            !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) &&
-            origin &&
-            !context.config.allowedOrigins.has(origin)
-        ) {
-            throw new ForbiddenError('Origin is not allowed')
-        }
-
-        await next()
-    })
+    app.use('*', originMiddleware(context.config.allowedOrigins))
     app.use('/api/v1/*', async (c, next) => {
         const path = new URL(c.req.url).pathname
         if (path === '/api/v1/auth/login') {

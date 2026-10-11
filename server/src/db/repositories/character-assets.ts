@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { characterAssets } from '../schema'
-import { RepositoryBase } from './base'
 
 export class CharacterAssetRepository extends RepositoryBase {
     list(characterId: string) {

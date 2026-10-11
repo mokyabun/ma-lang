@@ -3,9 +3,9 @@ import type { CharacterCardV3 } from '@risuai/ccardlib'
 
 import type { AppConfig } from '@/config'
 import type { Store } from '@/db'
-import { ConflictError } from '@/errors/app-error'
+import { ConflictError } from '@/lib/errors/app-error'
+import type { ByteSource, ImportProgress } from '@/lib/import/source'
 import { exportCharacterCard, importCharacterCard } from '@/services/app/character-card'
-import type { ByteSource, ImportProgress } from '@/services/import/source'
 import {
     exportPromptModule,
     importPromptModule,

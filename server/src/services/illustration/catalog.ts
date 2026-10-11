@@ -11,7 +11,7 @@ import type {
 } from '@malang/shared'
 
 import type { Store } from '@/db'
-import { ConflictError, NotFoundError, ValidationError } from '@/errors/app-error'
+import { ConflictError, NotFoundError, ValidationError } from '@/lib/errors/app-error'
 
 /** Styles, actors with their outfits, and per-conversation illustration settings. */
 export class IllustrationCatalogService {

@@ -1,7 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { conversationModules } from '../schema'
-import { RepositoryBase } from './base'
 
 export class ConversationModuleRepository extends RepositoryBase {
     overrides(conversationId: string): Map<string, boolean> {

@@ -1,8 +1,9 @@
 import type { Persona, PersonaCreate, PersonaUpdate } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { conversations, personas } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 export class PersonaRepository extends RepositoryBase {
     list(): Persona[] {

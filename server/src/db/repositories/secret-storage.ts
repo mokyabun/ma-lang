@@ -1,8 +1,9 @@
 import { eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
+import type { DatabaseHandle } from '@/db/client'
+import { RepositoryBase } from '@/db/repository'
+
 import { appSettings, illustrationSettings } from '../schema'
-import { RepositoryBase } from './base'
 import { ensureIllustrationSettingsRow } from './illustration-settings'
 import { ensureAppSettingsRow } from './settings'
 

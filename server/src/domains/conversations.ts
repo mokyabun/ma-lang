@@ -8,9 +8,9 @@ import {
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { ConflictError, NotFoundError, ValidationError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { ConflictError, NotFoundError, ValidationError } from '@/lib/errors'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 
 const ConversationPatchBody = z.object({
     title: z.string().max(200).optional(),

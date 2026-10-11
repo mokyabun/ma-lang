@@ -9,14 +9,14 @@ import {
     type NewCharacterRecord,
     type Store,
 } from '@/db'
-import { ValidationError } from '@/errors/app-error'
+import { ValidationError } from '@/lib/errors/app-error'
 import {
     type ByteSource,
     type ImportProgress,
     type LazyAsset,
     readAll,
     toByteSource,
-} from '@/services/import/source'
+} from '@/lib/import/source'
 import { exportPromptModule } from '@/services/prompt/module-codec'
 import {
     mergeLuaTriggers,

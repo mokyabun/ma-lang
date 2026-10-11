@@ -1,8 +1,9 @@
 import type { LoreEntry, PromptModule, PromptPreset } from '@malang/shared'
 import { LoreEntrySchema, PromptToggleSchema } from '@malang/shared'
 
+import { iso, mapLuaScript } from '@/db/repository'
+
 import { promptModules, promptPresets } from '../schema'
-import { iso, mapLuaScript } from './base'
 
 export const defaultPromptSettings = {
     assistantPrefill: '',

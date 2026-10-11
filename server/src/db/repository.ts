@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto'
 
 import type { LuaScript, LuaScriptInput } from '@malang/shared'
 
-import { ConflictError } from '@/errors/app-error'
+import { ConflictError } from '@/lib/errors/app-error'
 
-import type { DatabaseHandle } from '../db'
+import type { DatabaseHandle } from './client'
 
 export abstract class RepositoryBase {
     constructor(protected readonly handle: DatabaseHandle) {}

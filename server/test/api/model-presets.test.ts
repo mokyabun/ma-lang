@@ -6,7 +6,8 @@ import { join } from 'node:path'
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 
 import { createApp } from '@/app'
-import { type AppContext, createContext } from '@/services'
+import { createContext } from '@/bootstrap'
+import type { AppContext } from '@/context'
 
 import { appConfig } from '../support/fixtures'
 import { login } from '../support/session'

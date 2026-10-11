@@ -6,8 +6,8 @@ import encodeChunks from 'png-chunks-encode'
 import extractChunks from 'png-chunks-extract'
 
 import type { AppConfig } from '@/config'
-import { ValidationError } from '@/errors/app-error'
-import { mimeFromExtension } from '@/services/import/mime'
+import { ValidationError } from '@/lib/errors/app-error'
+import { mimeFromExtension } from '@/lib/import/mime'
 
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()

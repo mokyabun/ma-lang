@@ -15,7 +15,7 @@ import type { Logger } from 'pino'
 import { z } from 'zod'
 
 import type { NewMessageIllustration, Store } from '@/db'
-import { AppError, NotFoundError, ValidationError } from '@/errors/app-error'
+import { AppError, NotFoundError, ValidationError } from '@/lib/errors/app-error'
 import type { AssetStore } from '@/services/app/assets'
 import type { GenerationCompletedEvent } from '@/services/app/generations'
 import type { ProviderService } from '@/services/app/providers'

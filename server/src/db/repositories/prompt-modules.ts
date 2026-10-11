@@ -1,8 +1,9 @@
 import type { PromptModule, PromptModuleInput } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
+import { newLuaColumns, RepositoryBase, requireValue, updateLuaColumns } from '@/db/repository'
+
 import { promptModules } from '../schema'
-import { newLuaColumns, RepositoryBase, requireValue, updateLuaColumns } from './base'
 import { mapPromptModule } from './prompt-records'
 
 export class PromptModuleRepository extends RepositoryBase {

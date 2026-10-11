@@ -7,7 +7,7 @@ import type {
 } from '@malang/shared'
 
 import type { Store } from '@/db'
-import { ValidationError } from '@/errors/app-error'
+import { ValidationError } from '@/lib/errors/app-error'
 import { RisuParser } from '@/services/prompt/pocketrisu/parser'
 import { processScripts, RegexSandbox } from '@/services/prompt/pocketrisu/scripts'
 import { exportPromptPreset, importPromptPreset } from '@/services/prompt/preset-codec'

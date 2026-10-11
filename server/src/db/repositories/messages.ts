@@ -1,8 +1,9 @@
 import type { Message } from '@malang/shared'
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm'
 
+import { RepositoryBase, requireValue } from '@/db/repository'
+
 import { conversations, messages } from '../schema'
-import { RepositoryBase, requireValue } from './base'
 import { mapMessage } from './conversation-records'
 
 export class MessageRepository extends RepositoryBase {

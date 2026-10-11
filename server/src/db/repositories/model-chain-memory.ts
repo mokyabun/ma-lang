@@ -1,7 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { modelChainAgentMemories } from '../schema'
-import { RepositoryBase } from './base'
 
 export class ModelChainMemoryRepository extends RepositoryBase {
     get(conversationId: string, agentId: string): string {

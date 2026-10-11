@@ -1,5 +1,5 @@
 import { createApp } from './app'
-import { createContext } from './services'
+import { createContext } from './bootstrap'
 
 const context = await createContext()
 const app = createApp(context)

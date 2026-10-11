@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { createContext } from '@/services'
+import { createContext } from '@/bootstrap'
 import { toPocketRisuGeminiPrompt } from '@/services/providers/gemini-rest'
 
 import type {

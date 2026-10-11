@@ -12,7 +12,7 @@ import {
     ProviderConfigSchema,
 } from '@malang/shared'
 
-import { ValidationError } from '@/errors/app-error'
+import { ValidationError } from '@/lib/errors/app-error'
 
 export class ModelProfileFormatError extends ValidationError {}
 

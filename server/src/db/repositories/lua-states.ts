@@ -1,4 +1,4 @@
-import { RepositoryBase } from './base'
+import { RepositoryBase } from '@/db/repository'
 
 export class LuaStateRepository extends RepositoryBase {
     upsert(input: {

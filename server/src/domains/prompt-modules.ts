@@ -1,11 +1,10 @@
 import { PromptModuleInputSchema } from '@malang/shared'
 import { Hono } from 'hono'
 
-import { NotFoundError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, binaryResponse, jsonValidator, parseEnum } from '@/utils'
-
-import { respondToImport } from './import-response'
+import type { AppContext } from '@/context'
+import { NotFoundError } from '@/lib/errors'
+import { type AppEnv, binaryResponse, jsonValidator, parseEnum } from '@/lib/http'
+import { respondToImport } from '@/lib/import/response'
 
 export function createPromptModuleDomain(context: AppContext) {
     return new Hono<AppEnv>()

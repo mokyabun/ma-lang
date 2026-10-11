@@ -1,7 +1,8 @@
 import { asc, eq } from 'drizzle-orm'
 
+import { RepositoryBase, requireValue } from '@/db/repository'
+
 import { modelApiKeys, modelPresets } from '../schema'
-import { RepositoryBase, requireValue } from './base'
 
 export interface ModelApiKeyRecordInput {
     name: string

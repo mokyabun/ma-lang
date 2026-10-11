@@ -1,8 +1,9 @@
 import type { Conversation } from '@malang/shared'
 import { asc, count, desc, eq, isNull } from 'drizzle-orm'
 
+import { RepositoryBase, requireValue } from '@/db/repository'
+
 import { conversations } from '../schema'
-import { RepositoryBase, requireValue } from './base'
 import { mapConversation } from './conversation-records'
 
 export interface NewConversationRecord {

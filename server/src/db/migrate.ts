@@ -1,7 +1,7 @@
 import type { Database } from 'bun:sqlite'
 import { readFileSync } from 'node:fs'
 
-import { bundledFilePath } from '@/utils'
+import { bundledFilePath } from '@/lib/paths'
 
 import InitialMigration from './migrations/0000_initial.sql' with { type: 'file' }
 import AddBiasMigration from './migrations/0001_add_bias.sql' with { type: 'file' }

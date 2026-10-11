@@ -2,9 +2,9 @@ import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { z } from 'zod'
 
-import { RateLimitError, UnauthorizedError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { RateLimitError, UnauthorizedError } from '@/lib/errors'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 
 const SESSION_COOKIE = 'malang_session'
 const LoginBody = z.object({ password: z.string().min(1).max(10_000) })

@@ -1,9 +1,9 @@
 import { ProviderSettingsInputSchema } from '@malang/shared'
 import { Hono } from 'hono'
 
-import type { AppContext } from '@/services'
+import type { AppContext } from '@/context'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 import { providerFor } from '@/services/providers'
-import { type AppEnv, jsonValidator } from '@/utils'
 
 export function createProviderDomain(context: AppContext) {
     return new Hono<AppEnv>()

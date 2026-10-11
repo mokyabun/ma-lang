@@ -2,9 +2,9 @@ import { mkdirSync, rmSync } from 'node:fs'
 import { type FileHandle, open, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { ConflictError, NotFoundError, PayloadTooLargeError, ValidationError } from '@/errors'
-
-import { type ByteSource, fileSource } from './source'
+import { ConflictError, NotFoundError, PayloadTooLargeError, ValidationError } from '@/lib/errors'
+import { decodeFilename } from '@/lib/http'
+import { type ByteSource, fileSource } from '@/lib/import/source'
 
 export interface Upload {
     filename: string
@@ -166,15 +166,5 @@ export class UploadStore {
             filename: decodeFilename(request.headers.get('x-filename')) ?? 'import.json',
             size,
         }
-    }
-}
-
-// Raw-body uploads send the filename URI-encoded because header values must be ISO-8859-1.
-export function decodeFilename(value: string | null | undefined): string | undefined {
-    if (!value) return undefined
-    try {
-        return decodeURIComponent(value)
-    } catch {
-        return value
     }
 }

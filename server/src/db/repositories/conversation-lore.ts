@@ -1,4 +1,4 @@
-import { RepositoryBase } from './base'
+import { RepositoryBase } from '@/db/repository'
 
 /** Lore entries added by Lua scripts to one conversation, keyed by name. */
 export class ConversationLoreRepository extends RepositoryBase {

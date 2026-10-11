@@ -1,8 +1,9 @@
 import type { ConversationGroup } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
+import { RepositoryBase, requireValue } from '@/db/repository'
+
 import { conversationGroups } from '../schema'
-import { RepositoryBase, requireValue } from './base'
 import { mapConversationGroup } from './conversation-records'
 
 export class ConversationGroupRepository extends RepositoryBase {

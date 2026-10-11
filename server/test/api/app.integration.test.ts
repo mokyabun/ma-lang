@@ -7,7 +7,8 @@ import { GENERAL_CHAT_CHARACTER_ID, type ImportEvent } from '@malang/shared'
 import { unzipSync, zipSync } from 'fflate'
 
 import { createApp } from '@/app'
-import { type AppContext, createContext } from '@/services'
+import { createContext } from '@/bootstrap'
+import type { AppContext } from '@/context'
 
 import { appConfig, fixturePath, v3Card } from '../support/fixtures'
 import { login } from '../support/session'

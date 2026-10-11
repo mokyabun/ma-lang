@@ -2,8 +2,9 @@ import type { LongTermMemoryMetrics } from '@malang/shared'
 import { LongTermMemoryMetricsSchema } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { conversationMemorySettings } from '../schema'
-import { RepositoryBase } from './base'
 import { defaultMemorySettings } from './memory-settings'
 
 export const defaultMemoryMetrics = (): LongTermMemoryMetrics =>

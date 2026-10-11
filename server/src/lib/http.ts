@@ -1,11 +1,8 @@
-import { isAbsolute, join } from 'node:path'
-
 import { zValidator } from '@hono/zod-validator'
 import type { Context } from 'hono'
 import type { ZodType } from 'zod'
 
 import { PayloadTooLargeError, ValidationError, validationDetails } from './errors'
-import { decodeFilename } from './services/import/uploads'
 
 export type AppEnv = {
     Variables: {
@@ -105,8 +102,12 @@ export function binaryResponse(
     return new Response(bytes, { headers })
 }
 
-/** Resolves a `with { type: 'file' }` import, which bundled builds emit relative to the bundle. */
-export function bundledFilePath(path: string): string {
-    if (path.startsWith('$bunfs/') || isAbsolute(path)) return path
-    return join(import.meta.dir, path)
+// Raw-body uploads send the filename URI-encoded because header values must be ISO-8859-1.
+export function decodeFilename(value: string | null | undefined): string | undefined {
+    if (!value) return undefined
+    try {
+        return decodeURIComponent(value)
+    } catch {
+        return value
+    }
 }

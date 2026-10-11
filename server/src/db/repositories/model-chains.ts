@@ -7,9 +7,10 @@ import type {
 } from '@malang/shared'
 import { asc, eq, max } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
+import type { DatabaseHandle } from '@/db/client'
+import { iso, RepositoryBase, requireValue } from '@/db/repository'
+
 import { conversations, modelChainPresets } from '../schema'
-import { iso, RepositoryBase, requireValue } from './base'
 
 export class ModelChainRepository extends RepositoryBase {
     constructor(handle: DatabaseHandle) {

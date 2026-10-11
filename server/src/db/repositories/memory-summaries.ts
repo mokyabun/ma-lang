@@ -1,8 +1,9 @@
 import type { LongTermMemorySummary } from '@malang/shared'
 import { and, asc, eq } from 'drizzle-orm'
 
+import { iso, RepositoryBase, requireValue } from '@/db/repository'
+
 import { conversationMemorySummaries } from '../schema'
-import { iso, RepositoryBase, requireValue } from './base'
 
 export type SparseVector = Record<string, number>
 

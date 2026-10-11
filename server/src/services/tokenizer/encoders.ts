@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { gunzipSync } from 'node:zlib'
 
-import { bundledFilePath } from '@/utils'
+import { bundledFilePath } from '@/lib/paths'
 
 import claudeVocab from '../../../assets/tokenizers/claude.json.gz' with { type: 'file' }
 import cohereVocab from '../../../assets/tokenizers/cohere.json.gz' with { type: 'file' }

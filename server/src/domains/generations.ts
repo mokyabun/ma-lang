@@ -1,9 +1,9 @@
 import { GenerationRequestSchema } from '@malang/shared'
 import { Hono } from 'hono'
 
-import { NotFoundError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { NotFoundError } from '@/lib/errors'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 
 export function createConversationGenerationDomain(context: AppContext) {
     return new Hono<AppEnv>()

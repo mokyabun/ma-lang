@@ -1,8 +1,9 @@
 import type { GenerationParameters, RequestDebugSnapshot } from '@malang/shared'
 import { desc } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { requestDebugRecords } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 export class RequestDebugRepository extends RepositoryBase {
     create(input: {

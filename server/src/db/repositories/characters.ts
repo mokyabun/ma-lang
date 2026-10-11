@@ -2,7 +2,6 @@ import type { Character, CharacterUpdate, LoreEntry, LuaScriptInput } from '@mal
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import { asc, desc, eq, isNull } from 'drizzle-orm'
 
-import { characterAssets, characterLoreEntries, characters, conversations } from '../schema'
 import {
     insertBatches,
     iso,
@@ -11,7 +10,9 @@ import {
     RepositoryBase,
     requireValue,
     updateLuaColumns,
-} from './base'
+} from '@/db/repository'
+
+import { characterAssets, characterLoreEntries, characters, conversations } from '../schema'
 
 export interface CharacterRecord extends Character {
     sourceExtensions: Record<string, unknown>

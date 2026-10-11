@@ -7,7 +7,7 @@ import type {
 } from '@malang/shared'
 
 import type { Store } from '@/db'
-import { ValidationError } from '@/errors/app-error'
+import { ValidationError } from '@/lib/errors/app-error'
 
 import type { AssetStore } from './assets'
 

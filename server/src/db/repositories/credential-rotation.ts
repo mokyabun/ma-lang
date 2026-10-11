@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { adminUsers, appSettings, sessions } from '../schema'
-import { RepositoryBase } from './base'
 import { SECRET_SLOTS, type SecretEnvelopes, writeSecret } from './secret-storage'
 
 export class CredentialRotationRepository extends RepositoryBase {

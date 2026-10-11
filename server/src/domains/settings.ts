@@ -1,9 +1,9 @@
 import { AppSettingsPatchSchema } from '@malang/shared'
 import { Hono } from 'hono'
 
-import { NotFoundError, ValidationError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { NotFoundError, ValidationError } from '@/lib/errors'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 
 export function createSettingsDomain(context: AppContext) {
     return new Hono<AppEnv>()

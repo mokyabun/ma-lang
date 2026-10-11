@@ -2,9 +2,9 @@ import { LuaRemoteCommandResultSchema, LuaTriggerRequestSchema } from '@malang/s
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { ForbiddenError, NotFoundError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { ForbiddenError, NotFoundError } from '@/lib/errors'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 
 export function createConversationLuaDomain(context: AppContext) {
     return new Hono<AppEnv>().post(

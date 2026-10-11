@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import type { AppContext } from '@/services'
-import { type AppEnv, jsonValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { type AppEnv, jsonValidator } from '@/lib/http'
 
 const UploadCreateBody = z.object({
     filename: z.string().min(1).max(512),

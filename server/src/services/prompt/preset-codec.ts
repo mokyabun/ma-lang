@@ -7,7 +7,7 @@ import {
 import { compressSync, decompressSync } from 'fflate'
 import { pack, unpack } from 'msgpackr'
 
-import { ValidationError } from '@/errors/app-error'
+import { ValidationError } from '@/lib/errors/app-error'
 
 import {
     normalizePromptSettings,

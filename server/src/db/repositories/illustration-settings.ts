@@ -10,9 +10,10 @@ import {
 } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
+import type { DatabaseHandle } from '@/db/client'
+import { RepositoryBase, requireValue } from '@/db/repository'
+
 import { illustrationSettings } from '../schema'
-import { RepositoryBase, requireValue } from './base'
 
 export interface IllustrationSettingsRecord {
     imageProvider: 'novelai'

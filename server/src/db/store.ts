@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from './db'
+import type { DatabaseHandle } from './client'
 import { AdminRepository } from './repositories/admin'
 import { AssetRepository } from './repositories/assets'
 import { BackgroundJobRepository } from './repositories/background-jobs'
@@ -45,7 +45,7 @@ import { SecretStorageRepository } from './repositories/secret-storage'
 import { SessionRepository } from './repositories/sessions'
 import { SettingsRepository } from './repositories/settings'
 
-export { LuaRevisionConflictError } from './repositories/base'
+export { LuaRevisionConflictError } from './repository'
 export {
     type CharacterAssetRecord,
     type CharacterRecord,

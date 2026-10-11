@@ -1,7 +1,8 @@
 import type { Conversation, ConversationGroup, Message } from '@malang/shared'
 
+import { iso } from '@/db/repository'
+
 import { conversationGroups, conversations, messages } from '../schema'
-import { iso } from './base'
 
 export function mapConversation(row: typeof conversations.$inferSelect): Conversation {
     return {

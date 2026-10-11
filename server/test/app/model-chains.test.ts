@@ -11,7 +11,8 @@ import {
     type ModelChainAgent,
 } from '@malang/shared'
 
-import { type AppContext, createContext } from '@/services'
+import { createContext } from '@/bootstrap'
+import type { AppContext } from '@/context'
 
 import { appConfig } from '../support/fixtures'
 

@@ -1,9 +1,10 @@
 import type { AppSettings } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
-import type { DatabaseHandle } from '../db'
+import type { DatabaseHandle } from '@/db/client'
+import { normalizeToggleValues, RepositoryBase, requireValue } from '@/db/repository'
+
 import { appSettings } from '../schema'
-import { normalizeToggleValues, RepositoryBase, requireValue } from './base'
 
 // app_settings is a singleton row; seed it before reading or writing.
 export function ensureAppSettingsRow(db: DatabaseHandle['db']): void {

@@ -14,8 +14,8 @@ import type {
 import type { Logger } from 'pino'
 
 import type { Store } from '@/db'
-import { ConflictError, ValidationError } from '@/errors/app-error'
-import { normalizeError } from '@/errors/normalize'
+import { ConflictError, ValidationError } from '@/lib/errors/app-error'
+import { normalizeError } from '@/lib/errors/normalize'
 import type { LuaRuntime } from '@/services/lua'
 import type { HypaMemoryV3Service } from '@/services/memory'
 import { compilePrompt, mergeGenerationParameters } from '@/services/prompt/compiler'

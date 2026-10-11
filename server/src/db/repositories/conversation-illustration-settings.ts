@@ -4,8 +4,9 @@ import type {
 } from '@malang/shared'
 import { eq } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { conversationIllustrationSettings } from '../schema'
-import { RepositoryBase } from './base'
 
 type SettingsRow = typeof conversationIllustrationSettings.$inferSelect
 

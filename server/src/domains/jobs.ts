@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { NotFoundError } from '@/errors'
-import type { AppContext } from '@/services'
-import { type AppEnv, queryValidator } from '@/utils'
+import type { AppContext } from '@/context'
+import { NotFoundError } from '@/lib/errors'
+import { type AppEnv, queryValidator } from '@/lib/http'
 
 const ActiveJobQuerySchema = z.object({
     conversationId: z.uuid().optional(),

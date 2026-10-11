@@ -2,8 +2,9 @@ import type { CharacterOrganization } from '@malang/shared'
 import { GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import { eq, isNull, max } from 'drizzle-orm'
 
+import { RepositoryBase } from '@/db/repository'
+
 import { characterGroups, characters } from '../schema'
-import { RepositoryBase } from './base'
 
 export class CharacterOrganizationRepository extends RepositoryBase {
     update(input: CharacterOrganization): boolean {

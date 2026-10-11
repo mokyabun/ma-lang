@@ -5,8 +5,9 @@ import type {
 } from '@malang/shared'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { type IllustrationCaption, illustrationRevisions, messageIllustrations } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 type IllustrationRow = typeof messageIllustrations.$inferSelect
 

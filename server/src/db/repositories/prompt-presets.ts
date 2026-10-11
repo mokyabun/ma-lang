@@ -1,8 +1,9 @@
 import type { PromptPreset, PromptPresetInput } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
+import { RepositoryBase, requireValue } from '@/db/repository'
+
 import { appSettings, conversations, promptPresets } from '../schema'
-import { RepositoryBase, requireValue } from './base'
 import { defaultPromptSettings, mapPromptPreset } from './prompt-records'
 
 export class PromptPresetRepository extends RepositoryBase {

@@ -1,4 +1,4 @@
-import { RepositoryBase } from './base'
+import { RepositoryBase } from '@/db/repository'
 
 export interface LuaRemoteCommandRow {
     id: string

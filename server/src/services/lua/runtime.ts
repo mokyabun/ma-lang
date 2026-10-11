@@ -13,7 +13,7 @@ import type { Logger } from 'pino'
 import { LuaFactory, type LuaEngine } from 'wasmoon'
 
 import type { Store } from '@/db'
-import { ConflictError } from '@/errors/app-error'
+import { ConflictError } from '@/lib/errors/app-error'
 import { renderTemplate } from '@/services/prompt/template-engine'
 import { providerFor } from '@/services/providers'
 

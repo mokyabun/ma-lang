@@ -1,8 +1,9 @@
 import type { CharacterGroup } from '@malang/shared'
 import { asc, eq } from 'drizzle-orm'
 
+import { iso, RepositoryBase, requireValue } from '@/db/repository'
+
 import { characterGroups } from '../schema'
-import { iso, RepositoryBase, requireValue } from './base'
 
 export class CharacterGroupRepository extends RepositoryBase {
     list(): CharacterGroup[] {

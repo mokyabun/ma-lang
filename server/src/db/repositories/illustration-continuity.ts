@@ -5,8 +5,9 @@ import type {
 } from '@malang/shared'
 import { and, asc, eq, isNull, max, or } from 'drizzle-orm'
 
+import { iso, RepositoryBase } from '@/db/repository'
+
 import { illustrationStateDefinitions, illustrationStateSnapshots } from '../schema'
-import { iso, RepositoryBase } from './base'
 
 type DefinitionRow = typeof illustrationStateDefinitions.$inferSelect
 
