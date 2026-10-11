@@ -115,6 +115,21 @@ export function createEchoPreset(
     })
 }
 
+/** A model preset on the `ollama` provider for a server from `startFakeOllama`. */
+export function createOllamaPreset(t: TestApp, baseUrl: string) {
+    return t.context.store.modelPreset.create({
+        name: `Ollama ${crypto.randomUUID()}`,
+        apiKeyId: null,
+        config: {
+            provider: 'ollama',
+            baseUrl,
+            modelId: 'test-model',
+            defaults: { maxContextTokens: 8192, maxOutputTokens: 128 },
+            providerOptions: {},
+        },
+    })
+}
+
 /** Imports a JSON card through `POST /characters/import` and returns the character. */
 export async function importCard(t: TestApp, card: object = v3Card()) {
     const { character } = await t.call<{ character: Character }>('/characters/import', {
