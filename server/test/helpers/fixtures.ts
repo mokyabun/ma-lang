@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { type ConversationCreate, GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
+import { type Character, type ConversationCreate, GENERAL_CHAT_CHARACTER_ID } from '@malang/shared'
 import { zipSync } from 'fflate'
 
 import type { TestApp } from './app'
@@ -113,6 +113,16 @@ export function createEchoPreset(
             providerOptions: { message: options.message, delayMs: options.delayMs ?? 0 },
         },
     })
+}
+
+/** Imports a JSON card through `POST /characters/import` and returns the character. */
+export async function importCard(t: TestApp, card: object = v3Card()) {
+    const { character } = await t.call<{ character: Character }>('/characters/import', {
+        method: 'POST',
+        headers: { 'x-filename': 'card.json' },
+        body: card,
+    })
+    return character
 }
 
 export function createConversation(t: TestApp, input: Partial<ConversationCreate> = {}) {
