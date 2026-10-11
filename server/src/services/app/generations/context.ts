@@ -1,14 +1,13 @@
 import type { Store } from '@/db'
+import { effectivePromptPresetId } from '@/modules/conversations/service'
 import type { PersonaService } from '@/modules/personas/service'
-import { loadRisuChat } from '@/services/prompt/pocketrisu/chat'
+import { conversationModuleStates } from '@/modules/prompt-modules/service'
+import { loadRisuChat } from '@/modules/prompts/engine/pocketrisu/chat'
 import {
     collectRegexScripts,
     processScripts,
     RegexSandbox,
-} from '@/services/prompt/pocketrisu/scripts'
-
-import { effectivePromptPresetId } from '../conversations'
-import { conversationModuleStates } from '../modules'
+} from '@/modules/prompts/engine/pocketrisu/scripts'
 
 export function loadGenerationContext(
     store: Store,

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import type { LoreEntry } from '@malang/shared'
 
-import { selectLoreEntries } from '@/services/prompt/lorebook'
+import { selectLoreEntries } from '@/modules/prompts/engine/lorebook'
 
 import { testTokenizer } from '../support/tokenizer'
 

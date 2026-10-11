@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { exportPromptModule, importPromptModule } from '@/services/prompt/module-codec'
+import { exportPromptModule, importPromptModule } from '@/modules/prompt-modules/codec'
 
 import { appConfig } from '../support/fixtures'
 

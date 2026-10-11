@@ -6,12 +6,12 @@ import * as textChunk from 'png-chunk-text'
 import encodeChunks from 'png-chunks-encode'
 import extractChunks from 'png-chunks-extract'
 
-import { exportCharacterCard } from '@/services/app/character-card'
+import { exportCharacterCard } from '@/modules/characters/card'
 import {
     CharacterPackageFormatError,
     exportPocketRisuCharacterPackage,
     importPocketRisuCharacterPackage,
-} from '@/services/app/character-package'
+} from '@/modules/characters/package'
 
 import { appConfig, v3Card } from '../support/fixtures'
 

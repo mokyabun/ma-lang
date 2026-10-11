@@ -4,16 +4,12 @@ import { Hono } from 'hono'
 
 import type { AppContext } from '@/context'
 import {
-    createCharacterDomain,
-    createConversationDomain,
     createConversationGenerationDomain,
     createConversationIllustrationDomain,
     createConversationLuaDomain,
     createGenerationDomain,
     createIllustrationDomain,
     createJobDomain,
-    createPromptPresetDomain,
-    createPromptModuleDomain,
     createRuntimeDomain,
 } from '@/domains'
 import { errorResponse, normalizeError, NotFoundError } from '@/lib/errors'
@@ -21,10 +17,14 @@ import type { AppEnv } from '@/lib/http'
 import { createAssetRoutes } from '@/modules/assets/routes'
 import { sessionMiddleware } from '@/modules/auth/middleware'
 import { createAuthRoutes } from '@/modules/auth/routes'
+import { createCharacterRoutes } from '@/modules/characters/routes'
+import { createConversationRoutes } from '@/modules/conversations/routes'
 import { createDebugRoutes } from '@/modules/debug/routes'
 import { createModelChainRoutes } from '@/modules/model-chains/routes'
 import { createModelPresetRoutes } from '@/modules/model-presets/routes'
 import { createPersonaRoutes } from '@/modules/personas/routes'
+import { createPromptModuleRoutes } from '@/modules/prompt-modules/routes'
+import { createPromptPresetRoutes } from '@/modules/prompts/routes'
 import { createProviderRoutes } from '@/modules/providers/routes'
 import { originMiddleware } from '@/modules/security/middleware'
 import { createSettingsRoutes } from '@/modules/settings/routes'
@@ -38,13 +38,13 @@ function routeApi(app: Hono<AppEnv>, context: AppContext) {
         .route('/api/v1/provider', createProviderRoutes(context))
         .route('/api/v1/model-presets', createModelPresetRoutes(context))
         .route('/api/v1/model-chains', createModelChainRoutes(context))
-        .route('/api/v1/characters', createCharacterDomain(context))
+        .route('/api/v1/characters', createCharacterRoutes(context))
         .route('/api/v1/personas', createPersonaRoutes(context))
         .route('/api/v1/assets', createAssetRoutes(context))
         .route('/api/v1/uploads', createUploadRoutes(context))
-        .route('/api/v1/prompt-presets', createPromptPresetDomain(context))
-        .route('/api/v1/prompt-modules', createPromptModuleDomain(context))
-        .route('/api/v1/conversations', createConversationDomain(context))
+        .route('/api/v1/prompt-presets', createPromptPresetRoutes(context))
+        .route('/api/v1/prompt-modules', createPromptModuleRoutes(context))
+        .route('/api/v1/conversations', createConversationRoutes(context))
         .route('/api/v1/conversations', createConversationGenerationDomain(context))
         .route('/api/v1/conversations', createConversationLuaDomain(context))
         .route('/api/v1/conversations', createConversationIllustrationDomain(context))

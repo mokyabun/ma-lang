@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { compilePrompt } from '@/services/prompt/compiler'
+import { compilePrompt } from '@/modules/prompts/engine/compiler'
 
 import { testTokenizer } from '../support/tokenizer'
 

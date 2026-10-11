@@ -3,10 +3,10 @@ import { createHash } from 'node:crypto'
 import type { Message } from '@malang/shared'
 
 import type { Store } from '@/db'
+import { renderDisplayText } from '@/modules/prompts/engine/display-text'
+import { loadRisuChat } from '@/modules/prompts/engine/pocketrisu/chat'
+import { collectRegexScripts, RegexSandbox } from '@/modules/prompts/engine/pocketrisu/scripts'
 import type { LuaRuntime } from '@/services/lua'
-import { renderDisplayText } from '@/services/prompt/display-text'
-import { loadRisuChat } from '@/services/prompt/pocketrisu/chat'
-import { collectRegexScripts, RegexSandbox } from '@/services/prompt/pocketrisu/scripts'
 
 import type { GenerationContext } from './context'
 

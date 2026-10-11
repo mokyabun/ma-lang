@@ -4,7 +4,7 @@ import {
     compilePrompt,
     isPromptToggleEnabled,
     mergeGenerationParameters,
-} from '@/services/prompt/compiler'
+} from '@/modules/prompts/engine/compiler'
 
 import { testTokenizer } from '../support/tokenizer'
 

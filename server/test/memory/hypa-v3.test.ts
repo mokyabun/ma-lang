@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { MemorySummaryRecord } from '@/db'
+import { compilePrompt } from '@/modules/prompts/engine/compiler'
 import { cosineSimilarity, featureVector, selectMemorySummaries } from '@/services/memory/hypa-v3'
-import { compilePrompt } from '@/services/prompt/compiler'
 
 import { testTokenizer } from '../support/tokenizer'
 

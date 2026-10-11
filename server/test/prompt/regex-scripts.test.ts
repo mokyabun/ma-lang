@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import type { RegexScript } from '@malang/shared'
 
-import { RisuParser, type ChatTurn } from '@/services/prompt/pocketrisu/parser'
-import { processScripts, RegexSandbox } from '@/services/prompt/pocketrisu/scripts'
+import { RisuParser, type ChatTurn } from '@/modules/prompts/engine/pocketrisu/parser'
+import { processScripts, RegexSandbox } from '@/modules/prompts/engine/pocketrisu/scripts'
 
 function script(input: Partial<RegexScript> & Pick<RegexScript, 'pattern' | 'replacement'>) {
     return {

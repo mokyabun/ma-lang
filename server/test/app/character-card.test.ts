@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs'
 import type { CharacterCardV3 } from '@risuai/ccardlib'
 import { unzipSync, zipSync } from 'fflate'
 
-import { exportCharacterCard, importCharacterCard } from '@/services/app/character-card'
-import { exportPromptModule } from '@/services/prompt/module-codec'
-import { encodeRPack } from '@/services/prompt/rpack'
+import { exportCharacterCard, importCharacterCard } from '@/modules/characters/card'
+import { exportPromptModule } from '@/modules/prompt-modules/codec'
+import { encodeRPack } from '@/modules/prompts/engine/rpack'
 
 import { appConfig, fixturePath, v3Card } from '../support/fixtures'
 
