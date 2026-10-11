@@ -47,3 +47,33 @@ database structure.
   or `export *`.
 - `lib/` and `integrations/` never import `modules/`. `db/` imports only `lib/` and the
   repositories that `store.ts` assembles.
+
+## Tests (server)
+
+`server/test/` mirrors `server/src/`: `lib/`, `integrations/`, `modules/<feature>/`, `db/`.
+
+- A test file sits where its subject sits: `src/modules/x/y.ts` → `test/modules/x/y.test.ts`.
+  Name a test of a directory's `index.ts` after the concept (`tokenizer/tokenizer.test.ts`); split
+  one src file into `<file>-<topic>.test.ts`.
+- HTTP tests are `modules/<feature>/api.test.ts`, where the feature is the module whose
+  `routes.ts` serves the endpoint. App-wide behavior (auth wall, errors, 404) is `test/app.test.ts`.
+- One test app per file at module scope:
+
+    ```ts
+    const t = await createTestApp()
+    afterAll(() => t.close())
+    ```
+
+    A test that changes global state (admin password, `t.reopen()`) creates its own app.
+- Tests are independent: each creates its data with the `helpers/fixtures.ts` factories
+  (`importCard`, `createConversation`, `createEchoPreset`, ...). Nothing is passed between tests;
+  `bun test <file> -t '<title>'` passes for any single test.
+- Test behavior through the API (`t.send`, `t.call`); use services (`t.context.<service>`) only
+  to set up data the test is not about, and `t.context.store` only for state the API does not
+  expose.
+- Never hand-roll `mkdtempSync` + `createContext`; use `createTestApp`. Only tests that open the
+  database on purpose (`db/schema`, `modules/jobs/runner`, `modules/system/backups`) skip it.
+- Import helpers by file (`../../helpers/app`); `helpers/` has no barrel.
+- Commit only fixtures you may redistribute, under `test/fixtures/`. Third-party files go in the
+  gitignored `test/fixtures/local/` and their tests use `test.skipIf(!localFixture(name))`.
+- `pocketrisu-parity/` stays at the top level: package scripts and its golden file depend on it.
