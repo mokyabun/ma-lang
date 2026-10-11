@@ -14,6 +14,24 @@ import { ConversationOrganizationRepository } from '@/modules/conversations/repo
 import { ConversationRepository } from '@/modules/conversations/repos/conversations'
 import { MessageRepository } from '@/modules/conversations/repos/messages'
 import { RequestDebugRepository } from '@/modules/debug/repo'
+import { GenerationRepository } from '@/modules/generations/repo'
+import { ConversationIllustrationSettingsRepository } from '@/modules/illustrations/repos/conversation-illustration-settings'
+import { IllustrationActorRepository } from '@/modules/illustrations/repos/illustration-actors'
+import {
+    IllustrationSnapshotRepository,
+    IllustrationStateDefinitionRepository,
+} from '@/modules/illustrations/repos/illustration-continuity'
+import { IllustrationSettingsRepository } from '@/modules/illustrations/repos/illustration-settings'
+import { IllustrationStyleRepository } from '@/modules/illustrations/repos/illustration-styles'
+import { MessageIllustrationRepository } from '@/modules/illustrations/repos/message-illustrations'
+import { BackgroundJobRepository } from '@/modules/jobs/repo'
+import { LuaDisplayBatchRepository } from '@/modules/lua/repos/lua-display-batches'
+import { LuaRemoteCommandRepository } from '@/modules/lua/repos/lua-remote-commands'
+import { LuaRunRepository } from '@/modules/lua/repos/lua-runs'
+import { LuaStateRepository } from '@/modules/lua/repos/lua-states'
+import { MemoryMetricsRepository } from '@/modules/memory/repos/memory-metrics'
+import { MemorySettingsRepository } from '@/modules/memory/repos/memory-settings'
+import { MemorySummaryRepository } from '@/modules/memory/repos/memory-summaries'
 import { ModelChainMemoryRepository } from '@/modules/model-chains/repos/model-chain-memory'
 import { ModelChainRepository } from '@/modules/model-chains/repos/model-chains'
 import { ModelPresetRepository } from '@/modules/model-presets/repo'
@@ -27,39 +45,11 @@ import { SecretStorageRepository } from '@/modules/secrets/repo'
 import { SettingsRepository } from '@/modules/settings/repo'
 
 import type { DatabaseHandle } from './client'
-import { BackgroundJobRepository } from './repositories/background-jobs'
-import { ConversationIllustrationSettingsRepository } from './repositories/conversation-illustration-settings'
-import { GenerationRepository } from './repositories/generations'
-import { IllustrationActorRepository } from './repositories/illustration-actors'
-import {
-    IllustrationSnapshotRepository,
-    IllustrationStateDefinitionRepository,
-} from './repositories/illustration-continuity'
-import { IllustrationSettingsRepository } from './repositories/illustration-settings'
-import { IllustrationStyleRepository } from './repositories/illustration-styles'
-import { LuaDisplayBatchRepository } from './repositories/lua-display-batches'
-import { LuaRemoteCommandRepository } from './repositories/lua-remote-commands'
-import { LuaRunRepository } from './repositories/lua-runs'
-import { LuaStateRepository } from './repositories/lua-states'
-import { MemoryMetricsRepository } from './repositories/memory-metrics'
-import { MemorySettingsRepository } from './repositories/memory-settings'
-import { MemorySummaryRepository } from './repositories/memory-summaries'
-import { MessageIllustrationRepository } from './repositories/message-illustrations'
 
-export { LuaRevisionConflictError } from './repository'
 export type { NewConversationRecord } from '@/modules/conversations/repos/conversations'
 export type { AssetRecord } from '@/modules/assets/repo'
-export type { BackgroundJobRecord, NewBackgroundJob } from './repositories/background-jobs'
-export type { StateSnapshotRecord } from './repositories/illustration-continuity'
-export type { IllustrationSettingsRecord } from './repositories/illustration-settings'
-export type {
-    MessageIllustrationRecord,
-    NewMessageIllustration,
-} from './repositories/message-illustrations'
 export type { SecretEnvelopes, SecretSlot } from '@/modules/secrets/repo'
-export type { LuaRemoteCommandRow } from './repositories/lua-remote-commands'
 export type { PromptModuleAssetRecord } from '@/modules/prompt-modules/repos/prompt-module-assets'
-export type { MemorySummaryRecord, SparseVector } from './repositories/memory-summaries'
 
 export class Store {
     readonly admin: AdminRepository

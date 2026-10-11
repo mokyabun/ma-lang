@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm'
 
 import type { DatabaseHandle } from '@/db/client'
-import { ensureIllustrationSettingsRow } from '@/db/repositories/illustration-settings'
 import { RepositoryBase } from '@/db/repository'
 import { appSettings, illustrationSettings } from '@/db/schema'
+import { ensureIllustrationSettingsRow } from '@/modules/illustrations/repos/illustration-settings'
 import { ensureAppSettingsRow } from '@/modules/settings/repo'
 
 export const SECRET_SLOTS = ['provider', 'novelai'] as const

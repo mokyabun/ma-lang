@@ -5,8 +5,8 @@ import pino from 'pino'
 import { z } from 'zod'
 
 import { type DatabaseHandle, openDatabase, Store } from '@/db'
-import { RuntimeEventHub } from '@/services/app/runtime-events'
-import { JobRunner, RetryableJobError } from '@/services/jobs'
+import { JobRunner, RetryableJobError } from '@/modules/jobs/runner'
+import { RuntimeEventHub } from '@/modules/realtime/hub'
 
 const silent = pino({ level: 'silent' })
 const Payload = z.object({ value: z.string() })

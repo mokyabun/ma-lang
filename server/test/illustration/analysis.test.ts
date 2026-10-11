@@ -6,14 +6,16 @@ import {
     actorRefs,
     AnalysisFailedError,
     type AnalysisInput,
-    insertTokens,
     normalizeAnalysis,
     parseAnalysisOutput,
+    runAnalysis,
+} from '@/modules/illustrations/analysis'
+import {
+    insertTokens,
     plainText,
     removeTokens,
-    runAnalysis,
     splitParagraphs,
-} from '@/services/illustration'
+} from '@/modules/illustrations/slots'
 
 const first = '11111111-1111-4111-8111-111111111111'
 const second = '22222222-2222-4222-8222-222222222222'

@@ -6,24 +6,22 @@ import type { AssetStore } from '@/modules/assets/service'
 import type { AuthService } from '@/modules/auth/service'
 import type { CharacterService } from '@/modules/characters/service'
 import type { ConversationService } from '@/modules/conversations/service'
+import type { GenerationService } from '@/modules/generations/service'
+import type { IllustrationCatalogService } from '@/modules/illustrations/catalog'
+import type { ContinuityService } from '@/modules/illustrations/continuity-service'
+import type { IllustrationPipeline } from '@/modules/illustrations/pipeline'
+import type { IllustrationService } from '@/modules/illustrations/service'
+import type { JobRunner } from '@/modules/jobs/runner'
+import type { LuaRuntime } from '@/modules/lua/runtime'
+import type { HypaMemoryV3Service } from '@/modules/memory/hypa-v3'
 import type { PersonaService } from '@/modules/personas/service'
 import type { PromptModuleService } from '@/modules/prompt-modules/service'
 import type { PromptService } from '@/modules/prompts/service'
 import type { ProviderService } from '@/modules/providers/service'
+import type { RuntimeEventHub } from '@/modules/realtime/hub'
 import type { BackupService } from '@/modules/system/backups'
 import type { SystemLogService } from '@/modules/system/logs'
 import type { UploadStore } from '@/modules/uploads/service'
-import type { GenerationService } from '@/services/app/generations'
-import type { RuntimeEventHub } from '@/services/app/runtime-events'
-import type {
-    ContinuityService,
-    IllustrationCatalogService,
-    IllustrationPipeline,
-    IllustrationService,
-} from '@/services/illustration'
-import type { JobRunner } from '@/services/jobs'
-import type { LuaRuntime } from '@/services/lua'
-import type { HypaMemoryV3Service } from '@/services/memory'
 
 export interface AppContext {
     config: AppConfig

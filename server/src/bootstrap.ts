@@ -6,27 +6,23 @@ import { AssetStore } from '@/modules/assets/service'
 import { AuthService } from '@/modules/auth/service'
 import { CharacterService } from '@/modules/characters/service'
 import { ConversationService } from '@/modules/conversations/service'
+import { GenerationService } from '@/modules/generations/service'
+import { IllustrationCatalogService } from '@/modules/illustrations/catalog'
+import { ContinuityService } from '@/modules/illustrations/continuity-service'
+import { ANALYSIS_LANE, IllustrationPipeline } from '@/modules/illustrations/pipeline'
+import { IllustrationService, NOVELAI_LANE } from '@/modules/illustrations/service'
+import { JobRunner } from '@/modules/jobs/runner'
+import { LuaRuntime } from '@/modules/lua/runtime'
+import { HypaMemoryV3Service } from '@/modules/memory/hypa-v3'
 import { PersonaService } from '@/modules/personas/service'
 import { PromptModuleService } from '@/modules/prompt-modules/service'
 import { PromptService } from '@/modules/prompts/service'
 import { ProviderService } from '@/modules/providers/service'
+import { RuntimeEventHub } from '@/modules/realtime/hub'
 import { SecretVault } from '@/modules/secrets/vault'
 import { BackupService } from '@/modules/system/backups'
 import { SystemLogService } from '@/modules/system/logs'
 import { UploadStore } from '@/modules/uploads/service'
-import { GenerationService } from '@/services/app/generations'
-import { RuntimeEventHub } from '@/services/app/runtime-events'
-import {
-    ANALYSIS_LANE,
-    ContinuityService,
-    IllustrationCatalogService,
-    IllustrationPipeline,
-    IllustrationService,
-    NOVELAI_LANE,
-} from '@/services/illustration'
-import { JobRunner } from '@/services/jobs'
-import { LuaRuntime } from '@/services/lua'
-import { HypaMemoryV3Service } from '@/services/memory'
 
 export async function createContext(config: AppConfig = loadConfig()): Promise<AppContext> {
     const database = openDatabase(config.databasePath)

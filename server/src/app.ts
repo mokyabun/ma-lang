@@ -3,15 +3,6 @@ import { randomUUID } from 'node:crypto'
 import { Hono } from 'hono'
 
 import type { AppContext } from '@/context'
-import {
-    createConversationGenerationDomain,
-    createConversationIllustrationDomain,
-    createConversationLuaDomain,
-    createGenerationDomain,
-    createIllustrationDomain,
-    createJobDomain,
-    createRuntimeDomain,
-} from '@/domains'
 import { errorResponse, normalizeError, NotFoundError } from '@/lib/errors'
 import type { AppEnv } from '@/lib/http'
 import { createAssetRoutes } from '@/modules/assets/routes'
@@ -20,12 +11,23 @@ import { createAuthRoutes } from '@/modules/auth/routes'
 import { createCharacterRoutes } from '@/modules/characters/routes'
 import { createConversationRoutes } from '@/modules/conversations/routes'
 import { createDebugRoutes } from '@/modules/debug/routes'
+import {
+    createConversationGenerationRoutes,
+    createGenerationRoutes,
+} from '@/modules/generations/routes'
+import {
+    createConversationIllustrationRoutes,
+    createIllustrationRoutes,
+} from '@/modules/illustrations/routes'
+import { createJobRoutes } from '@/modules/jobs/routes'
+import { createConversationLuaRoutes, createLuaRuntimeRoutes } from '@/modules/lua/routes'
 import { createModelChainRoutes } from '@/modules/model-chains/routes'
 import { createModelPresetRoutes } from '@/modules/model-presets/routes'
 import { createPersonaRoutes } from '@/modules/personas/routes'
 import { createPromptModuleRoutes } from '@/modules/prompt-modules/routes'
 import { createPromptPresetRoutes } from '@/modules/prompts/routes'
 import { createProviderRoutes } from '@/modules/providers/routes'
+import { createRealtimeRoutes } from '@/modules/realtime/routes'
 import { originMiddleware } from '@/modules/security/middleware'
 import { createSettingsRoutes } from '@/modules/settings/routes'
 import { createUploadRoutes } from '@/modules/uploads/routes'
@@ -45,13 +47,14 @@ function routeApi(app: Hono<AppEnv>, context: AppContext) {
         .route('/api/v1/prompt-presets', createPromptPresetRoutes(context))
         .route('/api/v1/prompt-modules', createPromptModuleRoutes(context))
         .route('/api/v1/conversations', createConversationRoutes(context))
-        .route('/api/v1/conversations', createConversationGenerationDomain(context))
-        .route('/api/v1/conversations', createConversationLuaDomain(context))
-        .route('/api/v1/conversations', createConversationIllustrationDomain(context))
-        .route('/api/v1/generations', createGenerationDomain(context))
-        .route('/api/v1/runtime', createRuntimeDomain(context))
-        .route('/api/v1/jobs', createJobDomain(context))
-        .route('/api/v1/illustrations', createIllustrationDomain(context))
+        .route('/api/v1/conversations', createConversationGenerationRoutes(context))
+        .route('/api/v1/conversations', createConversationLuaRoutes(context))
+        .route('/api/v1/conversations', createConversationIllustrationRoutes(context))
+        .route('/api/v1/generations', createGenerationRoutes(context))
+        .route('/api/v1/runtime', createRealtimeRoutes(context))
+        .route('/api/v1/runtime', createLuaRuntimeRoutes(context))
+        .route('/api/v1/jobs', createJobRoutes(context))
+        .route('/api/v1/illustrations', createIllustrationRoutes(context))
 }
 
 export function createApp(context: AppContext) {

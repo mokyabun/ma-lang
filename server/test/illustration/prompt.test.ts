@@ -9,7 +9,7 @@ import {
     resolveImageParams,
     splitTags,
     wrapFixed,
-} from '@/services/illustration'
+} from '@/modules/illustrations/prompt'
 
 describe('tag normalization', () => {
     test('tidies separators and drops empty tags', () => {

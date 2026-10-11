@@ -2,7 +2,12 @@ import { describe, expect, test } from 'bun:test'
 
 import type { IllustrationState, IllustrationStateDefinition } from '@malang/shared'
 
-import { applyContinuity, EMPTY_STATE, pruneState, stateTags } from '@/services/illustration'
+import {
+    applyContinuity,
+    EMPTY_STATE,
+    pruneState,
+    stateTags,
+} from '@/modules/illustrations/continuity'
 
 const aria = '11111111-1111-4111-8111-111111111111'
 const bell = '22222222-2222-4222-8222-222222222222'
