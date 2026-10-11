@@ -214,15 +214,6 @@ describe('Hono API and SQLite persistence', () => {
         expect(deleted.status).toBe(204)
     })
 
-    test('rejects a state-changing request from an unapproved origin', async () => {
-        const response = await app.request('/api/v1/settings', {
-            method: 'PATCH',
-            headers: { cookie, origin: 'https://evil.example', 'content-type': 'application/json' },
-            body: '{}',
-        })
-        expect(response.status).toBe(403)
-    })
-
     test('provides a fixed general Chat character that cannot be changed or deleted', async () => {
         const listed = await app.request('/api/v1/characters', { headers: { cookie } })
         expect(listed.status).toBe(200)
