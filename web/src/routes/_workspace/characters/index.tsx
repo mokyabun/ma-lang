@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { WorkspaceRoute } from '@/components/app/workspace-route'
+import { AppShell } from '@/app/app-shell'
 
 export const Route = createFileRoute('/_workspace/characters/')({ component: CharactersPage })
 
 function CharactersPage() {
-    return <WorkspaceRoute page={{ kind: 'chat' }} />
+    return <AppShell page={{ kind: 'chat' }} />
 }

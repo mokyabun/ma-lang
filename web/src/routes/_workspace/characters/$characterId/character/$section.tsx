@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { WorkspaceRoute } from '@/components/app/workspace-route'
+import { AppShell } from '@/app/app-shell'
 import type { CharacterEditorSection } from '@/lib/workspace-page'
 
 const sections = new Set<CharacterEditorSection>([
@@ -22,5 +22,5 @@ function CharacterEditorPage() {
     const section = sections.has(routeSection as CharacterEditorSection)
         ? (routeSection as CharacterEditorSection)
         : 'profile'
-    return <WorkspaceRoute page={{ kind: 'character', characterId, section }} />
+    return <AppShell page={{ kind: 'character', characterId, section }} />
 }

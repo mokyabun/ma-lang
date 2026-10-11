@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { SettingsWorkspace } from '@/components/app/settings/settings-workspace'
-import { isSettingsSection, type SettingsSection } from '@/components/app/settings/types'
+import { SettingsWorkspace } from '@/features/settings/settings-workspace'
+import { isSettingsSection, type SettingsSection } from '@/features/settings/types'
 
 export const Route = createFileRoute('/_workspace/settings/$section')({
     beforeLoad: ({ params }) => {

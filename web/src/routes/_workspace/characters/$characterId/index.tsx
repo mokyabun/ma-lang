@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { WorkspaceRoute } from '@/components/app/workspace-route'
+import { AppShell } from '@/app/app-shell'
 
 export const Route = createFileRoute('/_workspace/characters/$characterId/')({
     component: CharacterPage,
@@ -8,5 +8,5 @@ export const Route = createFileRoute('/_workspace/characters/$characterId/')({
 
 function CharacterPage() {
     const { characterId } = Route.useParams()
-    return <WorkspaceRoute page={{ kind: 'chat', characterId }} />
+    return <AppShell page={{ kind: 'chat', characterId }} />
 }

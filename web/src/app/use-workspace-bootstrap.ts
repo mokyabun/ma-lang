@@ -9,7 +9,7 @@ import {
 } from '@/lib/store'
 import type { WorkspacePage } from '@/lib/workspace-page'
 
-import { loadWorkspaceAtom } from './atom'
+import { loadWorkspaceAtom } from './load-workspace'
 
 export function useWorkspaceBootstrap(page: WorkspacePage) {
     const loadWorkspace = useSetAtom(loadWorkspaceAtom)

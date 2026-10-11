@@ -2,7 +2,7 @@
 // rendered, each inlay placeholder from parseInlayAssets is swapped for its media.
 // PocketRisu fetches inlays from its own storage; in Malang they are stored assets
 // named after the PocketRisu inlay id (imports) or referenced by asset id (Lua).
-import { assetUrl } from '../api'
+import { assetUrl } from '@/lib/api'
 
 export interface InlayAsset {
     assetId: string
