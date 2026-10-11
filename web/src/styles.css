@@ -47,7 +47,7 @@
     --font-sans: 'SUIT Variable', SUIT, sans-serif;
     --font-serif: 'SUIT Variable', SUIT, sans-serif;
     --font-mono: Fira Code, monospace;
-    --radius: 0.35rem;
+    --radius: 0.125rem;
     --shadow-x: 0px;
     --shadow-y: 4px;
     --shadow-blur: 6px;
@@ -102,7 +102,7 @@
     --font-sans: 'SUIT Variable', SUIT, sans-serif;
     --font-serif: 'SUIT Variable', SUIT, sans-serif;
     --font-mono: Fira Code, monospace;
-    --radius: 0.35rem;
+    --radius: 0.125rem;
     --shadow-x: 0px;
     --shadow-y: 4px;
     --shadow-blur: 6px;
@@ -160,10 +160,13 @@
     --font-mono: var(--font-mono);
     --font-serif: var(--font-serif);
 
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) * 0.5);
+    --radius-md: calc(var(--radius) * 0.75);
     --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
+    --radius-xl: calc(var(--radius) * 1.5);
+    --radius-2xl: calc(var(--radius) * 2);
+    --radius-3xl: calc(var(--radius) * 2.5);
+    --radius-4xl: calc(var(--radius) * 3);
 
     --shadow-2xs: var(--shadow-2xs);
     --shadow-xs: var(--shadow-xs);
@@ -231,7 +234,7 @@
     .malang-message-card:not(.system) .malang-message-card__surface {
         width: 100%;
         border: 1px solid color-mix(in oklab, var(--border) 54%, transparent);
-        border-radius: calc(var(--radius) + 0.65rem);
+        border-radius: calc(var(--radius) * 2);
         background: var(--malang-chat-surface);
         box-shadow: 0 0.75rem 2.5rem color-mix(in oklab, var(--background) 18%, transparent);
         padding: clamp(1.25rem, 3.2vw, 2.25rem);
@@ -254,7 +257,7 @@
         flex: none;
         overflow: hidden;
         border: 1px solid color-mix(in oklab, var(--border) 48%, transparent);
-        border-radius: calc(var(--radius) + 0.45rem);
+        border-radius: calc(var(--radius) * 2);
         background: color-mix(in oklab, var(--secondary) 80%, var(--card));
     }
 
@@ -360,7 +363,7 @@
     .malang-message-card .chattext blockquote {
         margin-block: 1.1rem;
         border-left: 0.24rem solid var(--malang-chat-accent);
-        border-radius: 0 calc(var(--radius) + 0.2rem) calc(var(--radius) + 0.2rem) 0;
+        border-radius: 0 calc(var(--radius) * 1.5) calc(var(--radius) * 1.5) 0;
         background: color-mix(in oklab, var(--muted) 34%, transparent);
         padding: 0.6rem 1rem;
         color: var(--malang-chat-accent);
@@ -388,7 +391,7 @@
         height: auto;
         max-height: min(36rem, 70vh);
         margin: 1rem auto;
-        border-radius: calc(var(--radius) + 0.25rem);
+        border-radius: calc(var(--radius) * 1.5);
         object-fit: contain;
     }
 
@@ -476,7 +479,7 @@
         display: block;
         max-width: min(100%, 40rem);
         max-height: min(36rem, 70vh);
-        border-radius: calc(var(--radius) + 0.25rem);
+        border-radius: calc(var(--radius) * 1.5);
         object-fit: contain;
         animation: risu-fade-in 0.3s ease-out;
     }
@@ -486,7 +489,7 @@
         min-height: 160px;
         align-items: center;
         border: 1px solid var(--border);
-        border-radius: calc(var(--radius) + 0.25rem);
+        border-radius: calc(var(--radius) * 1.5);
         background: color-mix(in oklab, var(--muted) 35%, transparent);
         color: var(--muted-foreground);
         font-size: 0.875rem;
@@ -512,7 +515,7 @@
         justify-content: center;
         gap: 0.25rem;
         border: 1px solid var(--border);
-        border-radius: calc(var(--radius) + 0.25rem);
+        border-radius: calc(var(--radius) * 1.5);
         background: color-mix(in oklab, var(--muted) 35%, transparent);
         padding: 1.5rem 1rem;
         color: var(--muted-foreground);
@@ -554,7 +557,7 @@
 
     @media (max-width: 640px) {
         .malang-message-card:not(.system) .malang-message-card__surface {
-            border-radius: calc(var(--radius) + 0.45rem);
+            border-radius: calc(var(--radius) * 2);
             padding: 1.1rem;
         }
 
@@ -639,4 +642,11 @@
             animation-iteration-count: 1 !important;
         }
     }
+}
+
+:root:not([data-motion='on']) *,
+:root:not([data-motion='on']) *::before,
+:root:not([data-motion='on']) *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
 }

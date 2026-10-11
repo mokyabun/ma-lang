@@ -16,7 +16,7 @@ export function SegmentedChoice({
                     key={option.value}
                     type="button"
                     className={cn(
-                        'rounded-[calc(var(--radius-md)-2px)] px-3 py-1.5 text-[11px] text-muted-foreground transition-colors',
+                        'rounded-sm px-3 py-1.5 text-[11px] text-muted-foreground transition-colors',
                         value === option.value && 'bg-primary text-primary-foreground',
                     )}
                     aria-pressed={value === option.value}

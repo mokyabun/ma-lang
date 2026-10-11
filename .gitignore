@@ -39,3 +39,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Extra temp files
 extra
 *.charx
+
+/plans
