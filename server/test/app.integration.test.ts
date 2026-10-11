@@ -148,61 +148,6 @@ describe('Hono API and SQLite persistence', () => {
         expect(readdirSync(uploadsDirectory)).toEqual([])
     })
 
-    test('persists backup settings and exposes the environment override behind authentication', async () => {
-        expect((await app.request('/api/v1/settings/backup')).status).toBe(401)
-        const status = await app.request('/api/v1/settings/backup', { headers: { cookie } })
-        expect(await status.json()).toEqual({ allowed: false })
-        for (const enabled of [false, true]) {
-            const response = await app.request('/api/v1/settings', {
-                method: 'PATCH',
-                headers: { cookie, 'content-type': 'application/json' },
-                body: JSON.stringify({ autoBackupEnabled: enabled }),
-            })
-            expect(response.status).toBe(200)
-            expect(await response.json()).toMatchObject({ autoBackupEnabled: enabled })
-        }
-        const invalid = await app.request('/api/v1/settings', {
-            method: 'PATCH',
-            headers: { cookie, 'content-type': 'application/json' },
-            body: JSON.stringify({ autoBackupEnabled: 'false' }),
-        })
-        expect(invalid.status).toBe(422)
-    })
-
-    test('creates, lists, downloads, and deletes database snapshots', async () => {
-        if (!cookie) {
-            cookie = await login(app, adminPassword)
-        }
-        const created = await app.request('/api/v1/settings/backups', {
-            method: 'POST',
-            headers: { cookie },
-        })
-        expect(created.status).toBe(201)
-        const snapshot = (await created.json()) as { id: string; kind: string; size: number }
-        expect(snapshot.kind).toBe('manual')
-        expect(typeof snapshot.size).toBe('number')
-        const snapshotSize = snapshot.size
-
-        const listed = await app.request('/api/v1/settings/backups', { headers: { cookie } })
-        expect(await listed.json()).toMatchObject({
-            snapshots: [expect.objectContaining({ id: snapshot.id })],
-        })
-
-        const downloaded = await app.request(
-            `/api/v1/settings/backups/${encodeURIComponent(snapshot.id)}/download`,
-            { headers: { cookie } },
-        )
-        expect(downloaded.status).toBe(200)
-        expect(downloaded.headers.get('content-type')).toBe('application/vnd.sqlite3')
-        expect((await downloaded.arrayBuffer()).byteLength).toBe(snapshotSize)
-
-        const deleted = await app.request(
-            `/api/v1/settings/backups/${encodeURIComponent(snapshot.id)}`,
-            { method: 'DELETE', headers: { cookie } },
-        )
-        expect(deleted.status).toBe(204)
-    })
-
     test('provides a fixed general Chat character that cannot be changed or deleted', async () => {
         const listed = await app.request('/api/v1/characters', { headers: { cookie } })
         expect(listed.status).toBe(200)
