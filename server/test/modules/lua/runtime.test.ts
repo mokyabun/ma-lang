@@ -8,8 +8,8 @@ import { CharacterCreateSchema } from '@malang/shared'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { testConfig } from '../helpers/app'
-import { fixturePath } from '../helpers/fixtures'
+import { testConfig } from '../../helpers/app'
+import { fixturePath } from '../../helpers/fixtures'
 
 describe('PocketRisu Lua runtime', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-lua-'))

@@ -4,7 +4,7 @@ import { cosineSimilarity, featureVector, selectMemorySummaries } from '@/module
 import type { MemorySummaryRecord } from '@/modules/memory/repos/memory-summaries'
 import { compilePrompt } from '@/modules/prompts/engine/compiler'
 
-import { testTokenizer } from '../helpers/tokenizer'
+import { testTokenizer } from '../../helpers/tokenizer'
 
 function summary(
     id: string,

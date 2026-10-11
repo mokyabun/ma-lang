@@ -11,8 +11,8 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { testConfig } from '../helpers/app'
-import { login } from '../helpers/app'
+import { testConfig } from '../../helpers/app'
+import { login } from '../../helpers/app'
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9, 9])
 const NOVELAI_KEY = 'pst-novelai-secret-1234'

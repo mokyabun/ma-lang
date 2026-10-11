@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { compilePrompt } from '@/modules/prompts/engine/compiler'
 
-import { testTokenizer } from '../helpers/tokenizer'
+import { testTokenizer } from '../../../helpers/tokenizer'
 
 describe('PocketRisu editprocess ordering', () => {
     test('processes chat history before prompt blocks are assembled', async () => {

@@ -8,7 +8,7 @@ import { GENERAL_CHAT_CHARACTER_ID, type GenerationRequest } from '@malang/share
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { testConfig } from '../helpers/app'
+import { testConfig } from '../../helpers/app'
 
 describe('continuing the last response', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-continue-'))

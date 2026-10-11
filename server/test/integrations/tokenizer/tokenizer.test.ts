@@ -5,7 +5,7 @@ import { POCKET_RISU_PROFILE_OPTION, type ProviderKind } from '@malang/shared'
 import { chatTokenizerFor, resolveTokenizerId } from '@/integrations/tokenizer'
 import { type EncoderName, loadEncoder } from '@/integrations/tokenizer/encoders'
 
-import golden from '../fixtures/tokenizer-golden.json'
+import golden from '../../fixtures/tokenizer-golden.json'
 
 // Token ids produced by RisuAI's own tokenizer code and vocabularies (Gemma via
 // @huggingface/transformers' GemmaTokenizer), recorded outside Malang.

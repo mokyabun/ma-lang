@@ -13,8 +13,8 @@ import {
     importPocketRisuCharacterPackage,
 } from '@/modules/characters/package'
 
-import { testConfig } from '../helpers/app'
-import { v3Card } from '../helpers/fixtures'
+import { testConfig } from '../../helpers/app'
+import { v3Card } from '../../helpers/fixtures'
 
 const config = testConfig()
 

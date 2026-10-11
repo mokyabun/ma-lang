@@ -9,8 +9,8 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { testConfig } from '../helpers/app'
-import { login } from '../helpers/app'
+import { testConfig } from '../../helpers/app'
+import { login } from '../../helpers/app'
 
 describe('model presets, API keys, and conversation bindings', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-presets-'))

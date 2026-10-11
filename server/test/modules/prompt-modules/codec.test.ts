@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { exportPromptModule, importPromptModule } from '@/modules/prompt-modules/codec'
 
-import { testConfig } from '../helpers/app'
+import { testConfig } from '../../helpers/app'
 
 const limits = testConfig().limits
 

@@ -8,8 +8,8 @@ import { exportCharacterCard, importCharacterCard } from '@/modules/characters/c
 import { exportPromptModule } from '@/modules/prompt-modules/codec'
 import { encodeRPack } from '@/modules/prompts/engine/rpack'
 
-import { testConfig } from '../helpers/app'
-import { localFixture, v3Card } from '../helpers/fixtures'
+import { testConfig } from '../../helpers/app'
+import { localFixture, v3Card } from '../../helpers/fixtures'
 
 function buildRisumModule(module: Record<string, unknown>): Uint8Array {
     const main = encodeRPack(

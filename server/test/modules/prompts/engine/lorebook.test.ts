@@ -4,7 +4,7 @@ import type { LoreEntry } from '@malang/shared'
 
 import { selectLoreEntries } from '@/modules/prompts/engine/lorebook'
 
-import { testTokenizer } from '../helpers/tokenizer'
+import { testTokenizer } from '../../../helpers/tokenizer'
 
 const baseEntry: LoreEntry = {
     id: '00000000-0000-4000-8000-000000000001',
