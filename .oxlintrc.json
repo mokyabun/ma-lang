@@ -33,5 +33,240 @@
         "web/src/routeTree.gen.ts",
         "web/src/components/ui/**",
         "server/src/db/migrations/**"
+    ],
+    "overrides": [
+        {
+            "files": ["web/src/**"],
+            "rules": {
+                "import/no-cycle": "error",
+                "import/no-relative-parent-imports": "error"
+            }
+        },
+        {
+            "files": ["web/src/components/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/features/**", "@/app/**"],
+                                "message": "components/ must not import from features/ or app/ (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/hooks/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/features/**", "@/app/**", "@/components/**"],
+                                "message": "hooks/ may only import hooks/ and lib/ (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/lib/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": [
+                                    "@/features/**",
+                                    "@/app/**",
+                                    "@/components/**",
+                                    "@/hooks/**"
+                                ],
+                                "message": "lib/ may only import lib/ (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": [
+                "web/src/features/auth/**",
+                "web/src/features/illustrations/**",
+                "web/src/features/lorebook/**",
+                "web/src/features/model-chains/**",
+                "web/src/features/model-presets/**",
+                "web/src/features/prompt-presets/**",
+                "web/src/features/system/**",
+                "web/src/features/theme/**"
+            ],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": ["@/features/**"],
+                                "message": "This feature has no dependencies on other features (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/features/personas/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": ["@/features/**", "!@/features/illustrations/**"],
+                                "message": "personas may only import the illustrations feature (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/features/prompt-modules/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": ["@/features/**", "!@/features/lorebook/**"],
+                                "message": "prompt-modules may only import the lorebook feature (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/features/characters/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": [
+                                    "@/features/**",
+                                    "!@/features/illustrations/**",
+                                    "!@/features/lorebook/**",
+                                    "!@/features/personas/**"
+                                ],
+                                "message": "characters may only import the illustrations, lorebook and personas features (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/features/navigation/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": ["@/features/**", "!@/features/characters/**"],
+                                "message": "navigation may only import the characters feature (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/features/chat/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": [
+                                    "@/features/**",
+                                    "!@/features/characters/**",
+                                    "!@/features/illustrations/**",
+                                    "!@/features/navigation/**",
+                                    "!@/features/personas/**",
+                                    "!@/features/prompt-modules/**",
+                                    "!@/features/prompt-presets/**"
+                                ],
+                                "message": "chat may only import the characters, illustrations, navigation, personas, prompt-modules and prompt-presets features (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["web/src/features/settings/**"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/app/**"],
+                                "message": "Features must not import from app/ (see web/README.md)."
+                            },
+                            {
+                                "group": [
+                                    "@/features/**",
+                                    "!@/features/chat/**",
+                                    "!@/features/illustrations/**",
+                                    "!@/features/model-chains/**",
+                                    "!@/features/model-presets/**",
+                                    "!@/features/personas/**",
+                                    "!@/features/prompt-modules/**",
+                                    "!@/features/prompt-presets/**",
+                                    "!@/features/system/**",
+                                    "!@/features/theme/**"
+                                ],
+                                "message": "settings may only import the chat, illustrations, model-chains, model-presets, personas, prompt-modules, prompt-presets, system and theme features (see web/README.md)."
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
     ]
 }

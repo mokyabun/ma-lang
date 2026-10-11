@@ -8,7 +8,7 @@ let resolveInlayPlaceholders: typeof import('./inlays').resolveInlayPlaceholders
 beforeAll(async () => {
     const window = new Window({ url: 'https://malang.test/' })
     Object.assign(globalThis, { window, document: window.document })
-    ;({ renderMessageHtml } = await import('../sanitize-message-html'))
+    ;({ renderMessageHtml } = await import('@/lib/sanitize-message-html'))
     ;({ resolveInlayPlaceholders } = await import('./inlays'))
 })
 

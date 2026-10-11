@@ -48,6 +48,20 @@ database structure.
 - `lib/` and `integrations/` never import `modules/`. `db/` imports only `lib/` and the
   repositories that `store.ts` assembles.
 
+## Web
+
+`web/src/features/<feature>/` holds one feature: flat, tests next to their module. Names follow
+`server/src/modules` where the concept matches. Layout and rules are in `web/README.md`.
+
+- `routes/` are stubs that read params and render `AppShell` or a feature page; `app/` composes
+  features.
+- `components/`, `hooks/` and `lib/` never import `features/` or `app/`; `hooks/` never imports
+  `components/`; `lib/` imports only `lib/`. Allowed feature edges are listed in `web/README.md`
+  and enforced by `bun run lint`.
+- Imports: `./x` in the same folder, `@/…` otherwise, never `../`. No barrels
+  (`lib/api/index.ts` is the API facade exception).
+- Put code used by several features in `components/`, `hooks/` or `lib/`, not in one of them.
+
 ## Tests (server)
 
 `server/test/` mirrors `server/src/`: `lib/`, `integrations/`, `modules/<feature>/`, `db/`.
