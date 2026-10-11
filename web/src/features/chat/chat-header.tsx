@@ -2,9 +2,8 @@ import type { Character, Conversation, ModelPreset } from '@malang/shared'
 import { CloudCheck, Info } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
+import { CharacterAvatar } from '@/features/characters/character-avatar'
 import { cn } from '@/lib/utils'
-
-import { CharacterAvatar } from '../character/character-avatar'
 
 export function ChatHeader({
     character,

@@ -1,9 +1,9 @@
 import { useAtomValue } from 'jotai'
 
+import { ChatWorkspace } from '@/features/chat/chat-workspace'
 import { workspaceInitializedAtom } from '@/lib/store'
 import type { WorkspacePage } from '@/lib/workspace-page'
 
-import { ChatWorkspace } from './chat/chat-workspace'
 import { useWorkspaceBootstrap } from './workspace/use-workspace-bootstrap'
 import { WorkspaceLoading } from './workspace/workspace-feedback'
 import { WorkspaceLayout } from './workspace/workspace-layout'

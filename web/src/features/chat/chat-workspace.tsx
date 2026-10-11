@@ -3,6 +3,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect } from 'react'
 
+import {
+    characterAssetsAtom,
+    removeCharacterAvatarAtom,
+    saveCharacterAtom,
+    uploadCharacterAvatarAtom,
+} from '@/features/characters/atom'
+import { CharacterQuickEditor } from '@/features/characters/character-quick-editor'
+import { useCharacterDelete } from '@/features/characters/use-character-delete'
+import { personaListAtom } from '@/features/personas/atom'
 import { api, assetUrl } from '@/lib/api'
 import { type BackgroundLayer, resolveBackgroundEmbedding } from '@/lib/background-embedding'
 import { activePromptToggles } from '@/lib/prompt-toggles'
@@ -22,16 +31,6 @@ import {
 } from '@/lib/store'
 import type { WorkspacePage } from '@/lib/workspace-page'
 
-import {
-    characterAssetsAtom,
-    removeCharacterAvatarAtom,
-    saveCharacterAtom,
-    uploadCharacterAvatarAtom,
-} from '../character/atom'
-import { CharacterQuickEditor } from '../character/character-quick-editor'
-import { useCharacterDelete } from '../character/use-character-delete'
-import { personaListAtom } from '../settings/persona/atom'
-import { WorkspaceEmpty } from '../workspace/workspace-empty'
 import {
     activeGenerationsAtom,
     cancelGenerationAtom,
@@ -54,6 +53,7 @@ import { ChatSidebar } from './chat-sidebar'
 import { Composer, MessageTranscript } from './conversation-view'
 import { applyIllustrationEventAtom, loadIllustrationsAtom } from './illustration-atom'
 import { useConversationDelete } from './use-conversation-delete'
+import { WorkspaceEmpty } from './workspace-empty'
 
 export function ChatWorkspace({
     page,

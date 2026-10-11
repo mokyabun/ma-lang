@@ -24,11 +24,10 @@ import {
 } from '@/components/ui/select'
 import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { CharacterAvatar } from '@/features/characters/character-avatar'
 import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { api } from '@/lib/api'
 import { activePromptToggles } from '@/lib/prompt-toggles'
-
-import { CharacterAvatar } from '../character/character-avatar'
 
 export function ChatInspector({
     open,

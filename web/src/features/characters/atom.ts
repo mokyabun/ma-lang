@@ -3,6 +3,7 @@ import { atom } from 'jotai'
 
 import { loadingAtom } from '@/components/dialogs/atom'
 import { withImportProgress } from '@/components/dialogs/import-progress'
+import { personaListAtom } from '@/features/personas/atom'
 import { api } from '@/lib/api'
 import {
     charactersAtom,
@@ -13,8 +14,6 @@ import {
     selectedConversationIdAtom,
     workspaceErrorAtom,
 } from '@/lib/store'
-
-import { personaListAtom } from '../settings/persona/atom'
 
 export const characterAssetsAtom = atom<CharacterAsset[]>([])
 export const characterSavingAtom = atom(false)

@@ -7,6 +7,18 @@ import { type ChangeEvent, type ReactNode, useEffect, useRef } from 'react'
 import { WorkspaceDialogs } from '@/components/dialogs/workspace-dialogs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+    characterCreatingAtom,
+    characterImportRequestedAtom,
+    characterPackageImportRequestedAtom,
+    createCharacterAtom,
+    importCharacterAtom,
+    importCharacterPackageAtom,
+} from '@/features/characters/atom'
+import { useCharacterDelete } from '@/features/characters/use-character-delete'
+import { generatingConversationIdsAtom } from '@/features/chat/atom'
+import { useStartConversation } from '@/features/chat/use-start-conversation'
+import { CharacterRail } from '@/features/navigation/character-rail'
 import { api } from '@/lib/api'
 import {
     activeCharactersAtom,
@@ -18,18 +30,6 @@ import {
     workspaceErrorAtom,
 } from '@/lib/store'
 
-import {
-    characterCreatingAtom,
-    characterImportRequestedAtom,
-    characterPackageImportRequestedAtom,
-    createCharacterAtom,
-    importCharacterAtom,
-    importCharacterPackageAtom,
-} from '../character/atom'
-import { useCharacterDelete } from '../character/use-character-delete'
-import { generatingConversationIdsAtom } from '../chat/atom'
-import { useStartConversation } from '../chat/use-start-conversation'
-import { CharacterRail } from '../sidebar/workspace-navigation'
 import { WorkspaceError } from './workspace-feedback'
 
 export function WorkspaceLayout({ children }: { children: ReactNode }) {

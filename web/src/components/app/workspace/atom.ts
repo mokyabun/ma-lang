@@ -1,6 +1,8 @@
 import type { CharacterAsset } from '@malang/shared'
 import { atom } from 'jotai'
 
+import { characterAssetsAtom } from '@/features/characters/atom'
+import { personaListAtom, selectedPersonaIdAtom } from '@/features/personas/atom'
 import { api } from '@/lib/api'
 import {
     characterGroupsAtom,
@@ -20,9 +22,6 @@ import {
     workspaceInitializedAtom,
     workspaceLoadingAtom,
 } from '@/lib/store'
-
-import { characterAssetsAtom } from '../character/atom'
-import { personaListAtom, selectedPersonaIdAtom } from '../settings/persona/atom'
 
 export const loadWorkspaceAtom = atom(
     null,

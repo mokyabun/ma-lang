@@ -4,6 +4,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { conversationModuleStatesAtom } from '@/features/chat/atom'
 import { api } from '@/lib/api'
 import {
     promptModulesAtom,
@@ -15,7 +16,6 @@ import {
     settingsAtom,
 } from '@/lib/store'
 
-import { conversationModuleStatesAtom } from '../chat/atom'
 import { loadSettingsAtom, settingsErrorAtom, settingsInitializedAtom } from './atom'
 import { SettingsPanel } from './settings-panel'
 import { type SettingsSection } from './types'

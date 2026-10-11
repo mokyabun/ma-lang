@@ -4,6 +4,8 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useState } from 'react'
 
 import { useTheme } from '@/components/theme-provider'
+import { ConversationSidebar } from '@/features/navigation/conversation-sidebar'
+import { personaListAtom, selectPersonaAtom, selectedPersonaIdAtom } from '@/features/personas/atom'
 import { moduleInput } from '@/features/prompt-modules/model'
 import { presetInput } from '@/features/prompt-presets/model'
 import { api } from '@/lib/api'
@@ -24,11 +26,6 @@ import {
 } from '@/lib/store'
 import type { WorkspacePage } from '@/lib/workspace-page'
 
-import { personaListAtom, selectPersonaAtom, selectedPersonaIdAtom } from '../settings/persona/atom'
-import { conversationSearchAtom, filteredConversationsAtom } from '../sidebar/atom'
-import { ChatSettingsDialog } from '../sidebar/chat-settings-dialog'
-import { QuickChatSettingsButton } from '../sidebar/quick-chat-settings-button'
-import { ConversationSidebar } from '../sidebar/workspace-navigation'
 import {
     conversationModuleStatesAtom,
     conversationCreatingAtom,
@@ -37,6 +34,9 @@ import {
     toggleConversationModuleAtom,
     updateConversationAtom,
 } from './atom'
+import { ChatSettingsDialog } from './chat-settings-dialog'
+import { conversationSearchAtom, filteredConversationsAtom } from './conversation-search'
+import { QuickChatSettingsButton } from './quick-chat-settings-button'
 import { useConversationDelete } from './use-conversation-delete'
 import { useStartConversation } from './use-start-conversation'
 

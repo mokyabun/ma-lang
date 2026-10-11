@@ -1,5 +1,6 @@
 import { atom } from 'jotai'
 
+import { personaListAtom, selectedPersonaIdAtom } from '@/features/personas/atom'
 import { api } from '@/lib/api'
 import {
     modelApiKeysAtom,
@@ -11,8 +12,6 @@ import {
     providerAtom,
     settingsAtom,
 } from '@/lib/store'
-
-import { personaListAtom, selectedPersonaIdAtom } from './persona/atom'
 
 export const settingsInitializedAtom = atom(false)
 

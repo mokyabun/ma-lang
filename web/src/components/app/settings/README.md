@@ -3,7 +3,7 @@
 - `settings-workspace.tsx`: 데이터 로딩과 전역 atom 연결.
 - `settings-panel.tsx`: 화면 레이아웃. 탐색, 닫기 버튼, 섹션 렌더링은 각각 `settings-navigation`, `settings-controls`, `settings-content`가 담당.
 - `types.ts`, `navigation.ts`: 지원하는 설정 경로와 메뉴 정의. 기존 `/settings/$section` URL은 유지.
-- `persona/`: 기능별 화면, 하위 컴포넌트, 상태 처리 훅. 테마·시스템·삽화 섹션은 `features/theme`, `features/system`, `features/illustrations`에 있습니다.
+- `features/personas/`: 페르소나 상태, 아바타, 관리 화면과 설정 섹션. 테마·시스템·삽화 섹션은 `features/theme`, `features/system`, `features/illustrations`에 있습니다.
 - `features/model-presets/`: 모델/API 키 목록, 편집기, 인증 입력, 가져온 프로필 필드와 데이터 변환.
 - `features/model-chains/`: React Flow 자유 연결 노드 편집기, 저장 그래프와 실행 계획 투영, 에이전트 상세 편집기, 체인 편집 훅과 순수 데이터 조작 함수. 설계와 제약은 [features/model-chains/README.md](../../../features/model-chains/README.md) 참고.
 - `features/prompt-presets/`: 프롬프트 프리셋 작업대 및 탭별 편집기.

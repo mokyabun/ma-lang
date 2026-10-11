@@ -57,9 +57,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CharacterAvatar } from '@/features/characters/character-avatar'
 import { cn } from '@/lib/utils'
 
-import { CharacterAvatar } from '../character/character-avatar'
 import {
     type CollectionNodeType,
     dropSlotId,
@@ -72,7 +72,7 @@ import {
     moveGroupedCollection,
     nodeTypeFromId,
     rootCollectionNodes,
-} from '../groups/model'
+} from './model'
 
 export function CharacterRail({
     characters,

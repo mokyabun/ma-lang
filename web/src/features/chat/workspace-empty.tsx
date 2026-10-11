@@ -4,12 +4,12 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 
 import { Button } from '@/components/ui/button'
+import { requestCharacterImportAtom } from '@/features/characters/atom'
+import { CharacterAvatar } from '@/features/characters/character-avatar'
 import { activeCharactersAtom, conversationsAtom } from '@/lib/store'
 
-import { requestCharacterImportAtom } from '../character/atom'
-import { CharacterAvatar } from '../character/character-avatar'
-import { conversationCreatingAtom } from '../chat/atom'
-import { useStartConversation } from '../chat/use-start-conversation'
+import { conversationCreatingAtom } from './atom'
+import { useStartConversation } from './use-start-conversation'
 
 export function WorkspaceEmpty() {
     const navigate = useNavigate()

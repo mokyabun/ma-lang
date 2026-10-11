@@ -2,12 +2,12 @@ import { IllustrationSection } from '@/features/illustrations/illustration-secti
 import { IllustrationStylesSection } from '@/features/illustrations/illustration-styles-section'
 import { ModelChainSection } from '@/features/model-chains/model-chain-section'
 import { ModelPresetSection } from '@/features/model-presets/model-preset-section'
+import { PersonaSection } from '@/features/personas/persona-section'
 import { ModulesSection } from '@/features/prompt-modules/modules-section'
 import { PromptPresetSection } from '@/features/prompt-presets/prompt-preset-section'
 import { SystemSection } from '@/features/system/system-section'
 import { ThemeSection } from '@/features/theme/theme-section'
 
-import { PersonaSection } from './persona/persona-section'
 import type { SettingsPanelProps } from './types'
 
 export function SettingsContent({ section, ...props }: SettingsPanelProps) {

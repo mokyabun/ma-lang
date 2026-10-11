@@ -32,11 +32,11 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { CharacterActors } from '@/features/illustrations/character-actors'
+import { personaListAtom, selectedPersonaIdAtom, selectPersonaAtom } from '@/features/personas/atom'
 import { useDebouncedSave } from '@/hooks/use-debounced-save'
 import { characterExportUrl, characterPackageExportUrl } from '@/lib/api'
 import type { CharacterEditorSection } from '@/lib/workspace-page'
 
-import { personaListAtom, selectedPersonaIdAtom, selectPersonaAtom } from '../settings/persona/atom'
 import { CharacterAvatar } from './character-avatar'
 import { CharacterEditorSections } from './character-editor-sections'
 import { draftFrom, replaceRegex } from './model'
