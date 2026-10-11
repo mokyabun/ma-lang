@@ -11,15 +11,15 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig } from '../support/fixtures'
-import { login } from '../support/session'
+import { testConfig } from '../helpers/app'
+import { login } from '../helpers/app'
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9, 9])
 const NOVELAI_KEY = 'pst-novelai-secret-1234'
 
 describe('illustration settings and test generation', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-illustrations-'))
-    const config = appConfig(directory)
+    const config = testConfig(directory)
     const originalFetch = globalThis.fetch
     let context: AppContext
     let app: ReturnType<typeof createApp>

@@ -10,16 +10,16 @@ import type {
     PromptMessage,
     PromptScenario,
 } from '../../../scripts/pocketrisu-oracle/protocol'
-import { appConfig } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
 
 const encoder = new TextEncoder()
 
 // Mirrors the request oracle: no trimming unless the scenario sets a budget.
 const UNLIMITED_CONTEXT = 10_000_000
 
-function testConfig(directory: string) {
-    const base = appConfig(directory)
-    return appConfig(directory, {
+function parityConfig(directory: string) {
+    const base = testConfig(directory)
+    return testConfig(directory, {
         adminPassword: 'pocketrisu parity administrator',
         sessionSecret: 'pocketrisu-parity-session-secret-with-entropy',
         port: 0,
@@ -34,7 +34,7 @@ export async function compileWithMalang(
     scenario: PromptScenario,
 ): Promise<{ messages: PromptMessage[]; geminiPrompt: GeminiPrompt }> {
     const directory = mkdtempSync(join(tmpdir(), 'malang-parity-'))
-    const context = await createContext(testConfig(directory))
+    const context = await createContext(parityConfig(directory))
     try {
         const { store } = context
         store.provider.set({

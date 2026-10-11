@@ -9,12 +9,12 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig } from '../support/fixtures'
-import { login } from '../support/session'
+import { testConfig } from '../helpers/app'
+import { login } from '../helpers/app'
 
 describe('model presets, API keys, and conversation bindings', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-presets-'))
-    const config = appConfig(directory)
+    const config = testConfig(directory)
     let context: AppContext
     let app: ReturnType<typeof createApp>
     let cookie = ''

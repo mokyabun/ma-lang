@@ -10,12 +10,13 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig, fixturePath, v3Card } from './support/fixtures'
-import { login } from './support/session'
+import { testConfig } from './helpers/app'
+import { login } from './helpers/app'
+import { charxArchive, v3Card } from './helpers/fixtures'
 
 describe('Hono API and SQLite persistence', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-api-'))
-    const config = appConfig(directory, {
+    const config = testConfig(directory, {
         allowedOrigins: new Set(['https://chat.example']),
     })
     let context: AppContext
@@ -82,7 +83,7 @@ describe('Hono API and SQLite persistence', () => {
     })
 
     test('imports a CHARX uploaded in out-of-order, retried chunks', async () => {
-        const bytes = new Uint8Array(await Bun.file(fixturePath('test.charx')).arrayBuffer())
+        const bytes = charxArchive()
         const json = { cookie, 'content-type': 'application/json' }
         const uploadsDirectory = join(directory, 'tmp', 'uploads')
 
@@ -632,7 +633,7 @@ describe('Hono API and SQLite persistence', () => {
                 'content-type': 'application/octet-stream',
                 'x-filename': encodeURIComponent('테스트 캐릭터.charx'),
             },
-            body: await Bun.file(fixturePath('test.charx')).arrayBuffer(),
+            body: charxArchive(),
         })
         expect(imported.status).toBe(201)
     })
@@ -703,7 +704,7 @@ describe('Hono API and SQLite persistence', () => {
                 .filter(Boolean)
                 .map((block) => JSON.parse(block.replace(/^data: /, '')) as ImportEvent)
         const uploadsDirectory = join(directory, 'tmp', 'uploads')
-        const upload = (body: string | ArrayBuffer, filename: string) =>
+        const upload = (body: string | Uint8Array, filename: string) =>
             app.request('/api/v1/characters/import', {
                 method: 'POST',
                 headers: {
@@ -715,10 +716,7 @@ describe('Hono API and SQLite persistence', () => {
                 body,
             })
 
-        const response = await upload(
-            await Bun.file(fixturePath('test.charx')).arrayBuffer(),
-            'stream.charx',
-        )
+        const response = await upload(charxArchive(), 'stream.charx')
         expect(response.headers.get('content-type')).toContain('text/event-stream')
         const events = await readEvents(response)
         expect(events[0]).toEqual({ type: 'import.progress', stage: 'reading' })

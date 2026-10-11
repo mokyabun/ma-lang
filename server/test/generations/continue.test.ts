@@ -8,14 +8,14 @@ import { GENERAL_CHAT_CHARACTER_ID, type GenerationRequest } from '@malang/share
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
 
 describe('continuing the last response', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-continue-'))
     let context: AppContext
 
     beforeAll(async () => {
-        context = await createContext(appConfig(directory))
+        context = await createContext(testConfig(directory))
     })
 
     afterAll(() => {

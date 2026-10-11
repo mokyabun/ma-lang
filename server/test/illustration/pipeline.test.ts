@@ -16,8 +16,8 @@ import { createApp } from '@/app'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig } from '../support/fixtures'
-import { login } from '../support/session'
+import { testConfig } from '../helpers/app'
+import { login } from '../helpers/app'
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7])
 const REPLY = 'Aria walks into the garden.\n\nShe hums quietly.\n\nNight falls over the house.'
@@ -100,7 +100,7 @@ describe('illustration pipeline', () => {
         items.length > 0 && items.every((item) => item.status === 'complete')
 
     beforeAll(async () => {
-        context = await createContext(appConfig(directory))
+        context = await createContext(testConfig(directory))
         const publish = context.events.publish.bind(context.events)
         context.events.publish = (event) => {
             events.push(event)
@@ -284,7 +284,7 @@ describe('illustration pipeline', () => {
 
     test('exposes the button and the list over HTTP', async () => {
         const app = createApp(context)
-        const cookie = await login(app, appConfig(directory).adminPassword!)
+        const cookie = await login(app, testConfig(directory).adminPassword!)
         const call = (path: string, body?: unknown) =>
             app.request(`/api/v1/conversations/${path}`, {
                 method: body === undefined ? 'GET' : 'POST',

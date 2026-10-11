@@ -6,7 +6,7 @@ import {
     mergeGenerationParameters,
 } from '@/modules/prompts/engine/compiler'
 
-import { testTokenizer } from '../support/tokenizer'
+import { testTokenizer } from '../helpers/tokenizer'
 
 describe('generation parameter merging', () => {
     test('treats RisuAI -1000 sentinels as unset', async () => {

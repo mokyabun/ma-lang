@@ -11,9 +11,9 @@ import type {
 } from '@malang/shared'
 
 import type { DisplayCase, MessageScenario } from '../../../scripts/pocketrisu-oracle/protocol'
-import { renderDisplayText } from '../../../server/src/services/prompt/display-text'
-import { loadRisuChat } from '../../../server/src/services/prompt/pocketrisu/chat'
-import { RegexSandbox } from '../../../server/src/services/prompt/pocketrisu/scripts'
+import { renderDisplayText } from '../../../server/src/modules/prompts/engine/display-text'
+import { loadRisuChat } from '../../../server/src/modules/prompts/engine/pocketrisu/chat'
+import { RegexSandbox } from '../../../server/src/modules/prompts/engine/pocketrisu/scripts'
 import { renderMessageContentHtml } from '../../src/lib/render-message-content'
 
 /** innerHTML of the `.chattext` element MessageContent renders. */
@@ -79,7 +79,7 @@ async function renderScenarioDisplay(scenario: MessageScenario): Promise<string>
             parser,
             content: target.content,
             chatId: scenario.index,
-            // Mirrors server/src/services/prompt/risu.ts importing a PocketRisu customscript.
+            // Mirrors server/src/modules/prompts/engine/risu.ts importing a PocketRisu customscript.
             scripts: (scenario.regex ?? []).map((script, index) => ({
                 id: `parity-regex-${index}`,
                 comment: script.comment ?? '',

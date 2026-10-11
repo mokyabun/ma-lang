@@ -8,11 +8,12 @@ import { CharacterCreateSchema } from '@malang/shared'
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig, fixturePath } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
+import { fixturePath } from '../helpers/fixtures'
 
 describe('PocketRisu Lua runtime', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-lua-'))
-    const config = appConfig(directory)
+    const config = testConfig(directory)
     let context: AppContext
     let conversationId: string
 

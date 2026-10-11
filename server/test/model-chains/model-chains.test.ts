@@ -14,11 +14,11 @@ import {
 import { createContext } from '@/bootstrap'
 import type { AppContext } from '@/context'
 
-import { appConfig } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
 
 describe('server-side model chains', () => {
     const directory = mkdtempSync(join(tmpdir(), 'malang-model-chains-'))
-    const config = appConfig(directory)
+    const config = testConfig(directory)
     let context: AppContext
 
     beforeAll(async () => {

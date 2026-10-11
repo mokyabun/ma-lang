@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test'
 
 import { exportPromptModule, importPromptModule } from '@/modules/prompt-modules/codec'
 
-import { appConfig } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
 
-const limits = appConfig().limits
+const limits = testConfig().limits
 
 describe('Risu prompt module codec', () => {
     const input = {

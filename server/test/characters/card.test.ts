@@ -8,7 +8,8 @@ import { exportCharacterCard, importCharacterCard } from '@/modules/characters/c
 import { exportPromptModule } from '@/modules/prompt-modules/codec'
 import { encodeRPack } from '@/modules/prompts/engine/rpack'
 
-import { appConfig, fixturePath, v3Card } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
+import { localFixture, v3Card } from '../helpers/fixtures'
 
 function buildRisumModule(module: Record<string, unknown>): Uint8Array {
     const main = encodeRPack(
@@ -23,7 +24,7 @@ function buildRisumModule(module: Record<string, unknown>): Uint8Array {
     return output
 }
 
-const config = appConfig()
+const config = testConfig()
 
 describe('character card codec', () => {
     test('imports v3 JSON and preserves extensions and lore', async () => {
@@ -128,18 +129,23 @@ describe('character card codec', () => {
         expect(capital?.extensions?.malang_group).toBe(folder?.extensions?.malang_group)
     })
 
-    test('imports the Devil-chan CHARX compatibility fixture', async () => {
-        const imported = await importCharacterCard(
-            readFileSync(fixturePath('test.charx')),
-            'test.charx',
-            config,
-        )
-        expect(imported.sourceSpec).toBe('v3')
-        expect(imported.card.data.name).toBe('Devil-chan')
-        expect(imported.card.data.character_book?.entries || []).toHaveLength(0)
-        expect(imported.assets).toHaveLength(140)
-        expect(imported.card.data.extensions).toHaveProperty('risuai')
-    })
+    const devilChan = localFixture('test.charx')
+
+    test.skipIf(!devilChan)(
+        'imports the Devil-chan CHARX compatibility fixture (fixtures/local/test.charx)',
+        async () => {
+            const imported = await importCharacterCard(
+                readFileSync(devilChan!),
+                'test.charx',
+                config,
+            )
+            expect(imported.sourceSpec).toBe('v3')
+            expect(imported.card.data.name).toBe('Devil-chan')
+            expect(imported.card.data.character_book?.entries || []).toHaveLength(0)
+            expect(imported.assets).toHaveLength(140)
+            expect(imported.card.data.extensions).toHaveProperty('risuai')
+        },
+    )
 
     test('imports the lorebook from a RisuAI module.risum sidecar, including folder groups', async () => {
         const card = v3Card({ character_book: undefined })

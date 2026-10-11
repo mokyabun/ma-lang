@@ -13,9 +13,10 @@ import {
     importPocketRisuCharacterPackage,
 } from '@/modules/characters/package'
 
-import { appConfig, v3Card } from '../support/fixtures'
+import { testConfig } from '../helpers/app'
+import { v3Card } from '../helpers/fixtures'
 
-const config = appConfig()
+const config = testConfig()
 
 const encoder = new TextEncoder()
 const emptyPng = Uint8Array.from(
