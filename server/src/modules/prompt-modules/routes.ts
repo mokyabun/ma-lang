@@ -4,7 +4,7 @@ import { Hono } from 'hono'
 import type { AppContext } from '@/context'
 import { NotFoundError } from '@/lib/errors'
 import { type AppEnv, binaryResponse, jsonValidator, parseEnum } from '@/lib/http'
-import { respondToImport } from '@/lib/import/response'
+import { respondToImport } from '@/modules/uploads/import-response'
 
 export function createPromptModuleRoutes(context: AppContext) {
     return new Hono<AppEnv>()

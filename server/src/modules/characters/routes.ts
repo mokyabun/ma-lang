@@ -11,7 +11,7 @@ import { Hono } from 'hono'
 import type { AppContext } from '@/context'
 import { ConflictError, NotFoundError, ValidationError } from '@/lib/errors'
 import { type AppEnv, binaryResponse, jsonValidator, parseEnum, readImportFile } from '@/lib/http'
-import { respondToImport } from '@/lib/import/response'
+import { respondToImport } from '@/modules/uploads/import-response'
 
 export function createCharacterRoutes(context: AppContext) {
     return new Hono<AppEnv>()
