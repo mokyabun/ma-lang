@@ -3,9 +3,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useState } from 'react'
 
-import { moduleInput } from '@/components/app/settings/modules/model'
-import { presetInput } from '@/components/app/settings/prompt/model'
 import { useTheme } from '@/components/theme-provider'
+import { moduleInput } from '@/features/prompt-modules/model'
+import { presetInput } from '@/features/prompt-presets/model'
 import { api } from '@/lib/api'
 import {
     conversationGroupsAtom,
