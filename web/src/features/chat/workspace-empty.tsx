@@ -66,7 +66,7 @@ export function WorkspaceEmpty() {
     return (
         <div className="row-span-full mx-auto h-full w-full max-w-3xl overflow-y-auto px-6 py-10 sm:py-16">
             <div className="mb-8 text-center">
-                <h2 className="font-serif text-3xl">누구와 이야기할까요?</h2>
+                <h2 className="font-serif text-3xl">Ma-Lang</h2>
             </div>
 
             <button
